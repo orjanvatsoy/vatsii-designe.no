@@ -31,13 +31,22 @@ export default function About() {
         <br />
         <br />
         Jeg har en sterk skapertrang som strekker seg utover jobben. På fritiden
-        driver jeg egne kreative prosjekter under navnet Vatsii_designs, hvor
-        jeg utforsker både digitale og fysiske designprosesser. Du finner meg
-        like gjerne i snekkerverkstedet med sagflis i håret som foran PC-en,
-        hvor jeg tegner i Fusion 360 eller utvikler visuelle konsepter. Gjennom
-        Vatsii_designs har jeg for eksempel bygget min egen trebåt kalt Klasken
-        og designet unike møbler og skilt. Disse prosjektene gir meg muligheten
-        til å uttrykke meg kreativt og lære noe nytt hele tiden.
+        driver jeg egne kreative prosjekter under navnet
+        <a
+          href="https://www.instagram.com/vatsii_designs/?igsh=NWw2OXl0cHZsenBq&utm_source=qr"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ textDecoration: "underline" }}
+        >
+          Vatsii_designs
+        </a>
+        , hvor jeg utforsker både digitale og fysiske designprosesser. Du finner
+        meg like gjerne i snekkerverkstedet med sagflis i håret som foran PC-en,
+        hvor jeg tegner i Fusion 360 eller utvikler visuelle konsepter. Under
+        navnet Vatsii_designs deler jeg glimt fra prosjekter jeg har jobbet med
+        – blant annet restaureringen av trebåten Klasken og ulike møbel- og
+        skiltprosjekter. Det er prosjekter som gir meg muligheten til å utforske
+        kreativitet og stadig lære noe nytt.
         <br />
         <br />
         Målet mitt nå er å utvikle meg videre som designer. Jeg ønsker å bli en
