@@ -10,7 +10,6 @@ export default function UserPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [role, setRole] = useState<string>("");
-  const [roleLoading, setRoleLoading] = useState(false);
 
   useEffect(() => {
     const getUserAndRole = async () => {
@@ -66,7 +65,6 @@ export default function UserPage() {
         <Button variant="outlined" onClick={handleLogin}>
           Logg inn med Google
         </Button>
-        {error && <Typography color="error">{error}</Typography>}
       </Box>
     );
   }
@@ -80,17 +78,6 @@ export default function UserPage() {
       name?: string;
     };
     email?: string;
-  };
-
-  const handleSetRoleKing = async () => {
-    if (!userObj.id) return;
-    setRoleLoading(true);
-    const { error } = await supabase
-      .from("profiles")
-      .upsert({ id: userObj.id, role: "King" });
-    if (!error) setRole("King");
-    else setError(error.message);
-    setRoleLoading(false);
   };
 
   return (
@@ -114,6 +101,7 @@ export default function UserPage() {
         <Typography variant="body2" color="primary">
           Role: {role || "None"}
         </Typography>
+        {error && <Typography color="error">{error}</Typography>}
       </Box>
       <Button variant="contained" color="secondary" onClick={handleLogout}>
         Log out
