@@ -41,12 +41,36 @@ const images = [
 
 export default function PictureCarousel() {
   const [index, setIndex] = React.useState(0);
+  const touchStartX = React.useRef<number | null>(null);
+  const touchEndX = React.useRef<number | null>(null);
 
   const handlePrev = () => {
     setIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
   };
   const handleNext = () => {
     setIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  };
+
+  // Touch event handlers for swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+  const handleTouchEnd = () => {
+    if (touchStartX.current !== null && touchEndX.current !== null) {
+      const distance = touchStartX.current - touchEndX.current;
+      if (Math.abs(distance) > 50) {
+        if (distance > 0) {
+          handleNext(); // swipe left
+        } else {
+          handlePrev(); // swipe right
+        }
+      }
+    }
+    touchStartX.current = null;
+    touchEndX.current = null;
   };
 
   return (
@@ -57,7 +81,14 @@ export default function PictureCarousel() {
       minHeight="60vh"
     >
       <Card sx={{ minWidth: 320, maxWidth: 500 }}>
-        <CardMedia component="img" height="440" image={images[index].src} />
+        <CardMedia
+          component="img"
+          height="440"
+          image={images[index].src}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        />
         <CardActions
           sx={{
             display: "flex",

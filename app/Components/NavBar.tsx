@@ -53,11 +53,6 @@ export default function NavBar() {
             Contact
           </Button>
           <Box sx={{ flexGrow: 1 }} />
-          {userName && (
-            <Typography variant="body2" sx={{ mr: 2 }}>
-              {userName}
-            </Typography>
-          )}
           <IconButton
             component={Link}
             href="/login"
