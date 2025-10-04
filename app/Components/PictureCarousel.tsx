@@ -13,17 +13,17 @@ import CardActions from "@mui/material/CardActions";
 
 // Images will be fetched from Supabase
 
-const PictureCarousel: React.FC = () => {
-  const [images, setImages] = useState<
-    Array<{
-      signed_url: string;
-      id?: string;
-      title?: string;
-      description?: string;
-    }>
-  >([]);
+interface PictureCarouselProps {
+  images: Array<{
+    signed_url: string;
+    id?: string;
+    title?: string;
+    description?: string;
+  }>;
+}
+
+const PictureCarousel: React.FC<PictureCarouselProps> = ({ images }) => {
   const [index, setIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string>("");
   const [deleting, setDeleting] = useState(false);
   // Fetch user role for delete access
@@ -45,20 +45,6 @@ const PictureCarousel: React.FC = () => {
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
-  useEffect(() => {
-    const fetchImages = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/carousel-images");
-        const data = await res.json();
-        setImages(data);
-      } catch (err) {
-        setImages([]);
-      }
-      setLoading(false);
-    };
-    fetchImages();
-  }, []);
   // Delete image and DB row
   const handleDelete = async () => {
     if (!images[index]?.id || !images[index]?.signed_url) return;
@@ -68,7 +54,7 @@ const PictureCarousel: React.FC = () => {
     const fileName = urlParts[urlParts.length - 1].split("?")[0];
     await supabase.storage.from("carousel").remove([fileName]);
     await supabase.from("carousel_images").delete().eq("id", images[index].id);
-    setImages((prev) => prev.filter((_, i) => i !== index));
+    // You must trigger a refresh from parent after delete, or use router.refresh()
     setIndex(0);
     setDeleting(false);
   };
@@ -102,9 +88,6 @@ const PictureCarousel: React.FC = () => {
     touchEndX.current = null;
   };
 
-  if (loading) {
-    return <Typography>Henter bilder...</Typography>;
-  }
   if (!images.length) {
     return <Typography>Ingen bilder funnet.</Typography>;
   }
