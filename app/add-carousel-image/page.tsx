@@ -29,31 +29,18 @@ export default function AddCarouselImagePage() {
       return;
     }
     setUploading(true);
-    // Upload image to Supabase Storage
-    const fileName = `${Date.now()}_${imageFile.name}`;
-    const { data: storageData, error: storageError } = await supabase.storage
-      .from("carousel") // Make sure you have a 'carousel' bucket
-      .upload(fileName, imageFile);
-    if (storageError) {
-      setError("Feil ved opplasting: " + storageError.message);
-      setUploading(false);
-      return;
-    }
-    // Get public URL
-    const { data: publicUrlData } = supabase.storage
-      .from("carousel")
-      .getPublicUrl(fileName);
-    const imageUrl = publicUrlData?.publicUrl;
-    // Save metadata to DB
-    const { error: dbError } = await supabase.from("carousel_images").insert([
-      {
-        image_url: imageUrl,
-        title,
-        description,
-      },
-    ]);
-    if (dbError) {
-      setError("Feil ved lagring i database: " + dbError.message);
+    // Send to API route
+    const formData = new FormData();
+    formData.append("file", imageFile);
+    formData.append("title", title);
+    formData.append("description", description);
+    const res = await fetch("/api/upload-carousel-image", {
+      method: "POST",
+      body: formData,
+    });
+    const result = await res.json();
+    if (!res.ok) {
+      setError(result.error || "Ukjent feil ved opplasting");
       setUploading(false);
       return;
     }
