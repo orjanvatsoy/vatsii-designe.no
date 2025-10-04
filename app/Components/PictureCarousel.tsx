@@ -15,7 +15,12 @@ import CardActions from "@mui/material/CardActions";
 
 const PictureCarousel: React.FC = () => {
   const [images, setImages] = useState<
-    Array<{ image_url: string; id?: string }>
+    Array<{
+      signed_url: string;
+      id?: string;
+      title?: string;
+      description?: string;
+    }>
   >([]);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -43,26 +48,26 @@ const PictureCarousel: React.FC = () => {
   useEffect(() => {
     const fetchImages = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("carousel_images")
-        .select("id, image_url")
-        .order("created_at", { ascending: false });
-      if (data) setImages(data);
+      try {
+        const res = await fetch("/api/carousel-images");
+        const data = await res.json();
+        setImages(data);
+      } catch (err) {
+        setImages([]);
+      }
       setLoading(false);
     };
     fetchImages();
   }, []);
   // Delete image and DB row
   const handleDelete = async () => {
-    if (!images[index]?.id || !images[index]?.image_url) return;
+    if (!images[index]?.id || !images[index]?.signed_url) return;
     setDeleting(true);
-    // Delete from Storage
-    const urlParts = images[index].image_url.split("/");
-    const fileName = urlParts[urlParts.length - 1];
+    // Delete from Storage and DB (still client-side, could be moved to API for more security)
+    const urlParts = images[index].signed_url.split("/");
+    const fileName = urlParts[urlParts.length - 1].split("?")[0];
     await supabase.storage.from("carousel").remove([fileName]);
-    // Delete from DB
     await supabase.from("carousel_images").delete().eq("id", images[index].id);
-    // Remove from local state
     setImages((prev) => prev.filter((_, i) => i !== index));
     setIndex(0);
     setDeleting(false);
@@ -117,7 +122,7 @@ const PictureCarousel: React.FC = () => {
         <CardMedia
           component="img"
           height="440"
-          image={current.image_url}
+          image={current.signed_url}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
