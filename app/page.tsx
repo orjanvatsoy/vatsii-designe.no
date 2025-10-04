@@ -15,20 +15,18 @@ async function fetchImages() {
     .order("created_at", { ascending: false });
   if (error || !data) return [];
 
-  // Generate signed URLs for each image
-  const imagesWithSignedUrls = await Promise.all(
-    data.map(async (img) => {
-      const fileName = img.image_url?.split("/").pop();
-      const { data: signedUrlData } = await supabase.storage
-        .from("carousel")
-        .createSignedUrl(fileName, 60 * 60); // 1 hour expiry
-      return {
-        ...img,
-        signed_url: signedUrlData?.signedUrl ?? "",
-      };
-    })
-  );
-  return imagesWithSignedUrls;
+  // Generate public URLs for each image
+  const imagesWithPublicUrls = data.map((img) => {
+    const fileName = img.image_url?.split("/").pop();
+    const { data: publicUrlData } = supabase.storage
+      .from("carousel")
+      .getPublicUrl(fileName);
+    return {
+      ...img,
+      public_url: publicUrlData?.publicUrl ?? "",
+    };
+  });
+  return imagesWithPublicUrls;
 }
 
 export default async function Home() {

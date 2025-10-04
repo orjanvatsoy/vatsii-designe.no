@@ -15,7 +15,7 @@ import CardActions from "@mui/material/CardActions";
 
 interface PictureCarouselProps {
   images: Array<{
-    signed_url: string;
+    public_url: string;
     id?: string;
     title?: string;
     description?: string;
@@ -47,10 +47,10 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({ images }) => {
 
   // Delete image and DB row
   const handleDelete = async () => {
-    if (!images[index]?.id || !images[index]?.signed_url) return;
+    if (!images[index]?.id || !images[index]?.public_url) return;
     setDeleting(true);
     // Delete from Storage and DB (still client-side, could be moved to API for more security)
-    const urlParts = images[index].signed_url.split("/");
+    const urlParts = images[index].public_url.split("/");
     const fileName = urlParts[urlParts.length - 1].split("?")[0];
     await supabase.storage.from("carousel").remove([fileName]);
     await supabase.from("carousel_images").delete().eq("id", images[index].id);
@@ -105,7 +105,7 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({ images }) => {
         <CardMedia
           component="img"
           height="440"
-          image={current.signed_url}
+          image={current.public_url}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
