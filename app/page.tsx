@@ -1,3 +1,5 @@
+"use server";
+
 import { Typography } from "@mui/material";
 import PictureCarousel from "./Components/PictureCarousel";
 import { createClient } from "@supabase/supabase-js";
