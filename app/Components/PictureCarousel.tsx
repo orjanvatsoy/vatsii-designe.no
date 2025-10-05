@@ -1,15 +1,17 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
 import { supabase } from "../lib/supabaseClient";
-import Box from "@mui/material/Box";
-import Card from "@mui/material/Card";
-import IconButton from "@mui/material/IconButton";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import CardMedia from "@mui/material/CardMedia";
-import CardActions from "@mui/material/CardActions";
+import {
+  Typography,
+  Box,
+  Card,
+  CardMedia,
+  CardActions,
+  IconButton,
+  Button,
+} from "@mui/material";
 
 // Images will be fetched from Supabase
 
@@ -95,49 +97,58 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({ images }) => {
   const current = images[index];
 
   return (
-    <Box
-      display="flex"
-      justifyContent="center"
-      alignItems="center"
-      minHeight="60vh"
-    >
-      <Card sx={{ minWidth: 320, maxWidth: 500 }}>
-        <CardMedia
-          component="img"
-          height="440"
-          image={current.public_url}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        />
-        <CardActions
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <IconButton onClick={handlePrev} aria-label="previous image">
-            <ArrowBackIosNewIcon />
-          </IconButton>
-          <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
-            {role === "King" && (
-              <Button
-                color="error"
-                variant="contained"
-                onClick={handleDelete}
-                disabled={deleting}
-              >
-                {deleting ? "Sletter..." : "Slett bilde"}
-              </Button>
-            )}
-          </Box>
-          <IconButton onClick={handleNext} aria-label="next image">
-            <ArrowForwardIosIcon />
-          </IconButton>
-        </CardActions>
-      </Card>
-    </Box>
+    <>
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="60vh"
+      >
+        <Card sx={{ minWidth: 320, maxWidth: 500 }}>
+          <CardMedia
+            component="img"
+            height="440"
+            image={current.public_url}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          />
+          <CardActions
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <IconButton onClick={handlePrev} aria-label="previous image">
+              <ArrowBackIosNewIcon />
+            </IconButton>
+            <Box
+              sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}
+            >
+              {role === "King" && (
+                <Button
+                  color="error"
+                  variant="contained"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                >
+                  {deleting ? "Sletter..." : "Slett bilde"}
+                </Button>
+              )}
+            </Box>
+            <IconButton onClick={handleNext} aria-label="next image">
+              <ArrowForwardIosIcon />
+            </IconButton>
+          </CardActions>
+        </Card>
+      </Box>
+      <Box display="flex" justifyContent="center" mt={4}>
+        <Button variant="contained" color="primary" href="/products">
+          Se alle produkter
+        </Button>
+      </Box>
+    </>
   );
 };
 
