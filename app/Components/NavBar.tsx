@@ -130,12 +130,24 @@ export default function NavBar() {
                 <ListItemText primary="Contact" />
               </ListItemButton>
             </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton component={Link} href="/products">
+                <ListItemText primary="Produkter" />
+              </ListItemButton>
+            </ListItem>
             {role === "King" && (
-              <ListItem disablePadding>
-                <ListItemButton component={Link} href="/add-carousel-image">
-                  <ListItemText primary="Edit Carousel" />
-                </ListItemButton>
-              </ListItem>
+              <>
+                <ListItem disablePadding>
+                  <ListItemButton component={Link} href="/add-carousel-image">
+                    <ListItemText primary="Edit Carousel" />
+                  </ListItemButton>
+                </ListItem>
+                <ListItem disablePadding>
+                  <ListItemButton component={Link} href="/admin">
+                    <ListItemText primary="Admin Products" />
+                  </ListItemButton>
+                </ListItem>
+              </>
             )}
           </List>
           <Divider />
