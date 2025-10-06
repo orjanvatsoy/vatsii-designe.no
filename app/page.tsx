@@ -4,7 +4,7 @@ import { Typography } from "@mui/material";
 import PictureCarousel from "./Components/PictureCarousel";
 import { createClient } from "@supabase/supabase-js";
 
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
