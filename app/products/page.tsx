@@ -42,6 +42,14 @@ export default async function ProductsPage() {
                 bgcolor: "background.paper",
                 border: "1px solid",
                 borderColor: "background.paper",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                minHeight: 320,
+                maxHeight: 330,
+                height: { xs: 370, sm: 370, md: 370 },
+                width: "100%",
               }}
             >
               {product.image_url && (
