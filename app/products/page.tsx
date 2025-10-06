@@ -18,10 +18,7 @@ export default async function ProductsPage() {
   const { data: products, error } = await supabase
     .from("products")
     .select("id, name, description, category, price, image_url")
-    .eq("active", true)
-    .order("created_at", { ascending: false });
-  console.log("Products fetch error:", error);
-  console.log("Fetched products:", products);
+    .eq("active", true);
 
   if (error) {
     return (
