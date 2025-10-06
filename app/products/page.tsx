@@ -69,7 +69,19 @@ export default async function ProductsPage() {
                   {product.name}
                 </Typography>
                 <Typography variant="body2" mb={1}>
-                  {product.description}
+                  <span
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "normal",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {product.description}
+                  </span>
                 </Typography>
               </CardContent>
             </Card>
