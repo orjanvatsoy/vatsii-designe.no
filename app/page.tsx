@@ -4,15 +4,18 @@ import { Typography } from "@mui/material";
 import PictureCarousel from "./Components/PictureCarousel";
 import { createClient } from "@supabase/supabase-js";
 
+export const revalidate = 0;
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function fetchImages() {
   const { data, error } = await supabase
     .from("carousel_images")
     .select("id, image_url, title, description, created_at")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .abortSignal(AbortSignal.timeout(5000));
   if (error || !data) return [];
 
   // Generate public URLs for each image

@@ -10,6 +10,8 @@ import {
   Grid,
 } from "@mui/material";
 
+export const revalidate = 0;
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -17,8 +19,9 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export default async function ProductsPage() {
   const { data: products, error } = await supabase
     .from("products")
-    .select("id, name, description, category, price, image_url")
-    .eq("active", true);
+    .select("*")
+    .eq("active", true)
+    .abortSignal(AbortSignal.timeout(5000));
 
   if (error) {
     return (
