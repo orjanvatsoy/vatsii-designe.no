@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { ThemeProvider } from "@mui/material/styles";
 import { Roboto } from "next/font/google";
+import { baseMetadata } from "./seo-metadata";
 import { theme } from "./theme";
 import Container from "@mui/material/Container";
 import NavBar from "./Components/NavBar";
@@ -15,11 +16,7 @@ const roboto = Roboto({
   variable: "--font-roboto",
 });
 
-export const metadata: Metadata = {
-  title: "Ørjan Vatsøy | Vatsii Designs Portfolio",
-  description:
-    "Portefølje for Ørjan Vatsøy – applikasjonsutvikler, UX-designer og kreativ skaper. Utforsk prosjekter, design og kontaktinformasjon.",
-};
+export const metadata = baseMetadata;
 
 export default function RootLayout({
   children,
