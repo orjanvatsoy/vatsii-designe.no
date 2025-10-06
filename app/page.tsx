@@ -28,6 +28,8 @@ async function fetchImages() {
   return imagesWithPublicUrls;
 }
 
+export const revalidate = 0;
+
 export default async function Home() {
   const images = await fetchImages();
   return (
