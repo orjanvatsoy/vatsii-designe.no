@@ -1,6 +1,3 @@
-import type { Metadata } from "next";
-import "./globals.css";
-
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { ThemeProvider } from "@mui/material/styles";
 import { Roboto } from "next/font/google";
@@ -8,6 +5,7 @@ import { baseMetadata } from "./seo-metadata";
 import { theme } from "./theme";
 import Container from "@mui/material/Container";
 import NavBar from "./Components/NavBar";
+import { Analytics } from "@vercel/analytics/next";
 
 const roboto = Roboto({
   weight: ["300", "400", "500", "700"],
@@ -32,6 +30,7 @@ export default function RootLayout({
             <Container maxWidth="xl">{children}</Container>
           </ThemeProvider>
         </AppRouterCacheProvider>
+        <Analytics />
       </body>
     </html>
   );
