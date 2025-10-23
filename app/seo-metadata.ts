@@ -1,21 +1,13 @@
 import type { Metadata } from "next";
 
 export const baseMetadata: Metadata = {
+  metadataBase: new URL("https://www.vatsii-designe.no"),
   title: "Ørjan Vatsøy | Vatsii Designs Portfolio",
   description:
     "Portefølje for Ørjan Vatsøy – applikasjonsutvikler, UX-designer og kreativ skaper. Utforsk prosjekter, design og kontaktinformasjon.",
-  keywords: [
-    "Vatsii",
-    "Ørjan Vatsøy",
-    "design",
-    "portfolio",
-    "applikasjonsutvikler",
-    "UX",
-    "prosjekter",
-    "bordkort",
-    "kreativ",
-    "webutvikling",
-  ],
+  alternates: {
+    canonical: "https://www.vatsii-designe.no",
+  },
   openGraph: {
     title: "Ørjan Vatsøy | Vatsii Designs Portfolio",
     description:
@@ -24,7 +16,7 @@ export const baseMetadata: Metadata = {
     siteName: "Vatsii Designs",
     images: [
       {
-        url: "https://www.vatsii-designe.no/og-image.jpg",
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "Vatsii Designs Portfolio",
@@ -32,5 +24,13 @@ export const baseMetadata: Metadata = {
     ],
     locale: "no_NO",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Ørjan Vatsøy | Vatsii Designs Portfolio",
+    description:
+      "Applikasjonsutvikler, UX-designer og kreativ skaper. Utforsk mine prosjekter og ta kontakt.",
+    images: ["/og-image.jpg"],
+    creator: "@vatsii",
   },
 };
