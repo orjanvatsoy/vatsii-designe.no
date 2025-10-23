@@ -6,6 +6,7 @@ import { theme } from "./theme";
 import Container from "@mui/material/Container";
 import NavBar from "./Components/NavBar";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const roboto = Roboto({
   weight: ["300", "400", "500", "700"],
@@ -31,6 +32,7 @@ export default function RootLayout({
           </ThemeProvider>
         </AppRouterCacheProvider>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
