@@ -16,5 +16,5 @@ export default async function Page() {
     data = tempData.reverse();
   }
 
-  return <IotTemperatureCard data={data} authorized={true} />;
+  return <IotTemperatureCard data={data} />;
 }

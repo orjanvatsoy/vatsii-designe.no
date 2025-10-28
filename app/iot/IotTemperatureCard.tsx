@@ -14,7 +14,6 @@ interface IotTemperatureChartProps {
 
 interface IotTemperatureCardProps {
   data: { created_at: string; temperature: number }[];
-  authorized: boolean;
 }
 
 const IotTemperatureChart = dynamic<IotTemperatureChartProps>(
@@ -22,10 +21,7 @@ const IotTemperatureChart = dynamic<IotTemperatureChartProps>(
   { ssr: false }
 );
 
-export default function IotTemperatureCard({
-  data,
-  authorized,
-}: IotTemperatureCardProps) {
+export default function IotTemperatureCard({ data }: IotTemperatureCardProps) {
   const [role, setRole] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
@@ -47,7 +43,7 @@ export default function IotTemperatureCard({
     getRole();
   }, []);
 
-  const isKing = role === "King";
+  const isKing = role === "King" || role === "User";
 
   return (
     <Box maxWidth={800} mx="auto" mt={8}>

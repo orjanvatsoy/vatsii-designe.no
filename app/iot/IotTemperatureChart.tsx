@@ -19,30 +19,18 @@ export default function IotTemperatureChart({
   if (loading) {
     return <Typography>Loading...</Typography>;
   }
-  // Only show the last 10 points
-  const last10 = data.slice(-10);
-  // Format time as HH:mm:ss (24H)
-  const timeLabels = last10.map((d) => {
-    const date = new Date(d.created_at);
-    return date.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
-  });
   return (
     <LineChart
       xAxis={[
         {
-          data: timeLabels,
+          data: data.map((d) => new Date(d.created_at).toLocaleString()),
           scaleType: "point",
           label: "Time",
         },
       ]}
       series={[
         {
-          data: last10.map((d) => d.temperature),
+          data: data.map((d) => d.temperature),
           label: "Temperature (°C)",
         },
       ]}
