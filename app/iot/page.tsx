@@ -43,5 +43,6 @@ export default async function IotTemperaturePage() {
     }
   }
 
-  return <IotTemperatureCard data={data} authorized={authorized} />;
+  // Always pass authorized=true; client will check real role
+  return <IotTemperatureCard data={data} authorized={true} />;
 }
