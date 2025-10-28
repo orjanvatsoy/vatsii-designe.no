@@ -1,6 +1,5 @@
-import { Typography } from "@mui/material";
-import PictureCarousel from "./Components/PictureCarousel";
 import { createClient } from "@supabase/supabase-js";
+import HomeStatic from "./Components/HomeStatic";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -32,12 +31,5 @@ export const revalidate = 0;
 
 export default async function Home() {
   const images = await fetchImages();
-  return (
-    <>
-      <Typography variant="h3" align="center" gutterBottom>
-        Welcome to Vatsii Designe
-      </Typography>
-      <PictureCarousel images={images} />
-    </>
-  );
+  return <HomeStatic images={images} />;
 }

@@ -137,6 +137,7 @@ export default function NavBar() {
             </ListItem>
             {role === "King" && (
               <>
+                <Divider />
                 <ListItem disablePadding>
                   <ListItemButton component={Link} href="/add-carousel-image">
                     <ListItemText primary="Edit Carousel" />
@@ -145,6 +146,11 @@ export default function NavBar() {
                 <ListItem disablePadding>
                   <ListItemButton component={Link} href="/admin">
                     <ListItemText primary="Admin Products" />
+                  </ListItemButton>
+                </ListItem>
+                <ListItem disablePadding>
+                  <ListItemButton component={Link} href="/iot">
+                    <ListItemText primary="IoT" />
                   </ListItemButton>
                 </ListItem>
               </>
