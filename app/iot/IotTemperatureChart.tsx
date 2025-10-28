@@ -34,8 +34,8 @@ export default function IotTemperatureChart({
           label: "Temperature (°C)",
         },
       ]}
-      width={700}
-      height={400}
+      width={Math.max(350, window.innerWidth - 48)}
+      height={250}
     />
   );
 }

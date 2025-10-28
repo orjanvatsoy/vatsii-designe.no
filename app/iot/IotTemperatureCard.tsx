@@ -46,8 +46,8 @@ export default function IotTemperatureCard({ data }: IotTemperatureCardProps) {
   const isKing = role === "King" || role === "User";
 
   return (
-    <Box maxWidth={800} mx="auto" mt={8}>
-      <Card>
+    <Box width="100%" maxWidth={800} mx="auto" mt={4} px={1}>
+      <Card sx={{ width: "100%" }}>
         <CardContent>
           <Typography variant="h5" gutterBottom>
             Temperature Graph
