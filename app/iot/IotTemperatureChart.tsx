@@ -42,6 +42,7 @@ export default function IotTemperatureChart({
             }),
             scaleType: "point",
             label: "Time",
+            tickNumber: 6,
           },
         ]}
         series={[
