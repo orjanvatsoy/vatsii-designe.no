@@ -48,7 +48,7 @@ export default function IotTemperatureChart({
   const yData = lastN.map((d) => d.temperature);
 
   return (
-    <Box style={{ width: "100%", height: "30vh" }}>
+    <Box style={{ width: "100%" }}>
       <FormControl size="small" sx={{ mb: 2, minWidth: 120 }}>
         <InputLabel id="hour-range-label">Range</InputLabel>
         <Select
@@ -57,6 +57,7 @@ export default function IotTemperatureChart({
           label="Range"
           onChange={(e) => setHourRange(Number(e.target.value))}
         >
+          <MenuItem value={1}>Last 1 hour</MenuItem>
           <MenuItem value={6}>Last 6 hours</MenuItem>
           <MenuItem value={12}>Last 12 hours</MenuItem>
           <MenuItem value={24}>Last 24 hours</MenuItem>
