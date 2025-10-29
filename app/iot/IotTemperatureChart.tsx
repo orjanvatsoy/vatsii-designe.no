@@ -20,7 +20,7 @@ export default function IotTemperatureChart({
     return <Typography>Loading...</Typography>;
   }
   return (
-    <Box style={{ width: "100%", minWidth: 0, overflowX: "auto" }}>
+    <Box style={{ width: "100%", height: "30vh" }}>
       <LineChart
         xAxis={[
           {
