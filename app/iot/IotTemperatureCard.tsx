@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, Typography, Box } from "@mui/material";
+import { Card, CardContent, Typography, Box, Container } from "@mui/material";
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
@@ -46,7 +46,7 @@ export default function IotTemperatureCard({ data }: IotTemperatureCardProps) {
   const isKing = role === "King" || role === "User";
 
   return (
-    <Box width="100%" maxWidth={800} mx="auto" mt={4} px={1}>
+    <Container>
       <Card sx={{ width: "100%" }}>
         <CardContent>
           <Typography variant="h5" gutterBottom>
@@ -59,6 +59,6 @@ export default function IotTemperatureCard({ data }: IotTemperatureCardProps) {
           />
         </CardContent>
       </Card>
-    </Box>
+    </Container>
   );
 }
