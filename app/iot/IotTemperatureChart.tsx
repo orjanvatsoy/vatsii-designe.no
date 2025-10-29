@@ -95,6 +95,7 @@ export default function IotTemperatureChart({
             showMark: false,
           },
         ]}
+        height={400}
       />
     </Box>
   );
