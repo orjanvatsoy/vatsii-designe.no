@@ -1,5 +1,5 @@
 "use client";
-import { Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { LineChart } from "@mui/x-charts/LineChart";
 
 interface IotTemperatureChartProps {
@@ -20,22 +20,32 @@ export default function IotTemperatureChart({
     return <Typography>Loading...</Typography>;
   }
   return (
-    <LineChart
-      xAxis={[
-        {
-          data: data.map((d) => new Date(d.created_at).toLocaleString()),
-          scaleType: "point",
-          label: "Time",
-        },
-      ]}
-      series={[
-        {
-          data: data.map((d) => d.temperature),
-          label: "Temperature (°C)",
-        },
-      ]}
-      width={Math.max(350, window.innerWidth - 48)}
-      height={250}
-    />
+    <Box style={{ width: "100%", minWidth: 0, overflowX: "auto" }}>
+      <LineChart
+        xAxis={[
+          {
+            data: data.map((d) => {
+              const date = new Date(d.created_at);
+              return date.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: false,
+              });
+            }),
+            scaleType: "point",
+            label: "Time",
+          },
+        ]}
+        series={[
+          {
+            data: data.map((d) => d.temperature),
+            label: "Temperature (°C)",
+          },
+        ]}
+        width={Math.max(350, window.innerWidth - 48)}
+        height={250}
+      />
+    </Box>
   );
 }
