@@ -10,8 +10,7 @@ export default async function Page() {
   const { data: tempData, error } = await supabase
     .from("temperature_data")
     .select("created_at, temperature")
-    .order("created_at", { ascending: false })
-    .limit(10);
+    .order("created_at", { ascending: false });
   if (!error && tempData) {
     data = tempData.reverse();
   }

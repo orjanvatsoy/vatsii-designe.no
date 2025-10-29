@@ -19,12 +19,19 @@ export default function IotTemperatureChart({
   if (loading) {
     return <Typography>Loading...</Typography>;
   }
+  // Filter data to last 24 hours
+  const now = new Date();
+  const last24h = data.filter((d) => {
+    const t = new Date(d.created_at);
+    return now.getTime() - t.getTime() <= 24 * 60 * 60 * 1000;
+  });
+
   return (
     <Box style={{ width: "100%", height: "30vh" }}>
       <LineChart
         xAxis={[
           {
-            data: data.map((d) => {
+            data: last24h.map((d) => {
               const date = new Date(d.created_at);
               return date.toLocaleTimeString([], {
                 hour: "2-digit",
@@ -39,8 +46,9 @@ export default function IotTemperatureChart({
         ]}
         series={[
           {
-            data: data.map((d) => d.temperature),
+            data: last24h.map((d) => d.temperature),
             label: "Temperature (°C)",
+            showMark: false,
           },
         ]}
       />
