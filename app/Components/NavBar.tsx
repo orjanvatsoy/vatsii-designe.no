@@ -150,17 +150,16 @@ export default function NavBar() {
                 </ListItem>
               </>
             )}
-            {role === "User" ||
-              (role === "King" && (
-                <>
-                  <Divider />
-                  <ListItem disablePadding>
-                    <ListItemButton component={Link} href="/iot">
-                      <ListItemText primary="IoT" />
-                    </ListItemButton>
-                  </ListItem>
-                </>
-              ))}
+            {(role === "User" || role === "King") && (
+              <>
+                <Divider />
+                <ListItem disablePadding>
+                  <ListItemButton component={Link} href="/iot">
+                    <ListItemText primary="IoT" />
+                  </ListItemButton>
+                </ListItem>
+              </>
+            )}
           </List>
           <Divider />
           <List>

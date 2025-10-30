@@ -7,7 +7,14 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+// Helper to fetch forecast from new API route
+async function fetchYrForecast() {
+  const res = await fetch("/api/YRforecast");
+  if (!res.ok) throw new Error("Failed to fetch forecast");
+  const data = await res.json();
+  return data.forecast as { time: string; temperature: number }[];
+}
 import { LineChart } from "@mui/x-charts/LineChart";
 
 interface IotTemperatureChartProps {
@@ -22,6 +29,19 @@ export default function IotTemperatureChart({
   authorized,
 }: IotTemperatureChartProps) {
   const [hourRange, setHourRange] = useState(24);
+  const [forecast, setForecast] = useState<
+    { time: string; temperature: number }[]
+  >([]);
+
+  useEffect(() => {
+    let ignore = false;
+    fetchYrForecast().then((data) => {
+      if (!ignore) setForecast(data);
+    });
+    return () => {
+      ignore = true;
+    };
+  }, []);
   if (!authorized) {
     return <Typography color="error">Not authorized</Typography>;
   }
@@ -46,6 +66,24 @@ export default function IotTemperatureChart({
     );
   });
   const yData = lastN.map((d) => d.temperature);
+
+  // Prepare forecast data for the selected range (future only)
+  const forecastFiltered = forecast
+    .filter((f) => {
+      const t = new Date(f.time);
+      return (
+        t.getTime() >= now.getTime() &&
+        t.getTime() <= now.getTime() + hourRange * 60 * 60 * 1000
+      );
+    })
+    .map((f) => {
+      // x: hours from now (0 = now)
+      const t = new Date(f.time);
+      return {
+        x: (t.getTime() - now.getTime()) / (60 * 60 * 1000),
+        y: f.temperature,
+      };
+    });
 
   return (
     <Box style={{ width: "100%" }}>
@@ -88,13 +126,30 @@ export default function IotTemperatureChart({
             },
           },
         ]}
-        series={[
-          {
-            data: yData,
-            label: "Temperature (°C)",
-            showMark: false,
-          },
-        ]}
+        series={
+          forecastFiltered.length > 0
+            ? [
+                {
+                  data: yData,
+                  label: "Temperature (°C)",
+                  showMark: false,
+                },
+                {
+                  data: forecastFiltered.map((f) => f.y),
+                  label: "Forecast (Yr)",
+                  color: "#1976d2",
+                  showMark: false,
+                  area: false,
+                },
+              ]
+            : [
+                {
+                  data: yData,
+                  label: "Temperature (°C)",
+                  showMark: false,
+                },
+              ]
+        }
         height={400}
       />
     </Box>
