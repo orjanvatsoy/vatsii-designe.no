@@ -1,13 +1,8 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-
 // Coordinates for Askøy, Norway
 const LAT = 60.4;
 const LON = 5.18333;
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export async function GET(request: Request) {
   try {
     const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${LAT}&lon=${LON}`;
     const response = await fetch(url, {
@@ -17,9 +12,13 @@ export default async function handler(
       },
     });
     if (!response.ok) {
-      return res
-        .status(response.status)
-        .json({ error: "Failed to fetch forecast" });
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch forecast" }),
+        {
+          status: response.status,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
     const data = await response.json();
     // Only return the timeseries array (hourly forecast)
@@ -41,8 +40,14 @@ export default async function handler(
         temperature: item.data.instant.details.air_temperature,
       };
     });
-    res.status(200).json({ forecast });
+    return new Response(JSON.stringify({ forecast }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
