@@ -75,7 +75,7 @@ export default function UserPage() {
           <Button variant="outlined" onClick={handleLogin}>
             Logg inn med Google
           </Button>
-          {typeof window !== "undefined" &&
+          {/* {typeof window !== "undefined" &&
             window.location.hostname === "localhost" && (
               <Box mt={2}>
                 <FormControl size="small" sx={{ minWidth: 160 }}>
@@ -96,7 +96,7 @@ export default function UserPage() {
                   </Select>
                 </FormControl>
               </Box>
-            )}
+            )} */}
         </Box>
       </>
     );
