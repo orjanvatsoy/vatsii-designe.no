@@ -48,42 +48,54 @@ export default function IotTemperatureChart({
   if (loading) {
     return <Typography>Loading...</Typography>;
   }
-  // Filter data to last N hours
+  // Split the range: half past, half future
   const now = new Date();
-  const lastN = data.filter((d) => {
-    const t = new Date(d.created_at);
-    return now.getTime() - t.getTime() <= hourRange * 60 * 60 * 1000;
-  });
-
-  // Build x-axis for N hours, 6 main labels
-  const tickNumber = 6;
-  // Map data to hours since -N
-  const xData = lastN.map((d) => {
+  const halfRange = hourRange / 2;
+  // Supabase data: only up to now, last halfRange hours
+  const supabasePast = data.filter((d) => {
     const t = new Date(d.created_at);
     return (
-      (t.getTime() - (now.getTime() - hourRange * 60 * 60 * 1000)) /
-      (60 * 60 * 1000)
+      t.getTime() >= now.getTime() - halfRange * 60 * 60 * 1000 &&
+      t.getTime() <= now.getTime()
     );
   });
-  const yData = lastN.map((d) => d.temperature);
+  // YR forecast: only from now, next halfRange hours
+  const forecastFuture = forecast.filter((f) => {
+    const t = new Date(f.time);
+    return (
+      t.getTime() >= now.getTime() &&
+      t.getTime() <= now.getTime() + halfRange * 60 * 60 * 1000
+    );
+  });
 
-  // Prepare forecast data for the selected range (future only)
-  const forecastFiltered = forecast
-    .filter((f) => {
-      const t = new Date(f.time);
-      return (
-        t.getTime() >= now.getTime() &&
-        t.getTime() <= now.getTime() + hourRange * 60 * 60 * 1000
-      );
-    })
-    .map((f) => {
-      // x: hours from now (0 = now)
-      const t = new Date(f.time);
-      return {
-        x: (t.getTime() - now.getTime()) / (60 * 60 * 1000),
-        y: f.temperature,
-      };
-    });
+  // Build x-axis: -halfRange to 0 for past, 0 to +halfRange for future
+  const xDataPast = supabasePast.map((d) => {
+    const t = new Date(d.created_at);
+    return (
+      (t.getTime() - (now.getTime() - halfRange * 60 * 60 * 1000)) /
+        (60 * 60 * 1000) -
+      halfRange
+    );
+  });
+  const yDataPast = supabasePast.map((d) => d.temperature);
+  const xDataFuture = forecastFuture.map((f) => {
+    const t = new Date(f.time);
+    return (t.getTime() - now.getTime()) / (60 * 60 * 1000);
+  });
+  const yDataFuture = forecastFuture.map((f) => f.temperature);
+
+  // Merge x-axis for chart: -halfRange ... 0 ... +halfRange
+  const xData = [...xDataPast, ...xDataFuture];
+
+  // For series, pad with nulls so both arrays are same length as xData
+  const yDataPastPadded = [
+    ...yDataPast,
+    ...Array(xDataFuture.length).fill(null),
+  ];
+  const yDataFuturePadded = [
+    ...Array(xDataPast.length).fill(null),
+    ...yDataFuture,
+  ];
 
   return (
     <Box style={{ width: "100%" }}>
@@ -107,16 +119,14 @@ export default function IotTemperatureChart({
           {
             data: xData,
             scaleType: "linear",
-            min: 0,
-            max: hourRange,
-            label: `Time (last ${hourRange}h)`,
-            tickNumber,
+            min: -halfRange,
+            max: halfRange,
+            label: `Time (past/future, h)`,
+            tickNumber: 9,
             valueFormatter: (value) => {
-              // value is hours since -N
+              // value is hours from now (negative = past, positive = future)
               const h = Math.round(value);
-              const date = new Date(
-                now.getTime() - (hourRange - h) * 60 * 60 * 1000
-              );
+              const date = new Date(now.getTime() + h * 60 * 60 * 1000);
               return (
                 date.toLocaleTimeString([], {
                   hour: "2-digit",
@@ -126,31 +136,27 @@ export default function IotTemperatureChart({
             },
           },
         ]}
-        series={
-          forecastFiltered.length > 0
-            ? [
-                {
-                  data: yData,
-                  label: "Temperature (°C)",
-                  showMark: false,
-                },
-                {
-                  data: forecastFiltered.map((f) => f.y),
-                  label: "Forecast (Yr)",
-                  color: "#1976d2",
-                  showMark: false,
-                  area: false,
-                },
-              ]
-            : [
-                {
-                  data: yData,
-                  label: "Temperature (°C)",
-                  showMark: false,
-                },
-              ]
-        }
+        series={[
+          {
+            id: "past",
+            data: yDataPastPadded,
+            label: "Temperature (past, Supabase)",
+            showMark: false,
+          },
+          {
+            id: "future",
+            data: yDataFuturePadded,
+            label: "Forecast (future, Yr)",
+            showMark: false,
+            color: "#1976d2",
+          },
+        ]}
         height={400}
+        slotProps={{
+          line: ({ id }) => ({
+            strokeDasharray: id === "future" ? "4 4" : "0",
+          }),
+        }}
       />
     </Box>
   );
