@@ -143,7 +143,7 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({ images }) => {
           </CardActions>
         </Card>
       </Box>
-      <Box display="flex" justifyContent="center" mt={4}>
+      <Box display="flex" justifyContent="center" mt={1}>
         <Button variant="contained" color="primary" href="/products">
           Se alle produkter
         </Button>
