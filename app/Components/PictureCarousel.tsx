@@ -77,8 +77,12 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({ images }) => {
       const newPictures = pictures.filter((_, i) => i !== index);
       setPictures(newPictures);
       setIndex(0);
-    } catch (err: any) {
-      setErrorMsg("Uventet feil: " + (err?.message || err));
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setErrorMsg("Uventet feil: " + err.message);
+      } else {
+        setErrorMsg("Uventet feil: " + String(err));
+      }
     }
     setDeleting(false);
   };
