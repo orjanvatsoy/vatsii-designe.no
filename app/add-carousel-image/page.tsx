@@ -5,6 +5,8 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
+import { Breadcrumbs, Container, Link as MuiLink } from "@mui/material";
+import Link from "next/link";
 
 export default function AddCarouselImagePage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -52,46 +54,59 @@ export default function AddCarouselImagePage() {
   };
 
   return (
-    <Box maxWidth={400} mx="auto" mt={8}>
-      <Typography variant="h4" mb={2}>
-        Legg til bilde i karusell
-      </Typography>
-      <form onSubmit={handleSubmit}>
-        <input type="file" accept="image/*" onChange={handleFileChange} />
-        <TextField
-          label="Tittel"
-          fullWidth
-          margin="normal"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <TextField
-          label="Beskrivelse"
-          fullWidth
-          margin="normal"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-        <Button
-          type="submit"
-          variant="contained"
-          color="primary"
-          disabled={uploading}
-          sx={{ mt: 2 }}
-        >
-          {uploading ? "Lagrer..." : "Lagre bilde"}
-        </Button>
-        {error && (
-          <Typography color="error" mt={2}>
-            {error}
+    <>
+      <Breadcrumbs aria-label="breadcrumb" sx={{ ml: 4, mb: 2 }}>
+        <MuiLink href="/" color="inherit" underline="hover">
+          Hjem
+        </MuiLink>
+
+        <Typography color="primary" fontWeight={600}>
+          Legg til karusell bilde
+        </Typography>
+      </Breadcrumbs>
+      <Container maxWidth="lg" sx={{ mt: 8 }}>
+        <Box maxWidth={400} mx="auto" mt={8}>
+          <Typography variant="h4" mb={2}>
+            Legg til bilde i karusell
           </Typography>
-        )}
-        {success && (
-          <Typography color="success.main" mt={2}>
-            {success}
-          </Typography>
-        )}
-      </form>
-    </Box>
+          <form onSubmit={handleSubmit}>
+            <input type="file" accept="image/*" onChange={handleFileChange} />
+            <TextField
+              label="Tittel"
+              fullWidth
+              margin="normal"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+            <TextField
+              label="Beskrivelse"
+              fullWidth
+              margin="normal"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              disabled={uploading}
+              sx={{ mt: 2 }}
+            >
+              {uploading ? "Lagrer..." : "Lagre bilde"}
+            </Button>
+            {error && (
+              <Typography color="error" mt={2}>
+                {error}
+              </Typography>
+            )}
+            {success && (
+              <Typography color="success.main" mt={2}>
+                {success}
+              </Typography>
+            )}
+          </form>
+        </Box>
+      </Container>
+    </>
   );
 }

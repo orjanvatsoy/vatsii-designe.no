@@ -28,7 +28,7 @@ export default function RootLayout({
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <NavBar />
-            <Container maxWidth="xl">{children}</Container>
+            <>{children}</>
           </ThemeProvider>
         </AppRouterCacheProvider>
         <Analytics />

@@ -4,10 +4,8 @@ import { supabase } from "../lib/supabaseClient";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import FormControl from "@mui/material/FormControl";
-import InputLabel from "@mui/material/InputLabel";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
+import { Breadcrumbs, Container, Link as MuiLink } from "@mui/material";
+import Link from "next/link";
 
 export default function UserPage() {
   const [user, setUser] = useState<unknown>(null);
@@ -64,6 +62,14 @@ export default function UserPage() {
   if (!user) {
     return (
       <>
+        <Breadcrumbs aria-label="breadcrumb" sx={{ ml: 4, mb: 2 }}>
+          <MuiLink component={Link} href="/" color="inherit" underline="hover">
+            Hjem
+          </MuiLink>
+          <Typography color="primary" fontWeight={600}>
+            Logg inn
+          </Typography>
+        </Breadcrumbs>
         <Box
           display="flex"
           flexDirection="column"
@@ -75,28 +81,6 @@ export default function UserPage() {
           <Button variant="outlined" onClick={handleLogin}>
             Logg inn med Google
           </Button>
-          {/* {typeof window !== "undefined" &&
-            window.location.hostname === "localhost" && (
-              <Box mt={2}>
-                <FormControl size="small" sx={{ minWidth: 160 }}>
-                  <InputLabel id="dev-role-select-label">
-                    Dev: Bytt rolle
-                  </InputLabel>
-                  <Select
-                    labelId="dev-role-select-label"
-                    id="dev-role-select"
-                    value={role}
-                    label="Dev: Bytt rolle"
-                    onChange={(e) => setRole(e.target.value)}
-                  >
-                    <MenuItem value="">Ingen</MenuItem>
-                    <MenuItem value="User">User</MenuItem>
-                    <MenuItem value="King">King</MenuItem>
-                    <MenuItem value="Admin">Admin</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box>
-            )} */}
         </Box>
       </>
     );
@@ -114,32 +98,42 @@ export default function UserPage() {
   };
 
   return (
-    <Box
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-      gap={2}
-      mt={8}
-    >
-      <Typography variant="h4">User</Typography>
-      <Box display="flex" flexDirection="column" alignItems="center" gap={1}>
-        <Typography variant="h6">
-          {userObj.user_metadata?.full_name ||
-            userObj.user_metadata?.name ||
-            "Unknown User"}
+    <>
+      <Breadcrumbs aria-label="breadcrumb" sx={{ ml: 4, mb: 2 }}>
+        <MuiLink component={Link} href="/" color="inherit" underline="hover">
+          Hjem
+        </MuiLink>
+        <Typography color="primary" fontWeight={600}>
+          Min profil
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {userObj.email}
-        </Typography>
-        <Typography variant="body2" color="primary">
-          Role: {role || "None"}
-        </Typography>
-
-        {error && <Typography color="error">{error}</Typography>}
-      </Box>
-      <Button variant="contained" color="secondary" onClick={handleLogout}>
-        Log out
-      </Button>
-    </Box>
+      </Breadcrumbs>
+      <Container
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 2,
+          mt: 8,
+        }}
+      >
+        <Typography variant="h4">User</Typography>
+        <Box display="flex" flexDirection="column" alignItems="center" gap={1}>
+          <Typography variant="h6">
+            {userObj.user_metadata?.full_name ||
+              userObj.user_metadata?.name ||
+              "Unknown User"}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {userObj.email}
+          </Typography>
+          <Typography variant="body2" color="primary">
+            Role: {role || "None"}
+          </Typography>
+        </Box>
+        <Button variant="contained" color="secondary" onClick={handleLogout}>
+          Log out
+        </Button>
+      </Container>
+    </>
   );
 }
