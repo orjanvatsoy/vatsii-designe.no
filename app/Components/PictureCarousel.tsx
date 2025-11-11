@@ -24,9 +24,11 @@ interface PictureCarouselProps {
 }
 
 const PictureCarousel: React.FC<PictureCarouselProps> = ({ images }) => {
+  const [pictures, setPictures] = useState(images);
   const [index, setIndex] = useState(0);
   const [role, setRole] = useState<string>("");
   const [deleting, setDeleting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string>("");
   // Fetch user role for delete access
   useEffect(() => {
     const getRole = async () => {
@@ -48,23 +50,44 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({ images }) => {
 
   // Delete image and DB row
   const handleDelete = async () => {
-    if (!images[index]?.id || !images[index]?.public_url) return;
+    setErrorMsg("");
+    if (!pictures[index]?.id || !pictures[index]?.public_url) return;
     setDeleting(true);
-    // Delete from Storage and DB (still client-side, could be moved to API for more security)
-    const urlParts = images[index].public_url.split("/");
-    const fileName = urlParts[urlParts.length - 1].split("?")[0];
-    await supabase.storage.from("carousel").remove([fileName]);
-    await supabase.from("carousel_images").delete().eq("id", images[index].id);
-    // You must trigger a refresh from parent after delete, or use router.refresh()
-    setIndex(0);
+    try {
+      const urlParts = pictures[index].public_url.split("/");
+      const fileName = urlParts[urlParts.length - 1].split("?")[0];
+      const { error: storageError } = await supabase.storage
+        .from("carousel")
+        .remove([fileName]);
+      if (storageError) {
+        setErrorMsg("Kunne ikke slette fra storage: " + storageError.message);
+        setDeleting(false);
+        return;
+      }
+      const { error: dbError } = await supabase
+        .from("carousel_images")
+        .delete()
+        .eq("id", pictures[index].id);
+      if (dbError) {
+        setErrorMsg("Kunne ikke slette fra database: " + dbError.message);
+        setDeleting(false);
+        return;
+      }
+      // Oppdater bildelisten med setPictures
+      const newPictures = pictures.filter((_, i) => i !== index);
+      setPictures(newPictures);
+      setIndex(0);
+    } catch (err: any) {
+      setErrorMsg("Uventet feil: " + (err?.message || err));
+    }
     setDeleting(false);
   };
 
   const handlePrev = () => {
-    setIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+    setIndex((prev) => (prev === 0 ? pictures.length - 1 : prev - 1));
   };
   const handleNext = () => {
-    setIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+    setIndex((prev) => (prev === pictures.length - 1 ? 0 : prev + 1));
   };
 
   // Touch event handlers for swipe
@@ -89,11 +112,16 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({ images }) => {
     touchEndX.current = null;
   };
 
-  if (!images.length) {
+  if (!pictures.length) {
     return <Typography>Ingen bilder funnet.</Typography>;
   }
 
-  const current = images[index];
+  // Vis feilmelding hvis noe går galt
+  if (errorMsg) {
+    return <Typography color="error">{errorMsg}</Typography>;
+  }
+
+  const current = pictures[index];
 
   return (
     <>
