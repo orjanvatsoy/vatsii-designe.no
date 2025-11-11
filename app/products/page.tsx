@@ -5,13 +5,14 @@ import {
   Box,
   Card,
   CardContent,
-  CardMedia,
   Typography,
   Grid,
   Breadcrumbs,
   Container,
   Link as MuiLink,
+  Skeleton,
 } from "@mui/material";
+import Image from "next/image";
 import Link from "next/link";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -74,18 +75,32 @@ export default async function ProductsPage() {
                     "&:hover": { boxShadow: 12 },
                   }}
                 >
-                  {product.image_url && (
-                    <CardMedia
-                      component="img"
-                      image={product.image_url}
-                      alt={product.name}
-                      sx={{
-                        height: 220,
-                        objectFit: "contain",
-                        bgcolor: "background.default",
-                      }}
-                    />
-                  )}
+                  <Box
+                    sx={{
+                      width: "100%",
+                      height: 220,
+                      position: "relative",
+                      bgcolor: "background.default",
+                    }}
+                  >
+                    {product.image_url ? (
+                      <Image
+                        src={product.image_url}
+                        alt={product.name}
+                        fill
+                        style={{ objectFit: "contain", borderRadius: 6 }}
+                        loading="lazy"
+                        sizes="(max-width: 600px) 100vw, 33vw"
+                        placeholder="empty"
+                      />
+                    ) : (
+                      <Skeleton
+                        variant="rectangular"
+                        width="100%"
+                        height={220}
+                      />
+                    )}
+                  </Box>
                   <CardContent>
                     <Typography variant="h6" color="primary.main">
                       {product.name}

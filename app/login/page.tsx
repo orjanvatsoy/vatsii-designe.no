@@ -10,7 +10,7 @@ import Link from "next/link";
 export default function UserPage() {
   const [user, setUser] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [, setError] = useState("");
   const [role, setRole] = useState<string>("");
 
   useEffect(() => {

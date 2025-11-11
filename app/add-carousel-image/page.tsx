@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { supabase } from "../lib/supabaseClient";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
@@ -56,10 +55,9 @@ export default function AddCarouselImagePage() {
   return (
     <>
       <Breadcrumbs aria-label="breadcrumb" sx={{ ml: 4, mb: 2 }}>
-        <MuiLink href="/" color="inherit" underline="hover">
+        <MuiLink component={Link} href="/" color="inherit" underline="hover">
           Hjem
         </MuiLink>
-
         <Typography color="primary" fontWeight={600}>
           Legg til karusell bilde
         </Typography>

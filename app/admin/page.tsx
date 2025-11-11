@@ -83,7 +83,7 @@ export default function AdminProductPage() {
       setCategory("");
       setImageFile(null);
       setImagePreview("");
-    } catch (err) {
+    } catch {
       setError("Network error");
     }
     setSaving(false);

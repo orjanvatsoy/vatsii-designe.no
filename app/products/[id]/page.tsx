@@ -109,7 +109,8 @@ export default async function ProductPage({
                   borderRadius: 6,
                   transition: "transform 0.3s",
                 }}
-                priority
+                loading="lazy"
+                sizes="(max-width: 600px) 100vw, 33vw"
               />
             </Box>
           )}

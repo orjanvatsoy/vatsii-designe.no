@@ -1,5 +1,6 @@
+import { Box, Button, Card, Container, Typography } from "@mui/material";
+import PictureCarousel from "./Components/PictureCarousel";
 import { createClient } from "@supabase/supabase-js";
-import HomeStatic from "./Components/HomeStatic";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -31,5 +32,26 @@ export const revalidate = 0;
 
 export default async function Home() {
   const images = await fetchImages();
-  return <HomeStatic images={images} />;
+  return (
+    <Container maxWidth="lg">
+      <Typography variant="h3" align="center" gutterBottom>
+        Welcome to Vatsii Designe
+      </Typography>
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="60vh"
+      >
+        <Card sx={{ minWidth: 320, maxWidth: 500 }}>
+          <PictureCarousel images={images} />
+        </Card>
+      </Box>
+      <Box display="flex" justifyContent="center" mt={1}>
+        <Button variant="contained" color="primary" href="/products">
+          Se alle produkter
+        </Button>
+      </Box>
+    </Container>
+  );
 }
