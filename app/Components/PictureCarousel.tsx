@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
+import { Skeleton } from "@mui/material";
 import { supabase } from "../lib/supabaseClient";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
@@ -29,6 +30,7 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({ images }) => {
   const [role, setRole] = useState<string>("");
   const [deleting, setDeleting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [imageLoaded, setImageLoaded] = useState(false); // Declare useState for imageLoaded only once
   // Fetch user role for delete access
   useEffect(() => {
     const getRole = async () => {
@@ -130,6 +132,14 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({ images }) => {
   return (
     <>
       <Box sx={{ position: "relative", width: "100%", height: 440 }}>
+        {!imageLoaded && (
+          <Skeleton
+            variant="rectangular"
+            width="100%"
+            height={440}
+            sx={{ position: "absolute", top: 0, left: 0, zIndex: 1 }}
+          />
+        )}
         <Image
           src={current.public_url}
           alt={current.title || "Bilde"}
@@ -140,6 +150,7 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({ images }) => {
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onLoad={() => setImageLoaded(true)}
         />
       </Box>
       <CardActions
