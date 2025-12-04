@@ -3,7 +3,6 @@ import { ThemeProvider } from "@mui/material/styles";
 import { Roboto } from "next/font/google";
 import { baseMetadata } from "./seo-metadata";
 import { theme } from "./theme";
-import Container from "@mui/material/Container";
 import NavBar from "./Components/NavBar";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
