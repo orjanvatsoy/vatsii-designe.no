@@ -145,7 +145,7 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({ images }) => {
           alt={current.title || "Bilde"}
           fill
           style={{ objectFit: "contain", borderRadius: 6 }}
-          loading="lazy"
+          priority={index === 0}
           sizes="(max-width: 600px) 100vw, 50vw"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
