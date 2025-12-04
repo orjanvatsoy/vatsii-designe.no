@@ -19,7 +19,7 @@ async function fetchImages() {
     const fileName = img.image_url?.split("/").pop();
     const { data: publicUrlData } = supabase.storage
       .from("carousel")
-      .getPublicUrl(fileName, { transform: { width: 400, quality: 70 } });
+      .getPublicUrl(fileName, { transform: { quality: 70 } });
     return {
       ...img,
       public_url: publicUrlData?.publicUrl ?? "",
