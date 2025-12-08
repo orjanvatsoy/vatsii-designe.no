@@ -102,14 +102,8 @@ export default function IotTemperatureChart({
     ...yDataPast,
     ...Array(xDataFuture.length).fill(null),
   ];
-  const yDataPastForecastPadded = [
-    ...yDataPastForecast,
-    ...Array(xDataFuture.length).fill(null),
-  ];
-  const yDataFuturePadded = [
-    ...Array(xDataPast.length).fill(null),
-    ...yDataFuture,
-  ];
+  // Merge past and future forecast into one series
+  const yDataForecastMerged = [...yDataPastForecast, ...yDataFuture];
 
   return (
     <Box style={{ width: "100%" }}>
@@ -158,15 +152,8 @@ export default function IotTemperatureChart({
             showMark: false,
           },
           {
-            id: "past_forecast",
-            data: yDataPastForecastPadded,
-            label: "",
-            showMark: false,
-            color: "#1976d2",
-          },
-          {
-            id: "future",
-            data: yDataFuturePadded,
+            id: "forecast",
+            data: yDataForecastMerged,
             label: "Forecast (Yr)",
             showMark: false,
             color: "#1976d2",
@@ -175,8 +162,7 @@ export default function IotTemperatureChart({
         height={400}
         slotProps={{
           line: ({ id }) => ({
-            strokeDasharray:
-              id === "future" || id === "past_forecast" ? "4 4" : "0",
+            strokeDasharray: id === "forecast" ? "4 4" : "0",
           }),
         }}
       />
