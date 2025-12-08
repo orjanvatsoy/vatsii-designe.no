@@ -10,7 +10,7 @@ export default async function Page() {
   let data: { created_at: string; temperature: number }[] = [];
   const { data: tempData, error } = await supabase
     .from("temperature_data")
-    .select("created_at, temperature")
+    .select("created_at, temperature, temperature_forcast")
     .order("created_at", { ascending: false });
   if (!error && tempData) {
     data = tempData.reverse();

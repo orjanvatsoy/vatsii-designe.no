@@ -18,7 +18,11 @@ async function fetchYrForecast() {
 import { LineChart } from "@mui/x-charts/LineChart";
 
 interface IotTemperatureChartProps {
-  data: { created_at: string; temperature: number }[];
+  data: {
+    created_at: string;
+    temperature: number;
+    temperature_forcast?: number | null;
+  }[];
   loading: boolean;
   authorized: boolean;
 }
@@ -59,6 +63,12 @@ export default function IotTemperatureChart({
       t.getTime() <= now.getTime()
     );
   });
+  // Supabase forecasted temperature (past)
+  const yDataPastForecast = supabasePast.map((d) =>
+    d.temperature_forcast !== undefined && d.temperature_forcast !== null
+      ? d.temperature_forcast
+      : null
+  );
   // YR forecast: only from now, next halfRange hours
   const forecastFuture = forecast.filter((f) => {
     const t = new Date(f.time);
@@ -90,6 +100,10 @@ export default function IotTemperatureChart({
   // For series, pad with nulls so both arrays are same length as xData
   const yDataPastPadded = [
     ...yDataPast,
+    ...Array(xDataFuture.length).fill(null),
+  ];
+  const yDataPastForecastPadded = [
+    ...yDataPastForecast,
     ...Array(xDataFuture.length).fill(null),
   ];
   const yDataFuturePadded = [
@@ -144,9 +158,16 @@ export default function IotTemperatureChart({
             showMark: false,
           },
           {
+            id: "past_forecast",
+            data: yDataPastForecastPadded,
+            label: "",
+            showMark: false,
+            color: "#1976d2",
+          },
+          {
             id: "future",
             data: yDataFuturePadded,
-            label: "Forecast (future, Yr)",
+            label: "Forecast (Yr)",
             showMark: false,
             color: "#1976d2",
           },
@@ -154,7 +175,8 @@ export default function IotTemperatureChart({
         height={400}
         slotProps={{
           line: ({ id }) => ({
-            strokeDasharray: id === "future" ? "4 4" : "0",
+            strokeDasharray:
+              id === "future" || id === "past_forecast" ? "4 4" : "0",
           }),
         }}
       />
