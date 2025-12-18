@@ -115,11 +115,10 @@ export default function IotTemperatureChart({
           label="Range"
           onChange={(e) => setHourRange(Number(e.target.value))}
         >
-          <MenuItem value={1}>Last 1 hour</MenuItem>
-          <MenuItem value={6}>Last 6 hours</MenuItem>
-          <MenuItem value={12}>Last 12 hours</MenuItem>
-          <MenuItem value={24}>Last 24 hours</MenuItem>
-          <MenuItem value={48}>Last 48 hours</MenuItem>
+          <MenuItem value={24}>Last 1 day</MenuItem>
+          <MenuItem value={72}>Last 3 days</MenuItem>
+          <MenuItem value={168}>Last 7 days</MenuItem>
+          <MenuItem value={336}>Last 14 days</MenuItem>
         </Select>
       </FormControl>
       <LineChart
@@ -133,14 +132,13 @@ export default function IotTemperatureChart({
             tickNumber: 9,
             valueFormatter: (value) => {
               // value is hours from now (negative = past, positive = future)
-              const h = Math.round(value);
-              const date = new Date(now.getTime() + h * 60 * 60 * 1000);
-              return (
-                date.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  hour12: false,
-                }) + ":00"
-              );
+              const ms = value * 60 * 60 * 1000;
+              const date = new Date(now.getTime() + ms);
+              return date.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              });
             },
           },
         ]}
@@ -148,7 +146,7 @@ export default function IotTemperatureChart({
           {
             id: "past",
             data: yDataPastPadded,
-            label: "Temperature (past, Supabase)",
+            label: "Temperature (IOT measured)",
             showMark: false,
           },
           {
