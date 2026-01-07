@@ -55,7 +55,7 @@ export default function AddCarouselImagePage() {
   return (
     <>
       <Breadcrumbs aria-label="breadcrumb" sx={{ ml: 4, mb: 2 }}>
-        <MuiLink component={Link} href="/" color="inherit" underline="hover">
+        <MuiLink href="/" color="inherit" underline="hover">
           Hjem
         </MuiLink>
         <Typography color="primary" fontWeight={600}>

@@ -42,12 +42,7 @@ export default async function ProductPage({
           <Typography color="error" variant="h5" mb={2}>
             Produktet ble ikke funnet
           </Typography>
-          <Button
-            component={Link}
-            href="/products"
-            variant="contained"
-            sx={{ mt: 2 }}
-          >
+          <Button href="/products" variant="contained" sx={{ mt: 2 }}>
             Tilbake til produkter
           </Button>
         </Card>
@@ -58,15 +53,10 @@ export default async function ProductPage({
   return (
     <>
       <Breadcrumbs aria-label="breadcrumb" sx={{ ml: 4, mb: 2 }}>
-        <MuiLink component={Link} href="/" color="inherit" underline="hover">
+        <MuiLink href="/" color="inherit" underline="hover">
           Hjem
         </MuiLink>
-        <MuiLink
-          component={Link}
-          href="/products"
-          color="inherit"
-          underline="hover"
-        >
+        <MuiLink href="/products" color="inherit" underline="hover">
           Produkter
         </MuiLink>
         <Typography color="primary" fontWeight={600}>
@@ -134,7 +124,6 @@ export default async function ProductPage({
               {product.description}
             </Typography>
             <Button
-              component={Link}
               href="/products"
               variant="contained"
               color="primary"

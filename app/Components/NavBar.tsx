@@ -73,7 +73,7 @@ export default function NavBar() {
       <AppBar position="static" sx={{ borderRadius: 8 }}>
         <Toolbar>
           <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
-            <IconButton color="inherit" component={Link} href="/" sx={{ p: 0 }}>
+            <IconButton color="inherit" href="/" sx={{ p: 0 }}>
               <HomeIcon sx={{ fontSize: 32 }} />
             </IconButton>
             <Typography
@@ -90,7 +90,7 @@ export default function NavBar() {
               {`Vatsii\nDesigne`}
             </Typography>
           </Box>
-          <IconButton component={Link} href="/login" color="inherit">
+          <IconButton href="/login" color="inherit">
             <Avatar alt="Login" src={avatarUrl ?? undefined} />
           </IconButton>
           <IconButton
@@ -115,22 +115,22 @@ export default function NavBar() {
         >
           <List>
             <ListItem disablePadding>
-              <ListItemButton component={Link} href="/">
+              <ListItemButton href="/">
                 <ListItemText primary="Home" />
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>
-              <ListItemButton component={Link} href="/about">
+              <ListItemButton href="/about">
                 <ListItemText primary="About" />
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>
-              <ListItemButton component={Link} href="/contact">
+              <ListItemButton href="/contact">
                 <ListItemText primary="Contact" />
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>
-              <ListItemButton component={Link} href="/products">
+              <ListItemButton href="/products">
                 <ListItemText primary="Produkter" />
               </ListItemButton>
             </ListItem>
@@ -138,12 +138,12 @@ export default function NavBar() {
               <>
                 <Divider />
                 <ListItem disablePadding>
-                  <ListItemButton component={Link} href="/add-carousel-image">
+                  <ListItemButton href="/add-carousel-image">
                     <ListItemText primary="Edit Carousel" />
                   </ListItemButton>
                 </ListItem>
                 <ListItem disablePadding>
-                  <ListItemButton component={Link} href="/admin">
+                  <ListItemButton href="/admin">
                     <ListItemText primary="Admin Products" />
                   </ListItemButton>
                 </ListItem>
@@ -153,7 +153,7 @@ export default function NavBar() {
               <>
                 <Divider />
                 <ListItem disablePadding>
-                  <ListItemButton component={Link} href="/iot">
+                  <ListItemButton href="/iot">
                     <ListItemText primary="IoT" />
                   </ListItemButton>
                 </ListItem>
@@ -163,7 +163,7 @@ export default function NavBar() {
           <Divider />
           <List>
             <ListItem disablePadding>
-              <ListItemButton component={Link} href="/login">
+              <ListItemButton href="/login">
                 <Avatar
                   alt="Login"
                   src={avatarUrl ?? undefined}
