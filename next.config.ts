@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/storage/v1/render/image/public/carousel/**",
       },
+      {
+        protocol: "https",
+        hostname: "pplpouzcpffeynrskcmg.supabase.co",
+        port: "",
+        pathname: "/storage/v1/object/public/products/**",
+      },
     ],
   },
 };
