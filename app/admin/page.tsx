@@ -61,6 +61,13 @@ export default function AdminProductPage() {
       return;
     }
     setSaving(true);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    if (!token) {
+      setError("Du må være logget inn.");
+      setSaving(false);
+      return;
+    }
     const formData = new FormData();
     formData.append("name", name);
     formData.append("description", description);
@@ -69,6 +76,7 @@ export default function AdminProductPage() {
     try {
       const res = await fetch("/api/products", {
         method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       const result = await res.json();

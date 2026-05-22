@@ -1,11 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import { Breadcrumbs, Container, Link as MuiLink } from "@mui/material";
 import Link from "next/link";
+import { supabase } from "../lib/supabaseClient";
 
 export default function AddCarouselImagePage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -14,6 +15,24 @@ export default function AddCarouselImagePage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [role, setRole] = useState<string>("");
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    const check = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user?.id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", data.user.id)
+          .single();
+        if (profile) setRole(profile.role || "");
+      }
+      setAuthChecked(true);
+    };
+    check();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -30,13 +49,20 @@ export default function AddCarouselImagePage() {
       return;
     }
     setUploading(true);
-    // Send to API route
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    if (!token) {
+      setError("Du må være logget inn.");
+      setUploading(false);
+      return;
+    }
     const formData = new FormData();
     formData.append("file", imageFile);
     formData.append("title", title);
     formData.append("description", description);
     const res = await fetch("/api/upload-carousel-image", {
       method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
       body: formData,
     });
     const result = await res.json();
@@ -51,6 +77,22 @@ export default function AddCarouselImagePage() {
     setDescription("");
     setUploading(false);
   };
+
+  if (!authChecked) {
+    return (
+      <Typography sx={{ mt: 8, textAlign: "center" }}>Loading…</Typography>
+    );
+  }
+
+  if (role !== "King") {
+    return (
+      <Box mt={8} textAlign="center">
+        <Typography variant="h5" color="error">
+          Access denied. Only King can use this page.
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <>
