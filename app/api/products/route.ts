@@ -15,8 +15,9 @@ const ALLOWED_MIME = new Set([
 ]);
 
 export async function POST(req: NextRequest) {
-  const denied = await requireAdmin(req);
-  if (denied) return denied;
+  const adminResult = await requireAdmin(req);
+  if (adminResult instanceof NextResponse) return adminResult;
+  const userId = adminResult.user.id;
 
   const formData = await req.formData();
   const name = formData.get("name") as string;
@@ -42,12 +43,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "File too large" }, { status: 400 });
   }
 
-  // Upload image to Supabase Storage
+  // Upload image to Supabase Storage with userId/objectKey path
   const safeName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const fileName = `${Date.now()}_${safeName}`;
+  const objectKey = `${userId}/${fileName}`;
   const { error: storageError } = await supabase.storage
     .from("products")
-    .upload(fileName, imageFile, { contentType: imageFile.type });
+    .upload(objectKey, imageFile, { contentType: imageFile.type });
   if (storageError) {
     return NextResponse.json({ error: storageError.message }, { status: 500 });
   }
@@ -55,7 +57,7 @@ export async function POST(req: NextRequest) {
   // Get public URL
   const { data: publicUrlData } = supabase.storage
     .from("products")
-    .getPublicUrl(fileName);
+    .getPublicUrl(objectKey);
   const imageUrl = publicUrlData?.publicUrl;
 
   // Save product to DB

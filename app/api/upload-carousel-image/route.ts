@@ -15,8 +15,9 @@ const ALLOWED_MIME = new Set([
 ]);
 
 export async function POST(req: Request) {
-  const denied = await requireAdmin(req);
-  if (denied) return denied;
+  const adminResult = await requireAdmin(req);
+  if (adminResult instanceof NextResponse) return adminResult;
+  const userId = adminResult.user.id;
 
   const formData = await req.formData();
   const file = formData.get("file") as File;
@@ -44,16 +45,17 @@ export async function POST(req: Request) {
   // Sanitize file name to avoid path/character issues.
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const fileName = `${Date.now()}_${safeName}`;
+  const objectKey = `${userId}/${fileName}`;
   const { error: uploadError } = await supabase.storage
     .from("carousel")
-    .upload(fileName, file, { contentType: file.type });
+    .upload(objectKey, file, { contentType: file.type });
 
   if (uploadError) {
     return NextResponse.json({ error: uploadError.message }, { status: 500 });
   }
 
   // Get public URL (for preview, but you will use signed URL for display)
-  const image_url = `${supabaseUrl}/storage/v1/object/public/carousel/${fileName}`;
+  const image_url = `${supabaseUrl}/storage/v1/object/public/carousel/${objectKey}`;
 
   // Insert metadata into DB
   const { error: dbError } = await supabase
