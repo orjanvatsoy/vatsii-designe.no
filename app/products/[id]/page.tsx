@@ -6,14 +6,18 @@ import {
   Typography,
   Button,
   Container,
-  Breadcrumbs,
-  Link as MuiLink,
+  Chip,
 } from "@mui/material";
-import Link from "next/link";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import Image from "next/image";
+import PageShell from "../../Components/PageShell";
+import { signImageUrl } from "../../lib/storage";
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+export const revalidate = 300;
 
 export default async function ProductPage({
   params,
@@ -30,7 +34,7 @@ export default async function ProductPage({
 
   if (error || !product) {
     return (
-      <Container maxWidth="sm" sx={{ mt: 8, mb: 8 }}>
+      <Container maxWidth="sm" sx={{ mt: 12, mb: 8 }}>
         <Card
           sx={{
             boxShadow: 6,
@@ -50,90 +54,105 @@ export default async function ProductPage({
     );
   }
 
+  // Convert stored public URL into a signed URL (bucket may be private).
+  const imageUrl: string = await signImageUrl(product.image_url, "products");
+
   return (
-    <>
-      <Breadcrumbs aria-label="breadcrumb" sx={{ ml: 4, mb: 2 }}>
-        <MuiLink href="/" color="inherit" underline="hover">
-          Hjem
-        </MuiLink>
-        <MuiLink href="/products" color="inherit" underline="hover">
-          Produkter
-        </MuiLink>
-        <Typography color="primary" fontWeight={600}>
-          {product.name}
-        </Typography>
-      </Breadcrumbs>
-      <Container maxWidth="sm">
+    <PageShell maxWidth="md">
+      <Box display="flex" justifyContent="center">
         <Card
           sx={{
-            boxShadow: 12,
+            width: "100%",
+            maxWidth: 720,
             bgcolor: "background.paper",
-            borderRadius: 3,
+            borderRadius: 4,
             overflow: "hidden",
-            p: 0,
-            position: "relative",
-            // Bruker kun theme-farger fra MUI
+            border: "1px solid",
+            borderColor: "divider",
+            boxShadow: "0 30px 70px -28px rgba(0,0,0,0.85)",
           }}
         >
-          {product.image_url && (
+          {imageUrl && (
             <Box
               sx={{
+                position: "relative",
                 width: "100%",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                bgcolor: "background.default",
-                py: 1,
-                borderBottom: 1,
-                borderColor: "divider",
-                boxShadow: 2,
+                height: { xs: 280, sm: 380, md: 440 },
+                bgcolor: "#16150F",
               }}
             >
               <Image
-                src={product.image_url}
+                src={imageUrl}
                 alt={product.name}
-                width={648}
-                height={459}
-                style={{
-                  objectFit: "contain",
-                  borderRadius: 6,
-                  transition: "transform 0.3s",
+                fill
+                style={{ objectFit: "cover" }}
+                priority
+                sizes="(max-width: 600px) 100vw, 720px"
+              />
+              <Box
+                aria-hidden
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  background:
+                    "linear-gradient(to top, rgba(42,42,38,0.85) 0%, rgba(42,42,38,0) 40%)",
+                  pointerEvents: "none",
                 }}
-                loading="lazy"
-                sizes="(max-width: 600px) 100vw, 33vw"
               />
             </Box>
           )}
-          <CardContent>
-            <Typography variant="h5" color="primary" fontWeight={700} mb={2}>
+          <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+            {product.category && (
+              <Chip
+                label={product.category}
+                size="small"
+                sx={{
+                  mb: 2,
+                  bgcolor: "rgba(217,160,102,0.15)",
+                  color: "primary.light",
+                  fontWeight: 600,
+                  letterSpacing: 0.5,
+                  border: "1px solid rgba(217,160,102,0.3)",
+                }}
+              />
+            )}
+            <Typography
+              variant="h4"
+              sx={{ fontWeight: 800, color: "text.primary", mb: 2 }}
+            >
               {product.name}
             </Typography>
             <Typography
-              variant="body2"
-              mb={1}
+              variant="body1"
               sx={{
-                fontSize: "0.95rem",
                 color: "text.secondary",
-                backgroundColor: "background.default",
-                borderRadius: 2,
-                px: 2,
-                py: 1,
-                boxShadow: 1,
+                lineHeight: 1.7,
+                whiteSpace: "pre-line",
               }}
             >
               {product.description}
             </Typography>
             <Button
               href="/products"
-              variant="contained"
-              color="primary"
-              sx={{ mt: 3, fontWeight: 600, borderRadius: 2, boxShadow: 3 }}
+              variant="outlined"
+              startIcon={<ArrowBackIcon />}
+              sx={{
+                mt: 4,
+                fontWeight: 700,
+                borderRadius: 999,
+                px: 3,
+                py: 1,
+                textTransform: "none",
+                borderColor: "divider",
+                color: "text.primary",
+                "&:hover": { borderColor: "primary.light" },
+              }}
             >
               Tilbake til produkter
             </Button>
           </CardContent>
         </Card>
-      </Container>
-    </>
+      </Box>
+    </PageShell>
   );
 }

@@ -28,7 +28,7 @@ export default function NavBar() {
       const { data } = await supabase.auth.getUser();
       const user = data?.user;
       setUserName(
-        user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? null
+        user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? null,
       );
       setAvatarUrl(user?.user_metadata?.avatar_url ?? null);
       if (user?.id) {
@@ -46,7 +46,7 @@ export default function NavBar() {
       (_event, session) => {
         const user = session?.user;
         setUserName(
-          user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? null
+          user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? null,
         );
         setAvatarUrl(user?.user_metadata?.avatar_url ?? null);
         if (user?.id) {
@@ -61,7 +61,7 @@ export default function NavBar() {
         } else {
           setRole("");
         }
-      }
+      },
     );
     return () => {
       listener.subscription.unsubscribe();
@@ -69,8 +69,18 @@ export default function NavBar() {
   }, []);
 
   return (
-    <Box sx={{ flexGrow: 1 }} p={2}>
-      <AppBar position="static" sx={{ borderRadius: 8 }}>
+    <Box sx={{ flexGrow: 1 }}>
+      <AppBar
+        position="fixed"
+        elevation={0}
+        sx={{
+          background:
+            "linear-gradient(to bottom, rgba(15,14,10,0.75) 0%, rgba(15,14,10,0.35) 55%, rgba(15,14,10,0) 100%)",
+          backdropFilter: "blur(4px)",
+          boxShadow: "none",
+          borderRadius: 0,
+        }}
+      >
         <Toolbar>
           <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
             <IconButton color="inherit" href="/" sx={{ p: 0 }}>

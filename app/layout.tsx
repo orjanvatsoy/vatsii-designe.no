@@ -22,12 +22,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={roboto.variable}>
+    <html lang="no" className={roboto.variable}>
       <body>
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <NavBar />
-            <>{children}</>
+            <main>{children}</main>
           </ThemeProvider>
         </AppRouterCacheProvider>
         <Analytics />

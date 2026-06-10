@@ -16,3 +16,25 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Offset page content below the fixed, transparent navbar.
+   Full-bleed pages (e.g. the landing hero) opt out with .full-bleed. */
+main {
+  padding-top: 56px;
+}
+
+@media (min-width: 600px) {
+  main {
+    padding-top: 64px;
+  }
+}
+
+main > .full-bleed {
+  margin-top: -56px;
+}
+
+@media (min-width: 600px) {
+  main > .full-bleed {
+    margin-top: -64px;
+  }
+}

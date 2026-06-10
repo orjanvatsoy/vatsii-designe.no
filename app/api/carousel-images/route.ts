@@ -18,21 +18,32 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Generate signed URLs for each image
+  // Generate signed URLs for each image, supporting both old and new object key formats
   const imagesWithSignedUrls = await Promise.all(
     (data ?? []).map(async (img) => {
-      // Extract filename from image_url
-      const fileName = img.image_url?.split("/").pop();
-      const { data: signedUrlData, error: signedUrlError } =
-        await supabase.storage
+      let objectKey = null;
+      if (img.image_url?.includes("/carousel/")) {
+        // New format: .../carousel/userid/filename.jpg
+        objectKey = img.image_url.split("/carousel/")[1];
+      } else if (img.image_url) {
+        // Old format: just the filename
+        objectKey = img.image_url.split("/").pop();
+      }
+      let signedUrlData = null;
+      let signedUrlError = null;
+      if (objectKey) {
+        const result = await supabase.storage
           .from("carousel")
-          .createSignedUrl(fileName, 60 * 60); // 1 hour expiry
+          .createSignedUrl(objectKey, 60 * 60); // 1 hour expiry
+        signedUrlData = result.data;
+        signedUrlError = result.error;
+      }
       return {
         ...img,
         signed_url: signedUrlData?.signedUrl ?? null,
         signed_url_error: signedUrlError?.message ?? null,
       };
-    })
+    }),
   );
 
   return NextResponse.json(imagesWithSignedUrls);

@@ -1,14 +1,7 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  Typography,
-  Container,
-  Breadcrumbs,
-  Link as MuiLink,
-} from "@mui/material";
-import Link from "next/link";
+import { Card, CardContent, Typography } from "@mui/material";
+import PageShell from "../Components/PageShell";
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
@@ -26,7 +19,7 @@ interface IotTemperatureCardProps {
 
 const IotTemperatureChart = dynamic<IotTemperatureChartProps>(
   () => import("./IotTemperatureChart"),
-  { ssr: false }
+  { ssr: false },
 );
 
 export default function IotTemperatureCard({ data }: IotTemperatureCardProps) {
@@ -54,30 +47,32 @@ export default function IotTemperatureCard({ data }: IotTemperatureCardProps) {
   const isKing = role === "King" || role === "User";
 
   return (
-    <>
-      <Breadcrumbs aria-label="breadcrumb" sx={{ ml: 4, mb: 2 }}>
-        <MuiLink href="/" color="inherit" underline="hover">
-          Hjem
-        </MuiLink>
-
-        <Typography color="primary" fontWeight={600}>
-          Temperatur IOT
-        </Typography>
-      </Breadcrumbs>
-      <Container maxWidth="lg" sx={{ mt: 8 }}>
-        <Card sx={{ width: "100%" }}>
-          <CardContent>
-            <Typography variant="h5" gutterBottom>
-              Temperature Graph
-            </Typography>
-            <IotTemperatureChart
-              data={data}
-              loading={loading}
-              authorized={isKing}
-            />
-          </CardContent>
-        </Card>
-      </Container>
-    </>
+    <PageShell
+      eyebrow="SANNTID"
+      title="Temperatur"
+      subtitle="Live temperaturdata fra IoT-sensoren."
+    >
+      <Card
+        sx={{
+          width: "100%",
+          borderRadius: 4,
+          bgcolor: "background.paper",
+          border: "1px solid",
+          borderColor: "divider",
+          boxShadow: "0 24px 60px -28px rgba(0,0,0,0.8)",
+        }}
+      >
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 700 }} gutterBottom>
+            Temperaturgraf
+          </Typography>
+          <IotTemperatureChart
+            data={data}
+            loading={loading}
+            authorized={isKing}
+          />
+        </CardContent>
+      </Card>
+    </PageShell>
   );
 }

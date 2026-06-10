@@ -1,57 +1,53 @@
-import { Box, Button, Card, Container, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import PictureCarousel from "./Components/PictureCarousel";
+import HeroOverlay from "./Components/HeroOverlay";
 import { createClient } from "@supabase/supabase-js";
+import { signImageUrl } from "./lib/storage";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function fetchImages() {
+  // Fetch images directly from Supabase and generate signed URLs
   const { data, error } = await supabase
     .from("carousel_images")
     .select("id, image_url, title, description, created_at")
-    .order("created_at", { ascending: false })
-    .abortSignal(AbortSignal.timeout(5000));
+    .order("created_at", { ascending: false });
   if (error || !data) return [];
 
-  // Generate public URLs for each image
-  const imagesWithPublicUrls = data.map((img) => {
-    const fileName = img.image_url?.split("/").pop();
-    const { data: publicUrlData } = supabase.storage
-      .from("carousel")
-      .getPublicUrl(fileName, { transform: { quality: 70 } });
-    return {
+  const imagesWithSignedUrls = await Promise.all(
+    data.map(async (img) => ({
       ...img,
-      public_url: publicUrlData?.publicUrl ?? "",
-    };
-  });
-  return imagesWithPublicUrls;
+      public_url: await signImageUrl(img.image_url, "carousel"),
+    })),
+  );
+  // Filter out images with missing or invalid URLs
+  return imagesWithSignedUrls.filter(
+    (img) =>
+      !!img.public_url &&
+      typeof img.public_url === "string" &&
+      img.public_url.startsWith("http"),
+  );
 }
 
-export const revalidate = 0;
+export const revalidate = 300;
 
 export default async function Home() {
   const images = await fetchImages();
+
   return (
-    <Container maxWidth="lg">
-      <Typography variant="h3" align="center" gutterBottom>
-        Welcome to Vatsii Designe
-      </Typography>
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="60vh"
-      >
-        <Card sx={{ minWidth: 320, maxWidth: 500 }}>
-          <PictureCarousel images={images} />
-        </Card>
-      </Box>
-      <Box display="flex" justifyContent="center" mt={1}>
-        <Button variant="contained" color="primary" href="/products">
-          Se alle produkter
-        </Button>
-      </Box>
-    </Container>
+    <Box
+      className="full-bleed"
+      sx={{
+        position: "relative",
+        width: "100%",
+        height: "100vh",
+        minHeight: 560,
+        overflow: "hidden",
+      }}
+    >
+      <PictureCarousel images={images} fullBleed overlay={<HeroOverlay />} />
+    </Box>
   );
 }

@@ -4,19 +4,16 @@ import { supabase } from "../lib/supabaseClient";
 
 import {
   Box,
-  Breadcrumbs,
   Button,
   Card,
   CardContent,
   CardHeader,
   CardMedia,
-  Container,
   Grid,
-  Link as MuiLink,
   TextField,
   Typography,
 } from "@mui/material";
-import Link from "next/link";
+import PageShell from "../Components/PageShell";
 
 export default function AdminProductPage() {
   const [role, setRole] = useState("");
@@ -108,111 +105,101 @@ export default function AdminProductPage() {
   }
 
   return (
-    <>
-      <Breadcrumbs aria-label="breadcrumb" sx={{ ml: 4, mb: 2 }}>
-        <MuiLink href="/" color="inherit" underline="hover">
-          Hjem
-        </MuiLink>
-
-        <Typography color="primary" fontWeight={600}>
-          Legg til produkt
-        </Typography>
-      </Breadcrumbs>
-      <Container maxWidth="lg" sx={{ mt: 8 }}>
-        <Box maxWidth={900} mx="auto" mt={8}>
-          <Typography variant="h4" mb={4}>
-            Create Product Card
-          </Typography>
-          <Box>
-            <Grid container spacing={2}>
-              <Grid size={6}>
-                <form onSubmit={handleSave}>
-                  <TextField
-                    label="Name"
-                    fullWidth
-                    margin="normal"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                  <TextField
-                    label="Description"
-                    fullWidth
-                    margin="normal"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-                  <TextField
-                    label="Kategori"
-                    fullWidth
-                    margin="normal"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                  />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                  />
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    color="primary"
-                    disabled={saving}
-                    sx={{ mt: 2 }}
-                  >
-                    {saving ? "Saving..." : "Save Product"}
-                  </Button>
-                  {error && (
-                    <Typography color="error" mt={2}>
-                      {error}
-                    </Typography>
-                  )}
-                  {success && (
-                    <Typography color="success.main" mt={2}>
-                      {success}
-                    </Typography>
-                  )}
-                </form>
-              </Grid>
-              <Grid size={6}>
-                <Typography variant="subtitle1" mb={1}>
-                  Preview:
-                </Typography>
-                <Card sx={{ m: 1 }}>
-                  <Card
-                    sx={{
-                      bgcolor: "background.paper",
-                      boxShadow: 6,
-                    }}
-                  >
-                    <CardHeader
-                      title={<Typography variant="h6">{name}</Typography>}
-                    />
-                    {imagePreview && (
-                      <CardMedia
-                        component="img"
-                        image={imagePreview}
-                        alt="Preview"
-                        sx={{
-                          height: 300,
-                          objectFit: "contain",
-                          bgcolor: "background.paper",
-                        }}
-                      />
-                    )}
-                    <CardContent>
-                      <Typography variant="body2">{description}</Typography>
-                      <Typography variant="caption">
-                        Kategori: {category}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Card>
-              </Grid>
+    <PageShell
+      eyebrow="ADMIN"
+      title="Nytt produkt"
+      subtitle="Fyll inn detaljer og se en live forhåndsvisning av produktkortet."
+    >
+      <Box maxWidth={900} mx="auto">
+        <Box>
+          <Grid container spacing={2}>
+            <Grid size={6}>
+              <form onSubmit={handleSave}>
+                <TextField
+                  label="Name"
+                  fullWidth
+                  margin="normal"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+                <TextField
+                  label="Description"
+                  fullWidth
+                  margin="normal"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+                <TextField
+                  label="Kategori"
+                  fullWidth
+                  margin="normal"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  disabled={saving}
+                  sx={{ mt: 2 }}
+                >
+                  {saving ? "Saving..." : "Save Product"}
+                </Button>
+                {error && (
+                  <Typography color="error" mt={2}>
+                    {error}
+                  </Typography>
+                )}
+                {success && (
+                  <Typography color="success.main" mt={2}>
+                    {success}
+                  </Typography>
+                )}
+              </form>
             </Grid>
-          </Box>
+            <Grid size={6}>
+              <Typography variant="subtitle1" mb={1}>
+                Preview:
+              </Typography>
+              <Card sx={{ m: 1 }}>
+                <Card
+                  sx={{
+                    bgcolor: "background.paper",
+                    boxShadow: 6,
+                  }}
+                >
+                  <CardHeader
+                    title={<Typography variant="h6">{name}</Typography>}
+                  />
+                  {imagePreview && (
+                    <CardMedia
+                      component="img"
+                      image={imagePreview}
+                      alt="Preview"
+                      sx={{
+                        height: 300,
+                        objectFit: "contain",
+                        bgcolor: "background.paper",
+                      }}
+                    />
+                  )}
+                  <CardContent>
+                    <Typography variant="body2">{description}</Typography>
+                    <Typography variant="caption">
+                      Kategori: {category}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Card>
+            </Grid>
+          </Grid>
         </Box>
-      </Container>
-    </>
+      </Box>
+    </PageShell>
   );
 }

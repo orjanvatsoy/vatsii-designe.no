@@ -4,9 +4,9 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
-import { Breadcrumbs, Container, Link as MuiLink } from "@mui/material";
-import Link from "next/link";
+import { Card } from "@mui/material";
 import { supabase } from "../lib/supabaseClient";
+import PageShell from "../Components/PageShell";
 
 export default function AddCarouselImagePage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -95,20 +95,25 @@ export default function AddCarouselImagePage() {
   }
 
   return (
-    <>
-      <Breadcrumbs aria-label="breadcrumb" sx={{ ml: 4, mb: 2 }}>
-        <MuiLink href="/" color="inherit" underline="hover">
-          Hjem
-        </MuiLink>
-        <Typography color="primary" fontWeight={600}>
-          Legg til karusell bilde
-        </Typography>
-      </Breadcrumbs>
-      <Container maxWidth="lg" sx={{ mt: 8 }}>
-        <Box maxWidth={400} mx="auto" mt={8}>
-          <Typography variant="h4" mb={2}>
-            Legg til bilde i karusell
-          </Typography>
+    <PageShell
+      eyebrow="ADMIN"
+      title="Karusellbilde"
+      subtitle="Last opp et nytt bilde til forsidekarusellen."
+      maxWidth="sm"
+    >
+      <Box display="flex" justifyContent="center">
+        <Card
+          sx={{
+            width: "100%",
+            maxWidth: 460,
+            p: { xs: 3, md: 4 },
+            borderRadius: 4,
+            bgcolor: "background.paper",
+            border: "1px solid",
+            borderColor: "divider",
+            boxShadow: "0 24px 60px -28px rgba(0,0,0,0.8)",
+          }}
+        >
           <form onSubmit={handleSubmit}>
             <input type="file" accept="image/*" onChange={handleFileChange} />
             <TextField
@@ -130,7 +135,12 @@ export default function AddCarouselImagePage() {
               variant="contained"
               color="primary"
               disabled={uploading}
-              sx={{ mt: 2 }}
+              sx={{
+                mt: 2,
+                borderRadius: 999,
+                fontWeight: 700,
+                textTransform: "none",
+              }}
             >
               {uploading ? "Lagrer..." : "Lagre bilde"}
             </Button>
@@ -145,8 +155,8 @@ export default function AddCarouselImagePage() {
               </Typography>
             )}
           </form>
-        </Box>
-      </Container>
-    </>
+        </Card>
+      </Box>
+    </PageShell>
   );
 }

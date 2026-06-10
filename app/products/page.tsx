@@ -1,4 +1,4 @@
-export const revalidate = 0;
+export const revalidate = 300;
 
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -7,13 +7,12 @@ import {
   CardContent,
   Typography,
   Grid,
-  Breadcrumbs,
-  Container,
-  Link as MuiLink,
   Skeleton,
 } from "@mui/material";
 import Image from "next/image";
 import Link from "next/link";
+import PageShell from "../Components/PageShell";
+import { signImageUrl } from "../lib/storage";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -34,99 +33,137 @@ export default async function ProductsPage() {
     );
   }
 
-  return (
-    <>
-      <Breadcrumbs aria-label="breadcrumb" sx={{ ml: 4, mb: 2 }}>
-        <MuiLink href="/" color="inherit" underline="hover">
-          Hjem
-        </MuiLink>
+  // Convert stored public URLs into signed URLs (bucket may be private).
+  const productsWithSignedUrls = await Promise.all(
+    (products ?? []).map(async (product) => ({
+      ...product,
+      image_url: product.image_url
+        ? await signImageUrl(product.image_url, "products")
+        : product.image_url,
+    })),
+  );
 
-        <Typography color="primary" fontWeight={600}>
-          Produkter
-        </Typography>
-      </Breadcrumbs>
-      <Container maxWidth="lg" sx={{ mt: 8 }}>
-        <Typography variant="h3" mb={4} align="center">
-          Produkter
-        </Typography>
-        <Grid container spacing={4}>
-          {products?.map((product) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={product.id}>
-              <Link
-                href={`/products/${product.id}`}
-                style={{ textDecoration: "none" }}
+  return (
+    <PageShell
+      eyebrow="VÅR KOLLEKSJON"
+      title="Produkter"
+      subtitle="Håndlagde trearbeider med karakter — hvert stykke unikt, formet for å vare."
+    >
+      <Grid container spacing={4}>
+        {productsWithSignedUrls.map((product) => (
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={product.id}>
+            <Link
+              href={`/products/${product.id}`}
+              style={{ textDecoration: "none" }}
+            >
+              <Card
+                sx={{
+                  position: "relative",
+                  bgcolor: "background.paper",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 4,
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  height: 380,
+                  width: "100%",
+                  cursor: "pointer",
+                  boxShadow: "0 14px 36px -18px rgba(0,0,0,0.7)",
+                  transition:
+                    "transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease",
+                  "&:hover": {
+                    transform: "translateY(-6px)",
+                    boxShadow: "0 26px 60px -22px rgba(0,0,0,0.85)",
+                    borderColor: "primary.main",
+                  },
+                  "&:hover .product-img": {
+                    transform: "scale(1.06)",
+                  },
+                }}
               >
-                <Card
+                <Box
                   sx={{
-                    boxShadow: 6,
-                    bgcolor: "background.paper",
-                    border: "1px solid",
-                    borderColor: "background.paper",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "flex-start",
-                    minHeight: 320,
-                    maxHeight: 330,
-                    height: { xs: 370, sm: 370, md: 370 },
                     width: "100%",
-                    cursor: "pointer",
-                    transition: "box-shadow 0.2s",
-                    "&:hover": { boxShadow: 12 },
+                    height: 230,
+                    position: "relative",
+                    bgcolor: "#16150F",
+                    overflow: "hidden",
                   }}
                 >
+                  {product.image_url ? (
+                    <Image
+                      className="product-img"
+                      src={product.image_url}
+                      alt={product.name}
+                      fill
+                      style={{
+                        objectFit: "cover",
+                        transition: "transform 0.5s ease",
+                      }}
+                      loading="lazy"
+                      sizes="(max-width: 600px) 100vw, 33vw"
+                      placeholder="empty"
+                    />
+                  ) : (
+                    <Skeleton variant="rectangular" width="100%" height={230} />
+                  )}
                   <Box
+                    aria-hidden
                     sx={{
-                      width: "100%",
-                      height: 220,
-                      position: "relative",
-                      bgcolor: "background.default",
+                      position: "absolute",
+                      inset: 0,
+                      background:
+                        "linear-gradient(to top, rgba(42,42,38,0.95) 0%, rgba(42,42,38,0) 45%)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                </Box>
+                <CardContent sx={{ flexGrow: 1, p: 2.5 }}>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 700, color: "text.primary", mb: 0.5 }}
+                  >
+                    {product.name}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    <span
+                      style={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "normal",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {product.description}
+                    </span>
+                  </Typography>
+                  <Typography
+                    sx={{
+                      mt: 1.5,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      letterSpacing: 1,
+                      color: "primary.light",
                     }}
                   >
-                    {product.image_url ? (
-                      <Image
-                        src={product.image_url}
-                        alt={product.name}
-                        fill
-                        style={{ objectFit: "contain", borderRadius: 6 }}
-                        loading="lazy"
-                        sizes="(max-width: 600px) 100vw, 33vw"
-                        placeholder="empty"
-                      />
-                    ) : (
-                      <Skeleton
-                        variant="rectangular"
-                        width="100%"
-                        height={220}
-                      />
-                    )}
-                  </Box>
-                  <CardContent>
-                    <Typography variant="h6" color="primary.main">
-                      {product.name}
-                    </Typography>
-                    <Typography variant="body2" mb={1}>
-                      <span
-                        style={{
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "normal",
-                          wordBreak: "break-word",
-                        }}
-                      >
-                        {product.description}
-                      </span>
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Link>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-    </>
+                    Se detaljer →
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Link>
+          </Grid>
+        ))}
+      </Grid>
+
+      {productsWithSignedUrls.length === 0 && (
+        <Typography align="center" color="text.secondary" mt={6}>
+          Ingen produkter tilgjengelig akkurat nå.
+        </Typography>
+      )}
+    </PageShell>
   );
 }

@@ -1,40 +1,79 @@
 "use client";
-import { Breadcrumbs, Container, Link as MuiLink } from "@mui/material";
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import Link from "next/link";
+import { Box, Card, Stack, Typography, Button } from "@mui/material";
+import EmailIcon from "@mui/icons-material/Email";
+import InstagramIcon from "@mui/icons-material/Instagram";
+import PageShell from "../Components/PageShell";
 
 export default function Contact() {
   return (
-    <>
-      <Breadcrumbs aria-label="breadcrumb" sx={{ ml: 4, mb: 2 }}>
-        <MuiLink href="/" color="inherit" underline="hover">
-          Hjem
-        </MuiLink>
-
-        <Typography color="primary" fontWeight={600}>
-          Kontakt
-        </Typography>
-      </Breadcrumbs>
-      <Container maxWidth="lg" sx={{ mt: 8 }}>
-        <Box
-          display="flex"
-          flexDirection="column"
-          alignItems="center"
-          justifyContent="center"
-          minHeight="60vh"
+    <PageShell
+      eyebrow="LA OSS SNAKKE"
+      title="Kontakt"
+      subtitle="Ta gjerne kontakt for spørsmål, bestillinger eller andre henvendelser!"
+    >
+      <Box display="flex" justifyContent="center">
+        <Card
+          sx={{
+            width: "100%",
+            maxWidth: 520,
+            p: { xs: 3, md: 5 },
+            borderRadius: 4,
+            bgcolor: "background.paper",
+            border: "1px solid",
+            borderColor: "divider",
+            boxShadow: "0 24px 60px -28px rgba(0,0,0,0.8)",
+          }}
         >
-          <Typography variant="h3" gutterBottom>
-            Kontakt
-          </Typography>
-          <Typography variant="body1" maxWidth={500} textAlign="center">
-            Ta gjerne kontakt for spørsmål, andre henvendelser!
-          </Typography>
-          <Typography variant="body2" mt={2} color="text.secondary">
-            E-post: <a href="mailto:orjan@vatsii.no">orjanva@gmail.com</a>
-          </Typography>
-        </Box>
-      </Container>
-    </>
+          <Stack spacing={3} alignItems="center" textAlign="center">
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                bgcolor: "primary.main",
+                boxShadow: "0 10px 30px rgba(139,94,60,0.5)",
+              }}
+            >
+              <EmailIcon sx={{ fontSize: 32, color: "#fff" }} />
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Send meg en e-post
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Jeg svarer vanligvis innen kort tid.
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              href="mailto:orjanva@gmail.com"
+              sx={{
+                px: 4,
+                py: 1.3,
+                borderRadius: 999,
+                fontWeight: 700,
+                textTransform: "none",
+                boxShadow: "0 12px 32px rgba(139,94,60,0.5)",
+              }}
+            >
+              orjanva@gmail.com
+            </Button>
+            <Button
+              variant="text"
+              startIcon={<InstagramIcon />}
+              href="https://www.instagram.com/vatsii_designs/"
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ color: "text.secondary", textTransform: "none" }}
+            >
+              @vatsii_designs
+            </Button>
+          </Stack>
+        </Card>
+      </Box>
+    </PageShell>
   );
 }
