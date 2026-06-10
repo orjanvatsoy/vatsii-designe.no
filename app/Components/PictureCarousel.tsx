@@ -116,6 +116,16 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
+  // Track mobile viewport so the hero image can center vertically on phones.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 600px)");
+    setIsMobile(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
   // Auto-advance every 6s, pause on hover/focus and when reduced motion is on.
   const [paused, setPaused] = useState(false);
   useEffect(() => {
@@ -245,8 +255,8 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({
           alt={current.title || "Bilde"}
           fill
           style={{
-            objectFit: fullBleed ? "contain" : "cover",
-            objectPosition: fullBleed ? "center 80%" : "center",
+            objectFit: fullBleed && !isMobile ? "contain" : "cover",
+            objectPosition: fullBleed && !isMobile ? "center 80%" : "center",
             backgroundColor: fullBleed ? "#000" : undefined,
             opacity: imageLoaded ? 1 : 0,
             transform:
