@@ -50,32 +50,35 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
-  // Delete image and DB row
+  // Delete image and DB row via the admin API (service-role, bypasses RLS).
   const handleDelete = async () => {
     setErrorMsg("");
-    if (!pictures[index]?.id || !pictures[index]?.public_url) return;
+    const target = pictures[index];
+    if (!target?.id) return;
     setDeleting(true);
     try {
-      const urlParts = pictures[index].public_url.split("/");
-      const fileName = urlParts[urlParts.length - 1].split("?")[0];
-      const { error: storageError } = await supabase.storage
-        .from("carousel")
-        .remove([fileName]);
-      if (storageError) {
-        setErrorMsg("Kunne ikke slette fra storage: " + storageError.message);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        setErrorMsg("Du må være logget inn.");
         setDeleting(false);
         return;
       }
-      const { error: dbError } = await supabase
-        .from("carousel_images")
-        .delete()
-        .eq("id", pictures[index].id);
-      if (dbError) {
-        setErrorMsg("Kunne ikke slette fra database: " + dbError.message);
+      const res = await fetch("/api/delete-carousel-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ id: target.id }),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        setErrorMsg(result.error || "Kunne ikke slette bilde.");
         setDeleting(false);
         return;
       }
-      // Oppdater bildelisten med setPictures
+      // Update the local list so the change is reflected immediately.
       const newPictures = pictures.filter((_, i) => i !== index);
       setPictures(newPictures);
       setIndex(0);
@@ -242,13 +245,19 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({
           alt={current.title || "Bilde"}
           fill
           style={{
-            objectFit: "cover",
+            objectFit: fullBleed ? "contain" : "cover",
+            objectPosition: fullBleed ? "center 80%" : "center",
+            backgroundColor: fullBleed ? "#000" : undefined,
             opacity: imageLoaded ? 1 : 0,
             transform:
-              imageLoaded || reducedMotion ? "scale(1)" : "scale(1.06)",
+              imageLoaded || reducedMotion || fullBleed
+                ? "scale(1)"
+                : "scale(1.04)",
             transition: reducedMotion
               ? "opacity 0.3s ease"
-              : "opacity 0.8s ease, transform 7s ease-out",
+              : fullBleed
+                ? "opacity 0.6s ease"
+                : "opacity 0.8s ease, transform 7s ease-out",
           }}
           priority={index === 0}
           sizes="100vw"
@@ -277,9 +286,10 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({
               inset: 0,
               zIndex: 3,
               display: "flex",
-              alignItems: "center",
+              alignItems: "stretch",
               justifyContent: "center",
               px: { xs: 2, md: 6 },
+              py: { xs: 9, md: 11 },
               pointerEvents: "none",
               "& a, & button": { pointerEvents: "auto" },
             }}

@@ -9,7 +9,7 @@ import { supabase } from "../lib/supabaseClient";
 import PageShell from "../Components/PageShell";
 
 export default function AddCarouselImagePage() {
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -35,8 +35,8 @@ export default function AddCarouselImagePage() {
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setImageFile(e.target.files[0]);
+    if (e.target.files && e.target.files.length > 0) {
+      setImageFiles(Array.from(e.target.files));
     }
   };
 
@@ -44,8 +44,8 @@ export default function AddCarouselImagePage() {
     e.preventDefault();
     setError("");
     setSuccess("");
-    if (!imageFile) {
-      setError("Du må velge et bilde!");
+    if (imageFiles.length === 0) {
+      setError("Du må velge minst ett bilde!");
       return;
     }
     setUploading(true);
@@ -57,7 +57,7 @@ export default function AddCarouselImagePage() {
       return;
     }
     const formData = new FormData();
-    formData.append("file", imageFile);
+    imageFiles.forEach((file) => formData.append("files", file));
     formData.append("title", title);
     formData.append("description", description);
     const res = await fetch("/api/upload-carousel-image", {
@@ -71,8 +71,12 @@ export default function AddCarouselImagePage() {
       setUploading(false);
       return;
     }
-    setSuccess("Bilde og tekst lagret!");
-    setImageFile(null);
+    const failed = Array.isArray(result.errors) ? result.errors.length : 0;
+    setSuccess(
+      `${result.uploadedCount} bilde(r) lastet opp!` +
+        (failed ? ` ${failed} feilet.` : ""),
+    );
+    setImageFiles([]);
     setTitle("");
     setDescription("");
     setUploading(false);
@@ -98,7 +102,7 @@ export default function AddCarouselImagePage() {
     <PageShell
       eyebrow="ADMIN"
       title="Karusellbilde"
-      subtitle="Last opp et nytt bilde til forsidekarusellen."
+      subtitle="Last opp ett eller flere bilder til forsidekarusellen."
       maxWidth="sm"
     >
       <Box display="flex" justifyContent="center">
@@ -115,16 +119,41 @@ export default function AddCarouselImagePage() {
           }}
         >
           <form onSubmit={handleSubmit}>
-            <input type="file" accept="image/*" onChange={handleFileChange} />
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileChange}
+            />
+            {imageFiles.length > 0 && (
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  {imageFiles.length} bilde(r) valgt:
+                </Typography>
+                <Box component="ul" sx={{ pl: 3, m: 0 }}>
+                  {imageFiles.map((f) => (
+                    <Typography
+                      component="li"
+                      variant="caption"
+                      color="text.secondary"
+                      key={f.name + f.size}
+                    >
+                      {f.name}
+                    </Typography>
+                  ))}
+                </Box>
+              </Box>
+            )}
             <TextField
-              label="Tittel"
+              label="Tittel (valgfri – brukes på alle)"
               fullWidth
               margin="normal"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              helperText="La stå tom for å bruke filnavnet som tittel."
             />
             <TextField
-              label="Beskrivelse"
+              label="Beskrivelse (valgfri)"
               fullWidth
               margin="normal"
               value={description}
@@ -142,7 +171,11 @@ export default function AddCarouselImagePage() {
                 textTransform: "none",
               }}
             >
-              {uploading ? "Lagrer..." : "Lagre bilde"}
+              {uploading
+                ? "Lagrer..."
+                : imageFiles.length > 1
+                  ? `Last opp ${imageFiles.length} bilder`
+                  : "Lagre bilde"}
             </Button>
             {error && (
               <Typography color="error" mt={2}>
