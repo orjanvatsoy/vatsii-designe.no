@@ -59,11 +59,13 @@ export default function AdminOrdersPage() {
         const response = await fetch("/api/admin/place-card-orders", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const result = (await response.json()) as AdminOrder[] | { error?: string };
+        const result = (await response.json()) as
+          | AdminOrder[]
+          | { error?: string };
         if (!response.ok) {
           setError(
             "error" in result
-              ? result.error ?? "Ingen tilgang."
+              ? (result.error ?? "Ingen tilgang.")
               : "Ingen tilgang.",
           );
           return;
@@ -144,11 +146,16 @@ export default function AdminOrdersPage() {
           {error && <Alert severity="error">{error}</Alert>}
           {success && <Alert severity="success">{success}</Alert>}
           {!error && orders.length === 0 && (
-            <Alert severity="info">Ingen bestillinger har kommet inn ennå.</Alert>
+            <Alert severity="info">
+              Ingen bestillinger har kommet inn ennå.
+            </Alert>
           )}
 
           {orders.map((order) => (
-            <Card key={order.id} sx={{ border: "1px solid", borderColor: "divider" }}>
+            <Card
+              key={order.id}
+              sx={{ border: "1px solid", borderColor: "divider" }}
+            >
               <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
                 <Stack spacing={3}>
                   <Stack

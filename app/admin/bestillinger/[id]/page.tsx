@@ -65,11 +65,13 @@ export default function AdminOrderDetailsPage() {
         const response = await fetch(`/api/admin/place-card-orders/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const result = (await response.json()) as OrderDetails | { error?: string };
+        const result = (await response.json()) as
+          | OrderDetails
+          | { error?: string };
         if (!response.ok) {
           setError(
             "error" in result
-              ? result.error ?? "Bestillingen kunne ikke hentes."
+              ? (result.error ?? "Bestillingen kunne ikke hentes.")
               : "Bestillingen kunne ikke hentes.",
           );
           return;
@@ -284,7 +286,8 @@ export default function AdminOrderDetailsPage() {
                 {new Intl.DateTimeFormat("nb-NO", {
                   dateStyle: "medium",
                   timeStyle: "short",
-                }).format(new Date(order.confirmedAt))}.
+                }).format(new Date(order.confirmedAt))}
+                .
               </Alert>
             ) : null}
           </Stack>

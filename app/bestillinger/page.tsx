@@ -265,7 +265,8 @@ export default function OrdersPage() {
                           {new Intl.DateTimeFormat("nb-NO", {
                             dateStyle: "medium",
                             timeStyle: "short",
-                          }).format(new Date(order.confirmedAt))}.
+                          }).format(new Date(order.confirmedAt))}
+                          .
                         </Alert>
                       )}
 
