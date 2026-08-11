@@ -24,6 +24,7 @@ interface PlaceCardOrder {
   names: string[];
   quantity: number;
   status: string;
+  confirmedAt: string | null;
   createdAt: string;
   productName: string;
 }
@@ -57,7 +58,9 @@ export default function OrdersPage() {
     const data = (await response.json()) as PlaceCardOrder[];
     setOrders(data);
     setDrafts(
-      Object.fromEntries(data.map((order) => [order.id, order.names.join("\n")])),
+      Object.fromEntries(
+        data.map((order) => [order.id, order.names.join("\n")]),
+      ),
     );
   };
 
@@ -157,7 +160,14 @@ export default function OrdersPage() {
           <CircularProgress aria-label="Henter bestillinger" />
         </Box>
       ) : !user ? (
-        <Card sx={{ maxWidth: 560, mx: "auto", border: "1px solid", borderColor: "divider" }}>
+        <Card
+          sx={{
+            maxWidth: 560,
+            mx: "auto",
+            border: "1px solid",
+            borderColor: "divider",
+          }}
+        >
           <CardContent sx={{ p: { xs: 3, md: 5 }, textAlign: "center" }}>
             <Stack spacing={3} alignItems="center">
               <Typography variant="h5" fontWeight={700}>
@@ -199,7 +209,10 @@ export default function OrdersPage() {
                 .filter(Boolean);
 
               return (
-                <Card key={order.id} sx={{ border: "1px solid", borderColor: "divider" }}>
+                <Card
+                  key={order.id}
+                  sx={{ border: "1px solid", borderColor: "divider" }}
+                >
                   <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
                     <Stack spacing={3}>
                       <Stack
@@ -213,13 +226,17 @@ export default function OrdersPage() {
                             {order.productName}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            Bestilling #{order.id} · {new Intl.DateTimeFormat("nb-NO", {
+                            Bestilling #{order.id} ·{" "}
+                            {new Intl.DateTimeFormat("nb-NO", {
                               dateStyle: "medium",
                               timeStyle: "short",
                             }).format(new Date(order.createdAt))}
                           </Typography>
                         </Box>
-                        <Chip label={statusLabels[order.status] ?? order.status} color={editable ? "primary" : "default"} />
+                        <Chip
+                          label={statusLabels[order.status] ?? order.status}
+                          color={editable ? "primary" : "default"}
+                        />
                       </Stack>
 
                       <TextField
@@ -242,15 +259,32 @@ export default function OrdersPage() {
                         }
                       />
 
+                      {order.confirmedAt && (
+                        <Alert severity="success">
+                          Vi bekreftet mottak av bestillingen{" "}
+                          {new Intl.DateTimeFormat("nb-NO", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          }).format(new Date(order.confirmedAt))}.
+                        </Alert>
+                      )}
+
                       {editable && (
                         <Button
                           variant="contained"
                           startIcon={<SaveIcon />}
-                          disabled={savingId === order.id || draftNames.length === 0}
+                          disabled={
+                            savingId === order.id || draftNames.length === 0
+                          }
                           onClick={() => handleSave(order.id)}
-                          sx={{ alignSelf: "flex-start", textTransform: "none" }}
+                          sx={{
+                            alignSelf: "flex-start",
+                            textTransform: "none",
+                          }}
                         >
-                          {savingId === order.id ? "Lagrer..." : "Lagre navneliste"}
+                          {savingId === order.id
+                            ? "Lagrer..."
+                            : "Lagre navneliste"}
                         </Button>
                       )}
                     </Stack>

@@ -150,6 +150,11 @@ export default function NavBar() {
                     <ListItemText primary="Admin Products" />
                   </ListItemButton>
                 </ListItem>
+                <ListItem disablePadding>
+                  <ListItemButton href="/admin/bestillinger">
+                    <ListItemText primary="Innkomne bestillinger" />
+                  </ListItemButton>
+                </ListItem>
               </>
             )}
             {(role === "User" || role === "King") && (
