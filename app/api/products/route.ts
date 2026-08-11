@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdmin } from "../../lib/requireAdmin";
+import { prisma } from "../../lib/prisma";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -60,17 +61,19 @@ export async function POST(req: NextRequest) {
     .getPublicUrl(objectKey);
   const imageUrl = publicUrlData?.publicUrl;
 
-  // Save product to DB
-  const { error: dbError } = await supabase.from("products").insert([
-    {
-      name,
-      description,
-      category,
-      image_url: imageUrl,
-    },
-  ]);
-  if (dbError) {
-    return NextResponse.json({ error: dbError.message }, { status: 500 });
+  try {
+    await prisma.product.create({
+      data: {
+        name,
+        description,
+        category,
+        imageUrl,
+      },
+    });
+  } catch (error) {
+    await supabase.storage.from("products").remove([objectKey]);
+    const message = error instanceof Error ? error.message : "Database error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Skeleton } from "@mui/material";
 import { supabase } from "../lib/supabaseClient";
+import { getCurrentProfileRole } from "../lib/profileClient";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import { Typography, Box, IconButton, Button } from "@mui/material";
@@ -34,16 +35,7 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({
   // Fetch user role for delete access
   useEffect(() => {
     const getRole = async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data?.user;
-      if (user?.id) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-        if (profile) setRole(profile.role || "");
-      }
+      setRole(await getCurrentProfileRole());
     };
     getRole();
   }, []);

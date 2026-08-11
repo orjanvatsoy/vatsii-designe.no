@@ -5,16 +5,22 @@ import PageShell from "../Components/PageShell";
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { getCurrentProfileRole } from "../lib/profileClient";
 
 interface IotTemperatureChartProps {
-  data: { created_at: string; temperature: number }[];
+  data: TemperatureData[];
   loading: boolean;
   authorized: boolean;
 }
 
 interface IotTemperatureCardProps {
-  data: { created_at: string; temperature: number }[];
+  data: TemperatureData[];
+}
+
+interface TemperatureData {
+  created_at: string;
+  temperature: number;
+  temperature_forcast?: number | null;
 }
 
 const IotTemperatureChart = dynamic<IotTemperatureChartProps>(
@@ -29,16 +35,7 @@ export default function IotTemperatureCard({ data }: IotTemperatureCardProps) {
   useEffect(() => {
     const getRole = async () => {
       setLoading(true);
-      const { data } = await supabase.auth.getUser();
-      const user = data?.user;
-      if (user?.id) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-        if (profile) setRole(profile.role || "");
-      }
+      setRole(await getCurrentProfileRole());
       setLoading(false);
     };
     getRole();

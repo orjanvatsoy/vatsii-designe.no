@@ -3,7 +3,6 @@ import AppBar from "@mui/material/AppBar";
 import HomeIcon from "@mui/icons-material/Home";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
-import Link from "next/link";
 import IconButton from "@mui/material/IconButton";
 import Avatar from "@mui/material/Avatar";
 import Typography from "@mui/material/Typography";
@@ -16,6 +15,7 @@ import ListItemText from "@mui/material/ListItemText";
 import Divider from "@mui/material/Divider";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { getCurrentProfileRole } from "../lib/profileClient";
 
 export default function NavBar() {
   const [userName, setUserName] = useState<string | null>(null);
@@ -32,12 +32,7 @@ export default function NavBar() {
       );
       setAvatarUrl(user?.user_metadata?.avatar_url ?? null);
       if (user?.id) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-        if (profile) setRole(profile.role || "");
+        setRole(await getCurrentProfileRole());
       }
     };
     getUser();
@@ -50,14 +45,7 @@ export default function NavBar() {
         );
         setAvatarUrl(user?.user_metadata?.avatar_url ?? null);
         if (user?.id) {
-          supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", user.id)
-            .single()
-            .then(({ data: profile }) => {
-              if (profile) setRole(profile.role || "");
-            });
+          getCurrentProfileRole().then(setRole);
         } else {
           setRole("");
         }

@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vatsii Designe
 
-## Getting Started
+Next.js-applikasjon med Prisma som Code First ORM mot PostgreSQL i Supabase.
+Supabase brukes fortsatt til autentisering og Storage.
 
-First, run the development server:
+## Kom i gang
+
+Kopier verdiene fra `.env.example` til `.env.local`. `DATABASE_URL` finner du
+under databaseinnstillingene i Supabase.
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Åpne [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database og migreringer
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`prisma/schema.prisma` er kilden til databasestrukturen. Etter en schemaendring
+opprettes og kjøres en lokal migrering med:
 
-## Learn More
+```bash
+npm run db:migrate -- --name beskriv_endringen
+```
 
-To learn more about Next.js, take a look at the following resources:
+I produksjon kjøres ventende migreringer med:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run db:deploy
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Baseline av eksisterende database
 
-## Deploy on Vercel
+Den initiale migreringen beskriver tabellene som allerede finnes i Supabase.
+Kontroller først at kolonner og typer samsvarer med `prisma/schema.prisma`, og
+merk deretter migreringen som allerede utført uten å kjøre SQL-en:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npx prisma migrate resolve --applied 20260811000000_init
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Dette gjøres én gang per eksisterende database. For en tom database brukes
+`npm run db:deploy`, som oppretter tabellene fra migreringen.
+
+Nyttige kommandoer:
+
+```bash
+npm run db:generate
+npm run db:studio
+```

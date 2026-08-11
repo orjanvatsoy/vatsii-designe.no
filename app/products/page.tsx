@@ -1,6 +1,5 @@
 export const revalidate = 300;
 
-import { createClient } from "@supabase/supabase-js";
 import {
   Box,
   Card,
@@ -13,33 +12,23 @@ import Image from "next/image";
 import Link from "next/link";
 import PageShell from "../Components/PageShell";
 import { signImageUrl } from "../lib/storage";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { prisma } from "../lib/prisma";
 
 export default async function ProductsPage() {
-  const { data: products, error } = await supabase
-    .from("products")
-    .select("*")
-    .eq("active", true)
-    .abortSignal(AbortSignal.timeout(5000));
-
-  if (error) {
-    return (
-      <Box mt={8}>
-        <Typography color="error">Kunne ikke hente produkter</Typography>
-      </Box>
-    );
-  }
+  const products = await prisma.product.findMany({
+    where: { active: true },
+  });
 
   // Convert stored public URLs into signed URLs (bucket may be private).
   const productsWithSignedUrls = await Promise.all(
-    (products ?? []).map(async (product) => ({
-      ...product,
-      image_url: product.image_url
-        ? await signImageUrl(product.image_url, "products")
-        : product.image_url,
+    products.map(async (product) => ({
+      id: product.id.toString(),
+      name: product.name,
+      description: product.description,
+      category: product.category,
+      image_url: product.imageUrl
+        ? await signImageUrl(product.imageUrl, "products")
+        : product.imageUrl,
     })),
   );
 

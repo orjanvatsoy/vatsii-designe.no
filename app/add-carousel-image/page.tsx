@@ -6,6 +6,7 @@ import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import { Card } from "@mui/material";
 import { supabase } from "../lib/supabaseClient";
+import { getCurrentProfileRole } from "../lib/profileClient";
 import PageShell from "../Components/PageShell";
 
 export default function AddCarouselImagePage() {
@@ -20,15 +21,7 @@ export default function AddCarouselImagePage() {
 
   useEffect(() => {
     const check = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data?.user?.id) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", data.user.id)
-          .single();
-        if (profile) setRole(profile.role || "");
-      }
+      setRole(await getCurrentProfileRole());
       setAuthChecked(true);
     };
     check();

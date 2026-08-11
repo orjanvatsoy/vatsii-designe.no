@@ -1,9 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { prisma } from "./prisma";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 // Admin role required to mutate carousel/products.
 const ADMIN_ROLE = "King";
@@ -17,7 +18,7 @@ const ADMIN_ROLE = "King";
  */
 export async function requireAdmin(
   req: Request,
-): Promise<{ user: any } | NextResponse> {
+): Promise<{ user: User } | NextResponse> {
   const authHeader = req.headers.get("authorization") ?? "";
   const token = authHeader.toLowerCase().startsWith("bearer ")
     ? authHeader.slice(7).trim()
@@ -36,16 +37,12 @@ export async function requireAdmin(
     return NextResponse.json({ error: "Invalid session" }, { status: 401 });
   }
 
-  // Check the role via the service-role client so RLS can't be bypassed
-  // by a user who edits their own profile row.
-  const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
-  const { data: profile, error: profileError } = await adminClient
-    .from("profiles")
-    .select("role")
-    .eq("id", userData.user.id)
-    .single();
+  const profile = await prisma.profile.findUnique({
+    where: { id: userData.user.id },
+    select: { role: true },
+  });
 
-  if (profileError || !profile || profile.role !== ADMIN_ROLE) {
+  if (profile?.role !== ADMIN_ROLE) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

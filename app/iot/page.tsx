@@ -1,20 +1,16 @@
 export const dynamic = "force-dynamic";
-import { createClient } from "@supabase/supabase-js";
 import IotTemperatureCard from "./IotTemperatureCard";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+import { prisma } from "../lib/prisma";
 
 export default async function Page() {
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  let data: { created_at: string; temperature: number }[] = [];
-  const { data: tempData, error } = await supabase
-    .from("temperature_data")
-    .select("created_at, temperature, temperature_forcast")
-    .order("created_at", { ascending: false });
-  if (!error && tempData) {
-    data = tempData.reverse();
-  }
+  const temperatureData = await prisma.temperatureData.findMany({
+    orderBy: { createdAt: "asc" },
+  });
+  const data = temperatureData.map((entry) => ({
+    created_at: entry.createdAt.toISOString(),
+    temperature: entry.temperature,
+    temperature_forcast: entry.temperatureForecast,
+  }));
 
   return <IotTemperatureCard data={data} />;
 }

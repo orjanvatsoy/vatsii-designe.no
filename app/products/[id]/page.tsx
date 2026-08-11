@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 import {
   Box,
   Card,
@@ -12,10 +11,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import Image from "next/image";
 import PageShell from "../../Components/PageShell";
 import { signImageUrl } from "../../lib/storage";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { prisma } from "../../lib/prisma";
 
 export const revalidate = 300;
 
@@ -26,13 +22,14 @@ export default async function ProductPage({
 }) {
   const { id } = await params;
 
-  const { data: product, error } = await supabase
-    .from("products")
-    .select("*")
-    .eq("id", id)
-    .single();
+  let product = null;
+  try {
+    product = await prisma.product.findUnique({ where: { id: BigInt(id) } });
+  } catch {
+    product = null;
+  }
 
-  if (error || !product) {
+  if (!product) {
     return (
       <Container maxWidth="sm" sx={{ mt: 12, mb: 8 }}>
         <Card
@@ -55,7 +52,7 @@ export default async function ProductPage({
   }
 
   // Convert stored public URL into a signed URL (bucket may be private).
-  const imageUrl: string = await signImageUrl(product.image_url, "products");
+  const imageUrl: string = await signImageUrl(product.imageUrl, "products");
 
   return (
     <PageShell maxWidth="md">

@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { prisma } from "../../lib/prisma";
 
 // Use environment variables for service role key and URL
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -8,26 +9,20 @@ const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 export async function GET() {
   // Fetch all carousel images
-  const { data, error } = await supabase
-    .from("carousel_images")
-    .select("id, image_url, title, description, created_at")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    // ...existing code...
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  const data = await prisma.carouselImage.findMany({
+    orderBy: { createdAt: "desc" },
+  });
 
   // Generate signed URLs for each image, supporting both old and new object key formats
   const imagesWithSignedUrls = await Promise.all(
-    (data ?? []).map(async (img) => {
+    data.map(async (img) => {
       let objectKey = null;
-      if (img.image_url?.includes("/carousel/")) {
+      if (img.imageUrl.includes("/carousel/")) {
         // New format: .../carousel/userid/filename.jpg
-        objectKey = img.image_url.split("/carousel/")[1];
-      } else if (img.image_url) {
+        objectKey = img.imageUrl.split("/carousel/")[1];
+      } else if (img.imageUrl) {
         // Old format: just the filename
-        objectKey = img.image_url.split("/").pop();
+        objectKey = img.imageUrl.split("/").pop();
       }
       let signedUrlData = null;
       let signedUrlError = null;
@@ -39,7 +34,11 @@ export async function GET() {
         signedUrlError = result.error;
       }
       return {
-        ...img,
+        id: img.id.toString(),
+        image_url: img.imageUrl,
+        title: img.title,
+        description: img.description,
+        created_at: img.createdAt,
         signed_url: signedUrlData?.signedUrl ?? null,
         signed_url_error: signedUrlError?.message ?? null,
       };

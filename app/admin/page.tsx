@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { getCurrentProfileRole } from "../lib/profileClient";
 
 import {
   Box,
@@ -28,16 +29,7 @@ export default function AdminProductPage() {
 
   useEffect(() => {
     const getRole = async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data?.user;
-      if (user?.id) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-        if (profile) setRole(profile.role || "");
-      }
+      setRole(await getCurrentProfileRole());
     };
     getRole();
   }, []);

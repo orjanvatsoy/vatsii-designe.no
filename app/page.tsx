@@ -1,25 +1,20 @@
 import { Box } from "@mui/material";
 import PictureCarousel from "./Components/PictureCarousel";
 import HeroOverlay from "./Components/HeroOverlay";
-import { createClient } from "@supabase/supabase-js";
 import { signImageUrl } from "./lib/storage";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { prisma } from "./lib/prisma";
 
 async function fetchImages() {
-  // Fetch images directly from Supabase and generate signed URLs
-  const { data, error } = await supabase
-    .from("carousel_images")
-    .select("id, image_url, title, description, created_at")
-    .order("created_at", { ascending: false });
-  if (error || !data) return [];
+  const data = await prisma.carouselImage.findMany({
+    orderBy: { createdAt: "desc" },
+  });
 
   const imagesWithSignedUrls = await Promise.all(
-    data.map(async (img) => ({
-      ...img,
-      public_url: await signImageUrl(img.image_url, "carousel"),
+    data.map(async (image) => ({
+      id: image.id.toString(),
+      title: image.title ?? undefined,
+      description: image.description ?? undefined,
+      public_url: await signImageUrl(image.imageUrl, "carousel"),
     })),
   );
   // Filter out images with missing or invalid URLs

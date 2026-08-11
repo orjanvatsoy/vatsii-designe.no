@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { getCurrentProfileRole } from "../lib/profileClient";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -20,13 +21,7 @@ export default function UserPage() {
       const { data, error } = await supabase.auth.getUser();
       setUser(data?.user ?? null);
       if (data?.user?.id) {
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", data.user.id)
-          .single();
-        if (profile) setRole(profile.role || "");
-        if (profileError) setError(profileError.message);
+        setRole(await getCurrentProfileRole());
       }
       setLoading(false);
       if (error) setError(error.message);

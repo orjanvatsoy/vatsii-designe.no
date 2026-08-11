@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../lib/requireAdmin";
+import { prisma } from "../../lib/prisma";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -68,14 +69,15 @@ export async function POST(req: Request) {
     // Use the shared title when given, otherwise fall back to the file name.
     const title = sharedTitle || file.name.replace(/\.[^.]+$/, "");
 
-    const { error: dbError } = await supabase
-      .from("carousel_images")
-      .insert([{ image_url, title, description }]);
-
-    if (dbError) {
+    try {
+      await prisma.carouselImage.create({
+        data: { imageUrl: image_url, title, description },
+      });
+    } catch (error) {
       // Roll back the orphaned storage object so we don't leave junk.
       await supabase.storage.from("carousel").remove([objectKey]);
-      errors.push(`${file.name}: ${dbError.message}`);
+      const message = error instanceof Error ? error.message : "Database error";
+      errors.push(`${file.name}: ${message}`);
       continue;
     }
 

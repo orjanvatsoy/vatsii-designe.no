@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../lib/requireAdmin";
 import { objectKeyFromImageUrl } from "../../lib/storage";
+import { prisma } from "../../lib/prisma";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -18,18 +19,24 @@ export async function POST(req: Request) {
   }
 
   // Look up the row so we can derive the storage object key reliably.
-  const { data: row, error: fetchError } = await supabase
-    .from("carousel_images")
-    .select("image_url")
-    .eq("id", id)
-    .single();
+  let imageId: bigint;
+  try {
+    imageId = BigInt(id);
+  } catch {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
 
-  if (fetchError || !row) {
+  const row = await prisma.carouselImage.findUnique({
+    where: { id: imageId },
+    select: { imageUrl: true },
+  });
+
+  if (!row) {
     return NextResponse.json({ error: "Image not found" }, { status: 404 });
   }
 
   // Remove the file from storage (key format: <userId>/<filename>).
-  const objectKey = objectKeyFromImageUrl(row.image_url, "carousel");
+  const objectKey = objectKeyFromImageUrl(row.imageUrl, "carousel");
   if (objectKey) {
     const { error: storageError } = await supabase.storage
       .from("carousel")
@@ -43,13 +50,12 @@ export async function POST(req: Request) {
   }
 
   // Remove the database row.
-  const { error: dbError } = await supabase
-    .from("carousel_images")
-    .delete()
-    .eq("id", id);
-  if (dbError) {
+  try {
+    await prisma.carouselImage.delete({ where: { id: imageId } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Database error";
     return NextResponse.json(
-      { error: "Kunne ikke slette fra database: " + dbError.message },
+      { error: "Kunne ikke slette fra database: " + message },
       { status: 500 },
     );
   }
