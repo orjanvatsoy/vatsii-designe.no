@@ -44,10 +44,8 @@ export async function POST(request: Request) {
     );
   }
 
-  let productId: bigint;
-  try {
-    productId = BigInt(body.productId);
-  } catch {
+  const productId = body.productId;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(productId)) {
     return NextResponse.json({ error: "Ugyldig produkt." }, { status: 400 });
   }
 

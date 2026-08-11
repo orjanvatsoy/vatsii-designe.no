@@ -24,7 +24,7 @@ export default async function ProductPage({
 
   let product = null;
   try {
-    product = await prisma.product.findUnique({ where: { id: BigInt(id) } });
+    product = await prisma.product.findUnique({ where: { id } });
   } catch {
     product = null;
   }

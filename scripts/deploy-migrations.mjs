@@ -12,7 +12,13 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is required to deploy migrations.");
 }
 
-const prismaCli = join(process.cwd(), "node_modules", "prisma", "build", "index.js");
+const prismaCli = join(
+  process.cwd(),
+  "node_modules",
+  "prisma",
+  "build",
+  "index.js",
+);
 
 function runPrisma(args) {
   const result = spawnSync(process.execPath, [prismaCli, ...args], {
@@ -46,6 +52,20 @@ try {
       ["20260811000000_init"],
     );
     initialMigrationApplied = migrationResult.rowCount === 1;
+
+    const failedPlaceCardMigration = await client.query(
+      `SELECT 1 FROM "_prisma_migrations" WHERE migration_name = $1 AND finished_at IS NULL AND rolled_back_at IS NULL LIMIT 1`,
+      ["20260811010000_add_place_card_orders"],
+    );
+    if (failedPlaceCardMigration.rowCount === 1) {
+      console.log("Recovering failed place-card migration...");
+      runPrisma([
+        "migrate",
+        "resolve",
+        "--rolled-back",
+        "20260811010000_add_place_card_orders",
+      ]);
+    }
   }
 
   if (!initialMigrationApplied) {
@@ -55,12 +75,7 @@ try {
 
     if (existingLegacyTables.length === legacyTables.length) {
       console.log("Baselining existing database schema...");
-      runPrisma([
-        "migrate",
-        "resolve",
-        "--applied",
-        "20260811000000_init",
-      ]);
+      runPrisma(["migrate", "resolve", "--applied", "20260811000000_init"]);
     } else if (existingLegacyTables.length > 0) {
       throw new Error(
         `Database is only partially initialized. Found: ${existingLegacyTables.join(", ")}`,
