@@ -17,7 +17,10 @@ export async function GET(
   try {
     orderId = BigInt(id);
   } catch {
-    return NextResponse.json({ error: "Ugyldig bestilling." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Ugyldig forespørsel." },
+      { status: 400 },
+    );
   }
 
   const order = await prisma.placeCardOrder.findUnique({
@@ -29,6 +32,8 @@ export async function GET(
       names: true,
       quantity: true,
       status: true,
+      estimatedPrice: true,
+      deliveryEstimate: true,
       confirmedAt: true,
       createdAt: true,
       product: {
@@ -44,7 +49,7 @@ export async function GET(
 
   if (!order) {
     return NextResponse.json(
-      { error: "Bestillingen finnes ikke." },
+      { error: "Forespørselen finnes ikke." },
       { status: 404 },
     );
   }
@@ -56,6 +61,8 @@ export async function GET(
     names: order.names.split("\n").filter(Boolean),
     quantity: order.quantity,
     status: order.status,
+    estimatedPrice: order.estimatedPrice,
+    deliveryEstimate: order.deliveryEstimate,
     confirmedAt: order.confirmedAt?.toISOString() ?? null,
     createdAt: order.createdAt.toISOString(),
     product: {

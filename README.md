@@ -15,6 +15,20 @@ npm run dev
 
 Åpne [http://localhost:3000](http://localhost:3000).
 
+## E-postvarsler
+
+Forespørsler bruker [Resend](https://resend.com) til å varsle eier og sende
+prisestimat til kunden. Legg disse variablene i `.env.local` og i Vercel:
+
+```env
+RESEND_API_KEY=re_...
+ORDER_NOTIFICATION_EMAIL=din-epost@eksempel.no
+ORDER_EMAIL_FROM=Vatsii Designe <foresporsel@ditt-verifiserte-domene.no>
+```
+
+`ORDER_EMAIL_FROM` må bruke et domene som er verifisert i Resend. En
+forespørsel lagres selv om e-posttjenesten midlertidig er utilgjengelig.
+
 ## Database og migreringer
 
 `prisma/schema.prisma` er kilden til databasestrukturen. Etter en schemaendring

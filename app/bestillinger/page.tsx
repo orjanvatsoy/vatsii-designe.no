@@ -24,6 +24,8 @@ interface PlaceCardOrder {
   names: string[];
   quantity: number;
   status: string;
+  estimatedPrice: number | null;
+  deliveryEstimate: string | null;
   confirmedAt: string | null;
   createdAt: string;
   productName: string;
@@ -31,7 +33,8 @@ interface PlaceCardOrder {
 
 const statusLabels: Record<string, string> = {
   new: "Ny",
-  confirmed: "Bekreftet",
+  confirmed: "Tidligere bekreftet",
+  estimated: "Estimat mottatt",
   in_production: "I produksjon",
   completed: "Ferdig",
   cancelled: "Kansellert",
@@ -52,7 +55,7 @@ export default function OrdersPage() {
     });
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      throw new Error(result.error ?? "Kunne ikke hente bestillingene.");
+      throw new Error(result.error ?? "Kunne ikke hente forespørslene.");
     }
 
     const data = (await response.json()) as PlaceCardOrder[];
@@ -74,7 +77,7 @@ export default function OrdersPage() {
           setError(
             loadError instanceof Error
               ? loadError.message
-              : "Kunne ikke hente bestillingene.",
+              : "Kunne ikke hente forespørslene.",
           );
         }
       }
@@ -140,7 +143,7 @@ export default function OrdersPage() {
             : order,
         ),
       );
-      setSuccess(`Bestilling #${orderId} er oppdatert.`);
+      setSuccess(`Forespørsel #${orderId} er oppdatert.`);
     } catch {
       setError("Kunne ikke kontakte serveren. Prøv igjen.");
     } finally {
@@ -151,13 +154,13 @@ export default function OrdersPage() {
   return (
     <PageShell
       eyebrow="DIN KONTO"
-      title="Mine bestillinger"
-      subtitle="Se bordkortbestillingene dine og oppdater navnelisten før produksjonen starter."
+      title="Mine forespørsler"
+      subtitle="Se forespørslene dine, oppdater navnelisten før du får svar, og finn prisestimat og leveringstid."
       maxWidth="md"
     >
       {loading ? (
         <Box display="flex" justifyContent="center" py={8}>
-          <CircularProgress aria-label="Henter bestillinger" />
+          <CircularProgress aria-label="Henter forespørsler" />
         </Box>
       ) : !user ? (
         <Card
@@ -171,7 +174,7 @@ export default function OrdersPage() {
           <CardContent sx={{ p: { xs: 3, md: 5 }, textAlign: "center" }}>
             <Stack spacing={3} alignItems="center">
               <Typography variant="h5" fontWeight={700}>
-                Logg inn for å se bestillingene
+                Logg inn for å se forespørslene
               </Typography>
               <Button
                 variant="contained"
@@ -194,11 +197,11 @@ export default function OrdersPage() {
               severity="info"
               action={
                 <Button color="inherit" href="/products/bordkort">
-                  Bestill bordkort
+                  Send forespørsel
                 </Button>
               }
             >
-              Du har ingen bestillinger ennå.
+              Du har ingen forespørsler ennå.
             </Alert>
           ) : (
             orders.map((order) => {
@@ -226,7 +229,7 @@ export default function OrdersPage() {
                             {order.productName}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            Bestilling #{order.id} ·{" "}
+                            Forespørsel #{order.id} ·{" "}
                             {new Intl.DateTimeFormat("nb-NO", {
                               dateStyle: "medium",
                               timeStyle: "short",
@@ -259,14 +262,14 @@ export default function OrdersPage() {
                         }
                       />
 
-                      {order.confirmedAt && (
+                      {order.estimatedPrice && order.deliveryEstimate && (
                         <Alert severity="success">
-                          Vi bekreftet mottak av bestillingen{" "}
-                          {new Intl.DateTimeFormat("nb-NO", {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                          }).format(new Date(order.confirmedAt))}
-                          .
+                          Prisestimat:{" "}
+                          {new Intl.NumberFormat("nb-NO").format(
+                            order.estimatedPrice,
+                          )}{" "}
+                          kr. Estimert leveringstid: {order.deliveryEstimate}.
+                          Dette er fortsatt en uforpliktende forespørsel.
                         </Alert>
                       )}
 

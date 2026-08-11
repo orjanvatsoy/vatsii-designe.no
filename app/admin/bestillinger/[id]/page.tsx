@@ -10,6 +10,7 @@ import {
   CircularProgress,
   Divider,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
 import Image from "next/image";
@@ -25,6 +26,8 @@ interface OrderDetails {
   names: string[];
   quantity: number;
   status: string;
+  estimatedPrice: number | null;
+  deliveryEstimate: string | null;
   confirmedAt: string | null;
   createdAt: string;
   product: {
@@ -37,7 +40,8 @@ interface OrderDetails {
 
 const statusLabels: Record<string, string> = {
   new: "Ny",
-  confirmed: "Mottatt og bekreftet",
+  confirmed: "Tidligere bekreftet",
+  estimated: "Estimat sendt",
   in_production: "I produksjon",
   completed: "Ferdig",
   cancelled: "Kansellert",
@@ -48,6 +52,8 @@ export default function AdminOrderDetailsPage() {
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
+  const [estimatedPrice, setEstimatedPrice] = useState("");
+  const [deliveryEstimate, setDeliveryEstimate] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -71,8 +77,8 @@ export default function AdminOrderDetailsPage() {
         if (!response.ok) {
           setError(
             "error" in result
-              ? (result.error ?? "Bestillingen kunne ikke hentes.")
-              : "Bestillingen kunne ikke hentes.",
+              ? (result.error ?? "Forespørselen kunne ikke hentes.")
+              : "Forespørselen kunne ikke hentes.",
           );
           return;
         }
@@ -91,6 +97,11 @@ export default function AdminOrderDetailsPage() {
     if (!order) return;
     setError("");
     setSuccess("");
+    const price = Number(estimatedPrice);
+    if (!Number.isInteger(price) || price <= 0 || !deliveryEstimate.trim()) {
+      setError("Oppgi prisestimat i hele kroner og forventet leveringstid.");
+      return;
+    }
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
     if (!token) {
@@ -106,14 +117,20 @@ export default function AdminOrderDetailsPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ orderId: order.id }),
+        body: JSON.stringify({
+          orderId: order.id,
+          estimatedPrice: price,
+          deliveryEstimate: deliveryEstimate.trim(),
+        }),
       });
       const result = (await response.json()) as {
         error?: string;
+        estimatedPrice?: number;
+        deliveryEstimate?: string;
         confirmedAt?: string;
       };
       if (!response.ok) {
-        setError(result.error ?? "Bestillingen kunne ikke bekreftes.");
+        setError(result.error ?? "Svaret kunne ikke sendes.");
         return;
       }
 
@@ -121,12 +138,15 @@ export default function AdminOrderDetailsPage() {
         current
           ? {
               ...current,
-              status: "confirmed",
+              status: "estimated",
+              estimatedPrice: result.estimatedPrice ?? price,
+              deliveryEstimate:
+                result.deliveryEstimate ?? deliveryEstimate.trim(),
               confirmedAt: result.confirmedAt ?? new Date().toISOString(),
             }
           : current,
       );
-      setSuccess("Kunden kan nå se at bestillingen er mottatt.");
+      setSuccess("Prisestimat og leveringstid er sendt til kunden.");
     } catch {
       setError("Kunne ikke kontakte serveren.");
     } finally {
@@ -136,9 +156,9 @@ export default function AdminOrderDetailsPage() {
 
   return (
     <PageShell
-      eyebrow="ADMIN · ORDREDETALJER"
-      title={order ? `Bestilling #${order.id}` : "Bestilling"}
-      subtitle="Kontroller produkt, kunde og navneliste før du bekrefter mottak."
+      eyebrow="ADMIN · FORESPØRSEL"
+      title={order ? `Forespørsel #${order.id}` : "Forespørsel"}
+      subtitle="Kontroller produkt, kunde og navneliste, og svar med prisestimat og leveringstid."
       maxWidth="lg"
     >
       <Stack spacing={3}>
@@ -147,12 +167,12 @@ export default function AdminOrderDetailsPage() {
           startIcon={<ArrowBackIcon />}
           sx={{ alignSelf: "flex-start", textTransform: "none" }}
         >
-          Tilbake til bestillinger
+          Tilbake til forespørsler
         </Button>
 
         {loading ? (
           <Box display="flex" justifyContent="center" py={8}>
-            <CircularProgress aria-label="Henter bestilling" />
+            <CircularProgress aria-label="Henter forespørsel" />
           </Box>
         ) : error && !order ? (
           <Alert severity="error">{error}</Alert>
@@ -227,7 +247,7 @@ export default function AdminOrderDetailsPage() {
 
                 <Box>
                   <Typography variant="overline" color="text.secondary">
-                    Bestilt
+                    Sendt inn
                   </Typography>
                   <Typography>
                     {new Intl.DateTimeFormat("nb-NO", {
@@ -246,7 +266,7 @@ export default function AdminOrderDetailsPage() {
                 Navneliste
               </Typography>
               <Typography color="text.secondary" mb={2.5}>
-                {order.quantity} navn inngår i bestillingen.
+                {order.quantity} navn inngår i forespørselen.
               </Typography>
               <Box
                 component="ol"
@@ -270,24 +290,51 @@ export default function AdminOrderDetailsPage() {
             </Box>
 
             {order.status === "new" ? (
-              <Button
-                variant="contained"
-                size="large"
-                startIcon={<CheckCircleIcon />}
-                disabled={confirming}
-                onClick={handleConfirm}
-                sx={{ alignSelf: "flex-start", textTransform: "none", px: 4 }}
-              >
-                {confirming ? "Bekrefter..." : "Bekreft mottatt"}
-              </Button>
-            ) : order.confirmedAt ? (
+              <Stack spacing={2} sx={{ maxWidth: 620 }}>
+                <Typography variant="h5" fontWeight={700}>
+                  Svar på forespørselen
+                </Typography>
+                <TextField
+                  label="Prisestimat (kr)"
+                  type="number"
+                  value={estimatedPrice}
+                  onChange={(event) => setEstimatedPrice(event.target.value)}
+                  required
+                  slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                />
+                <TextField
+                  label="Forventet leveringstid"
+                  value={deliveryEstimate}
+                  onChange={(event) => setDeliveryEstimate(event.target.value)}
+                  placeholder="For eksempel 2–3 uker"
+                  helperText="Oppgi en dato eller et tidsrom som kunden kan forstå."
+                  required
+                  slotProps={{ htmlInput: { maxLength: 200 } }}
+                />
+                <Button
+                  variant="contained"
+                  size="large"
+                  startIcon={<CheckCircleIcon />}
+                  disabled={
+                    confirming || !estimatedPrice || !deliveryEstimate.trim()
+                  }
+                  onClick={handleConfirm}
+                  sx={{ alignSelf: "flex-start", textTransform: "none", px: 4 }}
+                >
+                  {confirming ? "Sender svar..." : "Send estimat til kunden"}
+                </Button>
+              </Stack>
+            ) : order.estimatedPrice &&
+              order.deliveryEstimate &&
+              order.confirmedAt ? (
               <Alert severity="success">
-                Mottak bekreftet{" "}
+                Estimat sendt{" "}
                 {new Intl.DateTimeFormat("nb-NO", {
                   dateStyle: "medium",
                   timeStyle: "short",
                 }).format(new Date(order.confirmedAt))}
-                .
+                : {new Intl.NumberFormat("nb-NO").format(order.estimatedPrice)}{" "}
+                kr, levering {order.deliveryEstimate}.
               </Alert>
             ) : null}
           </Stack>

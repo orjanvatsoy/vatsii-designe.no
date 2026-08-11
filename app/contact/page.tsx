@@ -9,7 +9,7 @@ export default function Contact() {
     <PageShell
       eyebrow="LA OSS SNAKKE"
       title="Kontakt"
-      subtitle="Ta gjerne kontakt for spørsmål, bestillinger eller andre henvendelser!"
+      subtitle="Ta gjerne kontakt for spørsmål, forespørsler eller andre henvendelser!"
     >
       <Box display="flex" justifyContent="center">
         <Card

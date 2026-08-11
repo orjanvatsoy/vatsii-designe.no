@@ -29,8 +29,8 @@ export default async function PlaceCardsPage() {
   return (
     <PageShell
       eyebrow="PERSONLIG TIL BORDET"
-      title="Bordkort"
-      subtitle="Velg uttrykket du ønsker, legg inn ett navn per linje og send bestillingen direkte til oss."
+      title="Forespørsel på bordkort"
+      subtitle="Velg uttrykket du ønsker og legg inn ett navn per linje. Forespørselen er uforpliktende, og du får prisestimat og leveringstid før du bestemmer deg."
       maxWidth="lg"
     >
       {variants.length > 0 ? (

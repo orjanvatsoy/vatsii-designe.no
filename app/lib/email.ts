@@ -1,0 +1,74 @@
+import "server-only";
+
+import { Resend } from "resend";
+
+const FROM_EMAIL =
+  process.env.ORDER_EMAIL_FROM ?? "Vatsii Designe <onboarding@resend.dev>";
+
+function getResend() {
+  const apiKey = process.env.RESEND_API_KEY;
+  return apiKey ? new Resend(apiKey) : null;
+}
+
+export async function sendNewInquiryEmail(input: {
+  inquiryId: string;
+  customerName: string | null;
+  customerEmail: string;
+  productName: string;
+  quantity: number;
+  adminUrl: string;
+}) {
+  const resend = getResend();
+  const recipient = process.env.ORDER_NOTIFICATION_EMAIL;
+  if (!resend || !recipient) {
+    console.warn(
+      "New inquiry email skipped: RESEND_API_KEY or ORDER_NOTIFICATION_EMAIL is missing.",
+    );
+    return;
+  }
+
+  const { error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: recipient,
+    subject: `Ny bordkortforespørsel #${input.inquiryId}`,
+    text: [
+      `Ny forespørsel fra ${input.customerName ?? input.customerEmail}.`,
+      `E-post: ${input.customerEmail}`,
+      `Produkt: ${input.productName}`,
+      `Antall: ${input.quantity}`,
+      `Åpne forespørselen: ${input.adminUrl}`,
+    ].join("\n"),
+  });
+
+  if (error) throw new Error(error.message);
+}
+
+export async function sendInquiryEstimateEmail(input: {
+  inquiryId: string;
+  customerEmail: string;
+  productName: string;
+  estimatedPrice: number;
+  deliveryEstimate: string;
+  accountUrl: string;
+}) {
+  const resend = getResend();
+  if (!resend) {
+    console.warn("Estimate email skipped: RESEND_API_KEY is missing.");
+    return;
+  }
+
+  const { error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: input.customerEmail,
+    subject: `Svar på bordkortforespørsel #${input.inquiryId}`,
+    text: [
+      `Vi har vurdert forespørselen din for ${input.productName}.`,
+      `Estimert pris: ${new Intl.NumberFormat("nb-NO").format(input.estimatedPrice)} kr`,
+      `Estimert leveringstid: ${input.deliveryEstimate}`,
+      "Forespørselen er uforpliktende.",
+      `Se forespørselen: ${input.accountUrl}`,
+    ].join("\n"),
+  });
+
+  if (error) throw new Error(error.message);
+}

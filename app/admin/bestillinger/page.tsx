@@ -1,6 +1,5 @@
 "use client";
 
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Alert,
@@ -25,6 +24,8 @@ interface AdminOrder {
   names: string[];
   quantity: number;
   status: string;
+  estimatedPrice: number | null;
+  deliveryEstimate: string | null;
   confirmedAt: string | null;
   createdAt: string;
   productName: string;
@@ -32,7 +33,8 @@ interface AdminOrder {
 
 const statusLabels: Record<string, string> = {
   new: "Ny",
-  confirmed: "Mottatt og bekreftet",
+  confirmed: "Tidligere bekreftet",
+  estimated: "Estimat sendt",
   in_production: "I produksjon",
   completed: "Ferdig",
   cancelled: "Kansellert",
@@ -41,9 +43,7 @@ const statusLabels: Record<string, string> = {
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -72,7 +72,7 @@ export default function AdminOrdersPage() {
         }
         setOrders(result as AdminOrder[]);
       } catch {
-        setError("Kunne ikke hente bestillingene.");
+        setError("Kunne ikke hente forespørslene.");
       } finally {
         setLoading(false);
       }
@@ -81,73 +81,23 @@ export default function AdminOrdersPage() {
     loadOrders();
   }, []);
 
-  const handleConfirm = async (orderId: string) => {
-    setError("");
-    setSuccess("");
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (!token) {
-      setError("Du må logge inn på nytt.");
-      return;
-    }
-
-    setConfirmingId(orderId);
-    try {
-      const response = await fetch("/api/admin/place-card-orders", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ orderId }),
-      });
-      const result = (await response.json()) as {
-        error?: string;
-        status?: string;
-        confirmedAt?: string;
-      };
-      if (!response.ok) {
-        setError(result.error ?? "Bestillingen kunne ikke bekreftes.");
-        return;
-      }
-
-      setOrders((current) =>
-        current.map((order) =>
-          order.id === orderId
-            ? {
-                ...order,
-                status: result.status ?? "confirmed",
-                confirmedAt: result.confirmedAt ?? new Date().toISOString(),
-              }
-            : order,
-        ),
-      );
-      setSuccess(`Bestilling #${orderId} er bekreftet som mottatt.`);
-    } catch {
-      setError("Kunne ikke kontakte serveren.");
-    } finally {
-      setConfirmingId(null);
-    }
-  };
-
   return (
     <PageShell
       eyebrow="ADMIN"
-      title="Innkomne bestillinger"
-      subtitle="Se alle bordkortbestillinger og bekreft til kunden at de er mottatt."
+      title="Innkomne forespørsler"
+      subtitle="Åpne en forespørsel og svar kunden med prisestimat og forventet leveringstid."
       maxWidth="lg"
     >
       {loading ? (
         <Box display="flex" justifyContent="center" py={8}>
-          <CircularProgress aria-label="Henter bestillinger" />
+          <CircularProgress aria-label="Henter forespørsler" />
         </Box>
       ) : (
         <Stack spacing={3}>
           {error && <Alert severity="error">{error}</Alert>}
-          {success && <Alert severity="success">{success}</Alert>}
           {!error && orders.length === 0 && (
             <Alert severity="info">
-              Ingen bestillinger har kommet inn ennå.
+              Ingen forespørsler har kommet inn ennå.
             </Alert>
           )}
 
@@ -169,7 +119,7 @@ export default function AdminOrdersPage() {
                         {order.productName} · {order.quantity} stk.
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Bestilling #{order.id} ·{" "}
+                        Forespørsel #{order.id} ·{" "}
                         {new Intl.DateTimeFormat("nb-NO", {
                           dateStyle: "medium",
                           timeStyle: "short",
@@ -197,7 +147,7 @@ export default function AdminOrdersPage() {
                     {order.confirmedAt && (
                       <Box>
                         <Typography variant="overline" color="text.secondary">
-                          Bekreftet mottatt
+                          Besvart
                         </Typography>
                         <Typography>
                           {new Intl.DateTimeFormat("nb-NO", {
@@ -237,39 +187,16 @@ export default function AdminOrdersPage() {
                     </Box>
                   </Box>
 
-                  {order.status === "new" && (
-                    <Stack direction={{ xs: "column", sm: "row" }} gap={1.5}>
-                      <Button
-                        variant="contained"
-                        startIcon={<CheckCircleIcon />}
-                        disabled={confirmingId === order.id}
-                        onClick={() => handleConfirm(order.id)}
-                        sx={{ alignSelf: "flex-start", textTransform: "none" }}
-                      >
-                        {confirmingId === order.id
-                          ? "Bekrefter..."
-                          : "Bekreft mottatt"}
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        startIcon={<VisibilityIcon />}
-                        href={`/admin/bestillinger/${order.id}`}
-                        sx={{ alignSelf: "flex-start", textTransform: "none" }}
-                      >
-                        Åpne bestilling
-                      </Button>
-                    </Stack>
-                  )}
-                  {order.status !== "new" && (
-                    <Button
-                      variant="outlined"
-                      startIcon={<VisibilityIcon />}
-                      href={`/admin/bestillinger/${order.id}`}
-                      sx={{ alignSelf: "flex-start", textTransform: "none" }}
-                    >
-                      Åpne bestilling
-                    </Button>
-                  )}
+                  <Button
+                    variant={order.status === "new" ? "contained" : "outlined"}
+                    startIcon={<VisibilityIcon />}
+                    href={`/admin/bestillinger/${order.id}`}
+                    sx={{ alignSelf: "flex-start", textTransform: "none" }}
+                  >
+                    {order.status === "new"
+                      ? "Åpne og svar"
+                      : "Åpne forespørsel"}
+                  </Button>
                 </Stack>
               </CardContent>
             </Card>

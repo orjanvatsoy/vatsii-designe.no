@@ -134,7 +134,7 @@ export default function NavBar() {
             </ListItem>
             <ListItem disablePadding>
               <ListItemButton href="/bestillinger">
-                <ListItemText primary="Mine bestillinger" />
+                <ListItemText primary="Mine forespørsler" />
               </ListItemButton>
             </ListItem>
             {role === "King" && (
@@ -152,7 +152,7 @@ export default function NavBar() {
                 </ListItem>
                 <ListItem disablePadding>
                   <ListItemButton href="/admin/bestillinger">
-                    <ListItemText primary="Innkomne bestillinger" />
+                    <ListItemText primary="Innkomne forespørsler" />
                   </ListItemButton>
                 </ListItem>
               </>

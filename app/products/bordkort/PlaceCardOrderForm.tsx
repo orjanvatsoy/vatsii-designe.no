@@ -19,13 +19,13 @@ import {
 } from "@mui/material";
 import type { User } from "@supabase/supabase-js";
 import Image from "next/image";
-import { Dancing_Script } from "next/font/google";
+import { Great_Vibes } from "next/font/google";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
-const previewFont = Dancing_Script({
+const previewFont = Great_Vibes({
   subsets: ["latin"],
-  weight: ["500", "600"],
+  weight: "400",
   display: "swap",
 });
 
@@ -83,7 +83,7 @@ export default function PlaceCardOrderForm({
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
     if (!token) {
-      setError("Du må være logget inn for å bestille.");
+      setError("Du må være logget inn for å sende en forespørsel på bordkort.");
       return;
     }
     if (!productId || names.length === 0) {
@@ -106,11 +106,11 @@ export default function PlaceCardOrderForm({
         orderId?: string;
       };
       if (!response.ok) {
-        setError(result.error ?? "Bestillingen kunne ikke sendes.");
+        setError(result.error ?? "Forespørselen på bordkort kunne ikke sendes.");
         return;
       }
 
-      setSuccess(`Bestilling #${result.orderId} er mottatt.`);
+      setSuccess(`Forespørsel på bordkort #${result.orderId} er mottatt.`);
       setNamesInput("");
     } catch {
       setError("Kunne ikke kontakte serveren. Prøv igjen.");
@@ -140,10 +140,10 @@ export default function PlaceCardOrderForm({
         <CardContent sx={{ p: { xs: 3, md: 5 }, textAlign: "center" }}>
           <Stack spacing={3} alignItems="center">
             <Typography variant="h5" fontWeight={700}>
-              Logg inn for å bestille
+              Logg inn for å sende forespørsel på bordkort
             </Typography>
             <Typography color="text.secondary">
-              Innlogging knytter bestillingen sikkert til kontoen din.
+              Forespørselen er uforpliktende og knyttes sikkert til kontoen din.
             </Typography>
             <Button
               variant="contained"
@@ -259,13 +259,25 @@ export default function PlaceCardOrderForm({
                         px: 3,
                         py: 2.5,
                         overflow: "hidden",
-                        bgcolor: "#f2eee6",
-                        color: "#28241f",
-                        border: "1px solid rgba(91,72,49,0.25)",
+                        bgcolor: "background.paper",
+                        color: "primary.light",
+                        border: "1px solid",
+                        borderColor: "primary.main",
                         borderRadius: 1,
-                        boxShadow: "0 12px 28px -20px rgba(0,0,0,0.8)",
+                        boxShadow:
+                          "inset 0 0 0 1px rgba(217,160,102,0.08), 0 14px 30px -20px rgba(0,0,0,0.9)",
                         backgroundImage:
-                          "linear-gradient(115deg, rgba(255,255,255,0.55), rgba(255,255,255,0) 45%), repeating-linear-gradient(0deg, rgba(101,76,45,0.025) 0, rgba(101,76,45,0.025) 1px, transparent 1px, transparent 4px)",
+                          "linear-gradient(135deg, rgba(139,94,60,0.32), rgba(42,42,38,0) 48%), linear-gradient(315deg, rgba(63,107,74,0.22), rgba(42,42,38,0) 52%)",
+                        "&::before": {
+                          content: '""',
+                          position: "absolute",
+                          top: 0,
+                          left: "18%",
+                          right: "18%",
+                          height: 2,
+                          bgcolor: "primary.light",
+                          opacity: 0.75,
+                        },
                       }}
                     >
                       <Typography
@@ -273,11 +285,12 @@ export default function PlaceCardOrderForm({
                         component="span"
                         sx={{
                           maxWidth: "100%",
-                          fontSize: { xs: "2.35rem", sm: "2.65rem" },
-                          fontWeight: 600,
-                          lineHeight: 1.15,
+                          fontSize: { xs: "2.8rem", sm: "3.15rem" },
+                          fontWeight: 400,
+                          lineHeight: 1.05,
                           textAlign: "center",
                           overflowWrap: "anywhere",
+                          textShadow: "0 3px 18px rgba(217,160,102,0.2)",
                         }}
                       >
                         {name}
@@ -288,7 +301,7 @@ export default function PlaceCardOrderForm({
                           mt: 1.5,
                           fontSize: "0.68rem",
                           fontWeight: 700,
-                          color: "rgba(40,36,31,0.58)",
+                          color: "text.secondary",
                           textTransform: "uppercase",
                         }}
                       >
@@ -308,13 +321,17 @@ export default function PlaceCardOrderForm({
         </Box>
 
         <Stack spacing={2} sx={{ maxWidth: 720 }}>
+          <Alert severity="info">
+            Dette er kun en uforpliktende forespørsel på bordkort. Du mottar
+            prisestimat og leveringstid før du bestemmer deg.
+          </Alert>
           {error && <Alert severity="error">{error}</Alert>}
           {success && (
             <Alert
               severity="success"
               action={
                 <Button color="inherit" href="/bestillinger">
-                  Se bestillingen
+                  Se forespørselen
                 </Button>
               }
             >
@@ -329,8 +346,8 @@ export default function PlaceCardOrderForm({
             sx={{ alignSelf: "flex-start", textTransform: "none", px: 4 }}
           >
             {submitting
-              ? "Sender bestilling..."
-              : `Bestill ${names.length || ""} bordkort`}
+              ? "Sender forespørsel..."
+              : `Send uforpliktende forespørsel på ${names.length || ""} bordkort`}
           </Button>
         </Stack>
       </Stack>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sendNewInquiryEmail } from "../../lib/email";
 import { prisma } from "../../lib/prisma";
 import { requireUser } from "../../lib/requireUser";
 
@@ -38,6 +39,8 @@ export async function GET(request: Request) {
       names: true,
       quantity: true,
       status: true,
+      estimatedPrice: true,
+      deliveryEstimate: true,
       confirmedAt: true,
       createdAt: true,
       product: { select: { name: true } },
@@ -50,6 +53,8 @@ export async function GET(request: Request) {
       names: order.names.split("\n").filter(Boolean),
       quantity: order.quantity,
       status: order.status,
+      estimatedPrice: order.estimatedPrice,
+      deliveryEstimate: order.deliveryEstimate,
       confirmedAt: order.confirmedAt?.toISOString() ?? null,
       createdAt: order.createdAt.toISOString(),
       productName: order.product.name,
@@ -99,7 +104,7 @@ export async function POST(request: Request) {
 
   const product = await prisma.product.findUnique({
     where: { id: productId },
-    select: { active: true, category: true },
+    select: { active: true, category: true, name: true },
   });
   if (
     !product?.active ||
@@ -135,6 +140,20 @@ export async function POST(request: Request) {
     select: { id: true },
   });
 
+  const origin = new URL(request.url).origin;
+  try {
+    await sendNewInquiryEmail({
+      inquiryId: order.id.toString(),
+      customerName,
+      customerEmail,
+      productName: product.name,
+      quantity: names.length,
+      adminUrl: `${origin}/admin/bestillinger/${order.id}`,
+    });
+  } catch (error) {
+    console.error("Failed to send inquiry email:", error);
+  }
+
   return NextResponse.json({ success: true, orderId: order.id.toString() });
 }
 
@@ -153,14 +172,20 @@ export async function PATCH(request: Request) {
   }
 
   if (typeof body.orderId !== "string") {
-    return NextResponse.json({ error: "Ugyldig bestilling." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Ugyldig forespørsel." },
+      { status: 400 },
+    );
   }
 
   let orderId: bigint;
   try {
     orderId = BigInt(body.orderId);
   } catch {
-    return NextResponse.json({ error: "Ugyldig bestilling." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Ugyldig forespørsel." },
+      { status: 400 },
+    );
   }
 
   const names = normalizeNames(body.names);
@@ -180,7 +205,7 @@ export async function PATCH(request: Request) {
 
   if (result.count === 0) {
     return NextResponse.json(
-      { error: "Bestillingen finnes ikke eller kan ikke lenger endres." },
+      { error: "Forespørselen finnes ikke eller kan ikke lenger endres." },
       { status: 409 },
     );
   }
