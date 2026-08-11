@@ -72,6 +72,9 @@ export async function POST(req: NextRequest) {
   }
 
   revalidatePath("/products");
+  if (category.trim().toLowerCase() === "bordkort") {
+    revalidatePath("/products/bordkort");
+  }
 
   return NextResponse.json({ success: true });
 }

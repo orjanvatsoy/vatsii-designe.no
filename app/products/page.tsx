@@ -26,11 +26,28 @@ export default async function ProductsPage() {
       name: product.name,
       description: product.description,
       category: product.category,
+      href: `/products/${product.id}`,
       image_url: product.imageUrl
         ? await signImageUrl(product.imageUrl, "products")
         : product.imageUrl,
     })),
   );
+
+  const placeCardProducts = productsWithSignedUrls.filter(
+    (product) => product.category.trim().toLowerCase() === "bordkort",
+  );
+  const catalogProducts = productsWithSignedUrls.filter(
+    (product) => product.category.trim().toLowerCase() !== "bordkort",
+  );
+  if (placeCardProducts.length > 0) {
+    catalogProducts.unshift({
+      ...placeCardProducts[0],
+      id: "bordkort",
+      name: "Bordkort",
+      description: `${placeCardProducts.length} varianter samlet på én side. Velg design og legg inn navnene du ønsker.`,
+      href: "/products/bordkort",
+    });
+  }
 
   return (
     <PageShell
@@ -39,10 +56,10 @@ export default async function ProductsPage() {
       subtitle="Håndlagde trearbeider med karakter — hvert stykke unikt, formet for å vare."
     >
       <Grid container spacing={4}>
-        {productsWithSignedUrls.map((product) => (
+        {catalogProducts.map((product) => (
           <Grid size={{ xs: 12, sm: 6, md: 4 }} key={product.id}>
             <Link
-              href={`/products/${product.id}`}
+              href={product.href}
               style={{ textDecoration: "none" }}
             >
               <Card
@@ -148,7 +165,7 @@ export default async function ProductsPage() {
         ))}
       </Grid>
 
-      {productsWithSignedUrls.length === 0 && (
+      {catalogProducts.length === 0 && (
         <Typography align="center" color="text.secondary" mt={6}>
           Ingen produkter tilgjengelig akkurat nå.
         </Typography>

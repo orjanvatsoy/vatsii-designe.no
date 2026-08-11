@@ -2,7 +2,7 @@
 CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateTable
-CREATE TABLE "profiles" (
+CREATE TABLE IF NOT EXISTS "profiles" (
     "id" UUID NOT NULL,
     "role" TEXT,
 
@@ -10,7 +10,7 @@ CREATE TABLE "profiles" (
 );
 
 -- CreateTable
-CREATE TABLE "carousel_images" (
+CREATE TABLE IF NOT EXISTS "carousel_images" (
     "id" BIGSERIAL NOT NULL,
     "image_url" TEXT NOT NULL,
     "title" TEXT,
@@ -21,7 +21,7 @@ CREATE TABLE "carousel_images" (
 );
 
 -- CreateTable
-CREATE TABLE "products" (
+CREATE TABLE IF NOT EXISTS "products" (
     "id" BIGSERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE "products" (
 );
 
 -- CreateTable
-CREATE TABLE "temperature_data" (
+CREATE TABLE IF NOT EXISTS "temperature_data" (
     "id" BIGSERIAL NOT NULL,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "temperature" DOUBLE PRECISION NOT NULL,
