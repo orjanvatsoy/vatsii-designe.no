@@ -62,6 +62,7 @@ export async function POST(req: Request) {
 
   // Refresh the cached home page so the change shows immediately.
   revalidatePath("/");
+  revalidatePath("/api/carousel-images");
 
   return NextResponse.json({ success: true });
 }

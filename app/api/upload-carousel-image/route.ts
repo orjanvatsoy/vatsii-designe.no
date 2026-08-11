@@ -64,14 +64,12 @@ export async function POST(req: Request) {
       continue;
     }
 
-    const image_url = `${supabaseUrl}/storage/v1/object/public/carousel/${objectKey}`;
-
     // Use the shared title when given, otherwise fall back to the file name.
     const title = sharedTitle || file.name.replace(/\.[^.]+$/, "");
 
     try {
       await prisma.carouselImage.create({
-        data: { imageUrl: image_url, title, description },
+        data: { imageUrl: objectKey, title, description },
       });
     } catch (error) {
       // Roll back the orphaned storage object so we don't leave junk.
@@ -81,11 +79,14 @@ export async function POST(req: Request) {
       continue;
     }
 
-    uploaded.push(image_url);
+    uploaded.push(objectKey);
   }
 
   // Refresh the cached home page so new images show immediately.
-  if (uploaded.length > 0) revalidatePath("/");
+  if (uploaded.length > 0) {
+    revalidatePath("/");
+    revalidatePath("/api/carousel-images");
+  }
 
   if (uploaded.length === 0) {
     return NextResponse.json(

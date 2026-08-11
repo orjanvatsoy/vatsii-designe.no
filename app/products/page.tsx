@@ -1,4 +1,4 @@
-export const revalidate = 300;
+export const revalidate = 86400;
 
 import {
   Box,
@@ -19,7 +19,7 @@ export default async function ProductsPage() {
     where: { active: true },
   });
 
-  // Convert stored public URLs into signed URLs (bucket may be private).
+  // Signed URLs live longer than the page cache, avoiding signing per request.
   const productsWithSignedUrls = await Promise.all(
     products.map(async (product) => ({
       id: product.id.toString(),

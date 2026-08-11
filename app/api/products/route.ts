@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../lib/requireAdmin";
 import { prisma } from "../../lib/prisma";
 
@@ -55,19 +56,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: storageError.message }, { status: 500 });
   }
 
-  // Get public URL
-  const { data: publicUrlData } = supabase.storage
-    .from("products")
-    .getPublicUrl(objectKey);
-  const imageUrl = publicUrlData?.publicUrl;
-
   try {
     await prisma.product.create({
       data: {
         name,
         description,
         category,
-        imageUrl,
+        imageUrl: objectKey,
       },
     });
   } catch (error) {
@@ -75,6 +70,8 @@ export async function POST(req: NextRequest) {
     const message = error instanceof Error ? error.message : "Database error";
     return NextResponse.json({ error: message }, { status: 500 });
   }
+
+  revalidatePath("/products");
 
   return NextResponse.json({ success: true });
 }

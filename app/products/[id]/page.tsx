@@ -13,7 +13,7 @@ import PageShell from "../../Components/PageShell";
 import { signImageUrl } from "../../lib/storage";
 import { prisma } from "../../lib/prisma";
 
-export const revalidate = 300;
+export const revalidate = 86400;
 
 export default async function ProductPage({
   params,
@@ -51,7 +51,7 @@ export default async function ProductPage({
     );
   }
 
-  // Convert stored public URL into a signed URL (bucket may be private).
+  // Signed URLs live longer than the page cache, avoiding signing per request.
   const imageUrl: string = await signImageUrl(product.imageUrl, "products");
 
   return (

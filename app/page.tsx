@@ -1,15 +1,15 @@
 import { Box } from "@mui/material";
 import PictureCarousel from "./Components/PictureCarousel";
 import HeroOverlay from "./Components/HeroOverlay";
-import { signImageUrl } from "./lib/storage";
 import { prisma } from "./lib/prisma";
+import { signImageUrl } from "./lib/storage";
 
 async function fetchImages() {
   const data = await prisma.carouselImage.findMany({
     orderBy: { createdAt: "desc" },
   });
 
-  const imagesWithSignedUrls = await Promise.all(
+  const images = await Promise.all(
     data.map(async (image) => ({
       id: image.id.toString(),
       title: image.title ?? undefined,
@@ -17,8 +17,8 @@ async function fetchImages() {
       public_url: await signImageUrl(image.imageUrl, "carousel"),
     })),
   );
-  // Filter out images with missing or invalid URLs
-  return imagesWithSignedUrls.filter(
+
+  return images.filter(
     (img) =>
       !!img.public_url &&
       typeof img.public_url === "string" &&
@@ -26,7 +26,7 @@ async function fetchImages() {
   );
 }
 
-export const revalidate = 300;
+export const revalidate = 86400;
 
 export default async function Home() {
   const images = await fetchImages();

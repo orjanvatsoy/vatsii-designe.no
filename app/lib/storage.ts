@@ -1,10 +1,13 @@
+import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 // Server-side client for generating signed Storage URLs.
-const serverSupabase = createClient(supabaseUrl, supabaseAnonKey);
+const serverSupabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+
+export const IMAGE_URL_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 /**
  * Derive a Storage object key from a stored public URL.
@@ -20,7 +23,9 @@ export function objectKeyFromImageUrl(
   if (url.includes(marker)) {
     return url.split(marker)[1].split("?")[0];
   }
-  return url.split("/").pop()?.split("?")[0] ?? null;
+  if (/^https?:\/\//.test(url)) return null;
+
+  return url.replace(/^\/+/, "").split("?")[0] || null;
 }
 
 /**
@@ -30,7 +35,7 @@ export function objectKeyFromImageUrl(
 export async function signImageUrl(
   imageUrl: string | null | undefined,
   bucket: string,
-  expiresInSeconds = 60 * 60,
+  expiresInSeconds = IMAGE_URL_TTL_SECONDS,
 ): Promise<string> {
   if (!imageUrl) return "";
   const objectKey = objectKeyFromImageUrl(imageUrl, bucket);
@@ -38,5 +43,5 @@ export async function signImageUrl(
   const { data } = await serverSupabase.storage
     .from(bucket)
     .createSignedUrl(objectKey, expiresInSeconds);
-  return data?.signedUrl || imageUrl;
+  return data?.signedUrl ?? "";
 }
