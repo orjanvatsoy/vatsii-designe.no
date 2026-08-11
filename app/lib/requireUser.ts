@@ -11,7 +11,10 @@ export async function requireUser(
     .trim();
 
   if (!token) {
-    return NextResponse.json({ error: "Du må være logget inn." }, { status: 401 });
+    return NextResponse.json(
+      { error: "Du må være logget inn." },
+      { status: 401 },
+    );
   }
 
   const authClient = createClient(

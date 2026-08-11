@@ -58,10 +58,7 @@ export default async function ProductsPage() {
       <Grid container spacing={4}>
         {catalogProducts.map((product) => (
           <Grid size={{ xs: 12, sm: 6, md: 4 }} key={product.id}>
-            <Link
-              href={product.href}
-              style={{ textDecoration: "none" }}
-            >
+            <Link href={product.href} style={{ textDecoration: "none" }}>
               <Card
                 sx={{
                   position: "relative",

@@ -36,7 +36,9 @@ export default async function PlaceCardsPage() {
       {variants.length > 0 ? (
         <PlaceCardOrderForm variants={variants} />
       ) : (
-        <Alert severity="info">Ingen bordkort er tilgjengelige akkurat nå.</Alert>
+        <Alert severity="info">
+          Ingen bordkort er tilgjengelige akkurat nå.
+        </Alert>
       )}
     </PageShell>
   );

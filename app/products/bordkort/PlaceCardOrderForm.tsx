@@ -121,7 +121,14 @@ export default function PlaceCardOrderForm({
 
   if (!user) {
     return (
-      <Card sx={{ maxWidth: 560, mx: "auto", border: "1px solid", borderColor: "divider" }}>
+      <Card
+        sx={{
+          maxWidth: 560,
+          mx: "auto",
+          border: "1px solid",
+          borderColor: "divider",
+        }}
+      >
         <CardContent sx={{ p: { xs: 3, md: 5 }, textAlign: "center" }}>
           <Stack spacing={3} alignItems="center">
             <Typography variant="h5" fontWeight={700}>
@@ -153,7 +160,10 @@ export default function PlaceCardOrderForm({
             1. Velg bordkort
           </Typography>
           <FormControl fullWidth>
-            <RadioGroup value={productId} onChange={(event) => setProductId(event.target.value)}>
+            <RadioGroup
+              value={productId}
+              onChange={(event) => setProductId(event.target.value)}
+            >
               <Grid container spacing={3}>
                 {variants.map((variant) => (
                   <Grid size={{ xs: 12, sm: 6, md: 4 }} key={variant.id}>
@@ -162,11 +172,18 @@ export default function PlaceCardOrderForm({
                         height: "100%",
                         overflow: "hidden",
                         border: "2px solid",
-                        borderColor: productId === variant.id ? "primary.main" : "divider",
+                        borderColor:
+                          productId === variant.id ? "primary.main" : "divider",
                       }}
                     >
                       {variant.imageUrl && (
-                        <Box sx={{ position: "relative", height: 210, bgcolor: "#16150F" }}>
+                        <Box
+                          sx={{
+                            position: "relative",
+                            height: 210,
+                            bgcolor: "#16150F",
+                          }}
+                        >
                           <Image
                             src={variant.imageUrl}
                             alt={variant.name}
@@ -183,7 +200,11 @@ export default function PlaceCardOrderForm({
                           label={variant.name}
                           sx={{ m: 0, fontWeight: 700 }}
                         />
-                        <Typography variant="body2" color="text.secondary" mt={1}>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          mt={1}
+                        >
                           {variant.description}
                         </Typography>
                       </CardContent>
@@ -222,7 +243,9 @@ export default function PlaceCardOrderForm({
             disabled={submitting || names.length === 0}
             sx={{ alignSelf: "flex-start", textTransform: "none", px: 4 }}
           >
-            {submitting ? "Sender bestilling..." : `Bestill ${names.length || ""} bordkort`}
+            {submitting
+              ? "Sender bestilling..."
+              : `Bestill ${names.length || ""} bordkort`}
           </Button>
         </Stack>
       </Stack>

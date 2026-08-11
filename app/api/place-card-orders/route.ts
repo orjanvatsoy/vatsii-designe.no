@@ -13,11 +13,17 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Ugyldig forespørsel." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Ugyldig forespørsel." },
+      { status: 400 },
+    );
   }
 
   if (typeof body.productId !== "string" || !Array.isArray(body.names)) {
-    return NextResponse.json({ error: "Produkt og navn er påkrevd." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Produkt og navn er påkrevd." },
+      { status: 400 },
+    );
   }
 
   const names = body.names
@@ -49,8 +55,14 @@ export async function POST(request: Request) {
     where: { id: productId },
     select: { active: true, category: true },
   });
-  if (!product?.active || product.category.trim().toLowerCase() !== "bordkort") {
-    return NextResponse.json({ error: "Produktet er ikke tilgjengelig." }, { status: 404 });
+  if (
+    !product?.active ||
+    product.category.trim().toLowerCase() !== "bordkort"
+  ) {
+    return NextResponse.json(
+      { error: "Produktet er ikke tilgjengelig." },
+      { status: 404 },
+    );
   }
 
   const customerEmail = authResult.user.email;
