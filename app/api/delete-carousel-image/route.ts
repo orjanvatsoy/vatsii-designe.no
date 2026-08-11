@@ -19,15 +19,17 @@ export async function POST(req: Request) {
   }
 
   // Look up the row so we can derive the storage object key reliably.
-  let imageId: bigint;
-  try {
-    imageId = BigInt(id);
-  } catch {
+  if (
+    typeof id !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      id,
+    )
+  ) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
   const row = await prisma.carouselImage.findUnique({
-    where: { id: imageId },
+    where: { id },
     select: { imageUrl: true },
   });
 
@@ -51,7 +53,7 @@ export async function POST(req: Request) {
 
   // Remove the database row.
   try {
-    await prisma.carouselImage.delete({ where: { id: imageId } });
+    await prisma.carouselImage.delete({ where: { id } });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Database error";
     return NextResponse.json(
