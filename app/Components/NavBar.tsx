@@ -132,6 +132,11 @@ export default function NavBar() {
                 <ListItemText primary="Produkter" />
               </ListItemButton>
             </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton href="/bestillinger">
+                <ListItemText primary="Mine bestillinger" />
+              </ListItemButton>
+            </ListItem>
             {role === "King" && (
               <>
                 <Divider />

@@ -5,6 +5,56 @@ import { requireUser } from "../../lib/requireUser";
 const MAX_NAMES = 200;
 const MAX_NAME_LENGTH = 100;
 
+export const dynamic = "force-dynamic";
+
+function normalizeNames(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+
+  const names = value
+    .filter((name): name is string => typeof name === "string")
+    .map((name) => name.trim())
+    .filter(Boolean);
+
+  if (
+    names.length === 0 ||
+    names.length > MAX_NAMES ||
+    names.some((name) => name.length > MAX_NAME_LENGTH)
+  ) {
+    return null;
+  }
+
+  return names;
+}
+
+export async function GET(request: Request) {
+  const authResult = await requireUser(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const orders = await prisma.placeCardOrder.findMany({
+    where: { userId: authResult.user.id },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      names: true,
+      quantity: true,
+      status: true,
+      createdAt: true,
+      product: { select: { name: true } },
+    },
+  });
+
+  return NextResponse.json(
+    orders.map((order) => ({
+      id: order.id.toString(),
+      names: order.names.split("\n").filter(Boolean),
+      quantity: order.quantity,
+      status: order.status,
+      createdAt: order.createdAt.toISOString(),
+      productName: order.product.name,
+    })),
+  );
+}
+
 export async function POST(request: Request) {
   const authResult = await requireUser(request);
   if (authResult instanceof NextResponse) return authResult;
@@ -26,20 +76,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const names = body.names
-    .filter((name): name is string => typeof name === "string")
-    .map((name) => name.trim())
-    .filter(Boolean);
-
-  if (names.length === 0 || names.length > MAX_NAMES) {
+  const names = normalizeNames(body.names);
+  if (!names) {
     return NextResponse.json(
-      { error: `Legg inn mellom 1 og ${MAX_NAMES} navn.` },
-      { status: 400 },
-    );
-  }
-  if (names.some((name) => name.length > MAX_NAME_LENGTH)) {
-    return NextResponse.json(
-      { error: `Hvert navn kan være maks ${MAX_NAME_LENGTH} tegn.` },
+      {
+        error: `Legg inn 1-${MAX_NAMES} navn, maks ${MAX_NAME_LENGTH} tegn per navn.`,
+      },
       { status: 400 },
     );
   }
@@ -92,4 +134,54 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json({ success: true, orderId: order.id.toString() });
+}
+
+export async function PATCH(request: Request) {
+  const authResult = await requireUser(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  let body: { orderId?: unknown; names?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Ugyldig forespørsel." },
+      { status: 400 },
+    );
+  }
+
+  if (typeof body.orderId !== "string") {
+    return NextResponse.json({ error: "Ugyldig bestilling." }, { status: 400 });
+  }
+
+  let orderId: bigint;
+  try {
+    orderId = BigInt(body.orderId);
+  } catch {
+    return NextResponse.json({ error: "Ugyldig bestilling." }, { status: 400 });
+  }
+
+  const names = normalizeNames(body.names);
+  if (!names) {
+    return NextResponse.json(
+      {
+        error: `Legg inn 1-${MAX_NAMES} navn, maks ${MAX_NAME_LENGTH} tegn per navn.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  const result = await prisma.placeCardOrder.updateMany({
+    where: { id: orderId, userId: authResult.user.id, status: "new" },
+    data: { names: names.join("\n"), quantity: names.length },
+  });
+
+  if (result.count === 0) {
+    return NextResponse.json(
+      { error: "Bestillingen finnes ikke eller kan ikke lenger endres." },
+      { status: 409 },
+    );
+  }
+
+  return NextResponse.json({ success: true, quantity: names.length });
 }

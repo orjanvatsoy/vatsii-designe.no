@@ -235,7 +235,18 @@ export default function PlaceCardOrderForm({
 
         <Stack spacing={2} sx={{ maxWidth: 720 }}>
           {error && <Alert severity="error">{error}</Alert>}
-          {success && <Alert severity="success">{success}</Alert>}
+          {success && (
+            <Alert
+              severity="success"
+              action={
+                <Button color="inherit" href="/bestillinger">
+                  Se bestillingen
+                </Button>
+              }
+            >
+              {success}
+            </Alert>
+          )}
           <Button
             type="submit"
             variant="contained"
