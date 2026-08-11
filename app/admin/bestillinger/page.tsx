@@ -1,6 +1,7 @@
 "use client";
 
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Alert,
   Box,
@@ -230,16 +231,36 @@ export default function AdminOrdersPage() {
                   </Box>
 
                   {order.status === "new" && (
+                    <Stack direction={{ xs: "column", sm: "row" }} gap={1.5}>
+                      <Button
+                        variant="contained"
+                        startIcon={<CheckCircleIcon />}
+                        disabled={confirmingId === order.id}
+                        onClick={() => handleConfirm(order.id)}
+                        sx={{ alignSelf: "flex-start", textTransform: "none" }}
+                      >
+                        {confirmingId === order.id
+                          ? "Bekrefter..."
+                          : "Bekreft mottatt"}
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<VisibilityIcon />}
+                        href={`/admin/bestillinger/${order.id}`}
+                        sx={{ alignSelf: "flex-start", textTransform: "none" }}
+                      >
+                        Åpne bestilling
+                      </Button>
+                    </Stack>
+                  )}
+                  {order.status !== "new" && (
                     <Button
-                      variant="contained"
-                      startIcon={<CheckCircleIcon />}
-                      disabled={confirmingId === order.id}
-                      onClick={() => handleConfirm(order.id)}
+                      variant="outlined"
+                      startIcon={<VisibilityIcon />}
+                      href={`/admin/bestillinger/${order.id}`}
                       sx={{ alignSelf: "flex-start", textTransform: "none" }}
                     >
-                      {confirmingId === order.id
-                        ? "Bekrefter..."
-                        : "Bekreft mottatt"}
+                      Åpne bestilling
                     </Button>
                   )}
                 </Stack>
