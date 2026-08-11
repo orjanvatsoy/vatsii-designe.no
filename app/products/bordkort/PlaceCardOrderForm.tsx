@@ -19,8 +19,15 @@ import {
 } from "@mui/material";
 import type { User } from "@supabase/supabase-js";
 import Image from "next/image";
+import { Dancing_Script } from "next/font/google";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+
+const previewFont = Dancing_Script({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  display: "swap",
+});
 
 interface PlaceCardVariant {
   id: string;
@@ -59,6 +66,7 @@ export default function PlaceCardOrderForm({
     .split("\n")
     .map((name) => name.trim())
     .filter(Boolean);
+  const selectedVariant = variants.find((variant) => variant.id === productId);
 
   const handleLogin = async () => {
     await supabase.auth.signInWithOAuth({
@@ -231,6 +239,72 @@ export default function PlaceCardOrderForm({
             slotProps={{ htmlInput: { maxLength: 20200 } }}
             helperText={`${names.length} bordkort`}
           />
+
+          {names.length > 0 && (
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h6" fontWeight={700} mb={2}>
+                Forhåndsvisning
+              </Typography>
+              <Grid container spacing={2}>
+                {names.slice(0, 8).map((name, index) => (
+                  <Grid size={{ xs: 12, sm: 6 }} key={`${name}-${index}`}>
+                    <Box
+                      sx={{
+                        position: "relative",
+                        minHeight: 150,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        px: 3,
+                        py: 2.5,
+                        overflow: "hidden",
+                        bgcolor: "#f2eee6",
+                        color: "#28241f",
+                        border: "1px solid rgba(91,72,49,0.25)",
+                        borderRadius: 1,
+                        boxShadow: "0 12px 28px -20px rgba(0,0,0,0.8)",
+                        backgroundImage:
+                          "linear-gradient(115deg, rgba(255,255,255,0.55), rgba(255,255,255,0) 45%), repeating-linear-gradient(0deg, rgba(101,76,45,0.025) 0, rgba(101,76,45,0.025) 1px, transparent 1px, transparent 4px)",
+                      }}
+                    >
+                      <Typography
+                        className={previewFont.className}
+                        component="span"
+                        sx={{
+                          maxWidth: "100%",
+                          fontSize: { xs: "2.35rem", sm: "2.65rem" },
+                          fontWeight: 600,
+                          lineHeight: 1.15,
+                          textAlign: "center",
+                          overflowWrap: "anywhere",
+                        }}
+                      >
+                        {name}
+                      </Typography>
+                      <Typography
+                        component="span"
+                        sx={{
+                          mt: 1.5,
+                          fontSize: "0.68rem",
+                          fontWeight: 700,
+                          color: "rgba(40,36,31,0.58)",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {selectedVariant?.name ?? "Bordkort"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+              {names.length > 8 && (
+                <Typography variant="body2" color="text.secondary" mt={1.5}>
+                  + {names.length - 8} flere navn
+                </Typography>
+              )}
+            </Box>
+          )}
         </Box>
 
         <Stack spacing={2} sx={{ maxWidth: 720 }}>
