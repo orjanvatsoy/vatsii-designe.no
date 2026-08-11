@@ -106,7 +106,9 @@ export default function PlaceCardOrderForm({
         orderId?: string;
       };
       if (!response.ok) {
-        setError(result.error ?? "Forespørselen på bordkort kunne ikke sendes.");
+        setError(
+          result.error ?? "Forespørselen på bordkort kunne ikke sendes.",
+        );
         return;
       }
 
