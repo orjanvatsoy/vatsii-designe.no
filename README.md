@@ -24,8 +24,8 @@ opprettes og kjøres en lokal migrering med:
 npm run db:migrate -- --name beskriv_endringen
 ```
 
-Vercel kjører automatisk ventende migreringer før `next build`. Manuelt kan de
-kjøres med:
+Vercel kjører automatisk en sikker baseline og ventende migreringer før
+`next build`. Manuelt kan den samme flyten kjøres med:
 
 ```bash
 npm run db:deploy
@@ -33,10 +33,10 @@ npm run db:deploy
 
 ### Baseline av eksisterende database
 
-Den initiale migreringen beskriver tabellene som allerede finnes i Supabase og
-bruker `IF NOT EXISTS`, slik at første Vercel-build kan registrere den uten å
-opprette eksisterende tabeller på nytt. Kontroller først at kolonner og typer
-samsvarer med `prisma/schema.prisma`.
+Deploy-scriptet registrerer automatisk initialmigreringen når alle de fire
+eksisterende tabellene finnes og Prisma-historikken mangler. En tom database
+opprettes normalt, mens en delvis initialisert database stopper deployen.
+Kontroller at legacy-tabellene samsvarer med `prisma/schema.prisma`.
 
 Alternativt kan migreringen merkes manuelt som allerede utført:
 
