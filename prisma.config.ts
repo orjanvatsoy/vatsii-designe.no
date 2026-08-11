@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { loadEnvFile } from "node:process";
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
 
 const envFile = existsSync(".env.local") ? ".env.local" : ".env";
 if (existsSync(envFile)) loadEnvFile(envFile);
@@ -10,7 +10,7 @@ export default defineConfig({
   migrations: {
     path: "prisma/migrations",
   },
-  datasource: {
-    url: env("DATABASE_URL"),
-  },
+  ...(process.env.DATABASE_URL
+    ? { datasource: { url: process.env.DATABASE_URL } }
+    : {}),
 });
