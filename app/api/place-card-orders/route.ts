@@ -42,7 +42,10 @@ export async function GET(request: Request) {
   }
 
   await prisma.placeCardOrder.updateMany({
-    where: { userId: null, customerEmail: { equals: customerEmail, mode: "insensitive" } },
+    where: {
+      userId: null,
+      customerEmail: { equals: customerEmail, mode: "insensitive" },
+    },
     data: { userId: authResult.user.id },
   });
 

@@ -19,17 +19,19 @@ import { getCurrentProfileRole } from "../lib/profileClient";
 
 export default function NavBar() {
   const [userName, setUserName] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [role, setRole] = useState<string>("");
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     const getUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data?.user;
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user;
       setUserName(
         user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? null,
       );
+      setUserEmail(user?.email ?? null);
       setAvatarUrl(user?.user_metadata?.avatar_url ?? null);
       if (user?.id) {
         setRole(await getCurrentProfileRole());
@@ -43,6 +45,7 @@ export default function NavBar() {
         setUserName(
           user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? null,
         );
+        setUserEmail(user?.email ?? null);
         setAvatarUrl(user?.user_metadata?.avatar_url ?? null);
         if (user?.id) {
           getCurrentProfileRole().then(setRole);
@@ -88,8 +91,19 @@ export default function NavBar() {
               {`Vatsii\nDesigne`}
             </Typography>
           </Box>
-          <IconButton href="/login" color="inherit">
-            <Avatar alt="Login" src={avatarUrl ?? undefined} />
+          <IconButton
+            href={userEmail ? "/konto" : "/login"}
+            color="inherit"
+            aria-label={userEmail ? "Min konto" : "Logg inn"}
+          >
+            <Avatar
+              alt={userName ?? userEmail ?? "Logg inn"}
+              src={avatarUrl ?? undefined}
+            >
+              {!avatarUrl && userEmail
+                ? userEmail.charAt(0).toUpperCase()
+                : null}
+            </Avatar>
           </IconButton>
           <IconButton
             color="inherit"
@@ -171,13 +185,20 @@ export default function NavBar() {
           <Divider />
           <List>
             <ListItem disablePadding>
-              <ListItemButton href="/login">
+              <ListItemButton href={userEmail ? "/konto" : "/login"}>
                 <Avatar
-                  alt="Login"
+                  alt={userName ?? userEmail ?? "Logg inn"}
                   src={avatarUrl ?? undefined}
                   sx={{ mr: 1 }}
+                >
+                  {!avatarUrl && userEmail
+                    ? userEmail.charAt(0).toUpperCase()
+                    : null}
+                </Avatar>
+                <ListItemText
+                  primary={userName || userEmail || "Logg inn"}
+                  secondary={userEmail ? "Min konto" : undefined}
                 />
-                <ListItemText primary={userName || "Login"} />
               </ListItemButton>
             </ListItem>
           </List>

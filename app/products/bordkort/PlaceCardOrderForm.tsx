@@ -134,7 +134,7 @@ export default function PlaceCardOrderForm({
           );
         } else {
           setSuccess(
-            `Forespørsel #${result.orderId} er mottatt. Vi har sendt en sikker lenke til ${customerEmail.trim()} slik at du kan se og oppdatere den.`,
+            "Du får en e-post fra Supabase Auth <noreply@mail.app.supabase.io> som du må bekrefte.",
           );
         }
       } else {
@@ -347,19 +347,17 @@ export default function PlaceCardOrderForm({
         </Box>
 
         <Stack spacing={2} sx={{ maxWidth: 720 }}>
-          <Alert severity="info">
-            Dette er kun en uforpliktende forespørsel på bordkort. Du mottar
-            prisestimat og leveringstid før du bestemmer deg.
-          </Alert>
           {error && <Alert severity="error">{error}</Alert>}
           {success && (
             <Alert
               severity="success"
-              action={user ? (
-                <Button color="inherit" href="/bestillinger">
-                  Se forespørselen
-                </Button>
-              ) : undefined}
+              action={
+                user ? (
+                  <Button color="inherit" href="/bestillinger">
+                    Se forespørselen
+                  </Button>
+                ) : undefined
+              }
             >
               {success}
             </Alert>

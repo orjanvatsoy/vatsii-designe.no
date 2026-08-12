@@ -115,7 +115,9 @@ export default function OrdersPage() {
       setError("Innloggingslenken kunne ikke sendes. Prøv igjen.");
       return;
     }
-    setSuccess(`Vi har sendt en sikker innloggingslenke til ${loginEmail.trim()}.`);
+    setSuccess(
+      `Vi har sendt en sikker innloggingslenke til ${loginEmail.trim()}.`,
+    );
   };
 
   const handleSave = async (orderId: string) => {
@@ -197,8 +199,19 @@ export default function OrdersPage() {
                 Se forespørslene dine
               </Typography>
               <Typography color="text.secondary">
-                Oppgi e-postadressen du brukte. Du får en sikker engangslenke
-                og trenger ikke passord.
+                Oppgi e-postadressen du brukte. Du får en sikker engangslenke og
+                trenger ikke passord.
+              </Typography>
+              <Button
+                variant="outlined"
+                href="/login"
+                fullWidth
+                sx={{ textTransform: "none" }}
+              >
+                Logg inn med passord
+              </Button>
+              <Typography variant="body2" color="text.secondary">
+                Eller få en ny engangslenke på e-post:
               </Typography>
               <TextField
                 label="E-postadresse"
@@ -227,6 +240,20 @@ export default function OrdersPage() {
         <Stack spacing={3}>
           {error && <Alert severity="error">{error}</Alert>}
           {success && <Alert severity="success">{success}</Alert>}
+          {user.app_metadata.provider === "email" &&
+            !user.user_metadata.password_configured && (
+              <Alert
+                severity="info"
+                action={
+                  <Button color="inherit" href="/konto">
+                    Opprett passord
+                  </Button>
+                }
+              >
+                Her kan du opprette et passord for å få enklere tilgang til
+                forespørslene dine.
+              </Alert>
+            )}
           {orders.length === 0 ? (
             <Alert
               severity="info"
