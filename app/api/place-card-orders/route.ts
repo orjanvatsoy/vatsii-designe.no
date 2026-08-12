@@ -30,54 +30,62 @@ function normalizeNames(value: unknown): string[] | null {
 }
 
 export async function GET(request: Request) {
-  const authResult = await requireUser(request);
-  if (authResult instanceof NextResponse) return authResult;
+  try {
+    const authResult = await requireUser(request);
+    if (authResult instanceof NextResponse) return authResult;
 
-  const customerEmail = authResult.user.email?.trim().toLowerCase();
-  if (!customerEmail) {
+    const customerEmail = authResult.user.email?.trim().toLowerCase();
+    if (!customerEmail) {
+      return NextResponse.json(
+        { error: "Kontoen mangler e-postadresse." },
+        { status: 400 },
+      );
+    }
+
+    await prisma.placeCardOrder.updateMany({
+      where: {
+        userId: null,
+        customerEmail: { equals: customerEmail, mode: "insensitive" },
+      },
+      data: { userId: authResult.user.id },
+    });
+
+    const orders = await prisma.placeCardOrder.findMany({
+      where: { userId: authResult.user.id },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        names: true,
+        quantity: true,
+        status: true,
+        estimatedPrice: true,
+        deliveryEstimate: true,
+        confirmedAt: true,
+        createdAt: true,
+        product: { select: { name: true } },
+      },
+    });
+
     return NextResponse.json(
-      { error: "Kontoen mangler e-postadresse." },
-      { status: 400 },
+      orders.map((order) => ({
+        id: order.id.toString(),
+        names: order.names.split("\n").filter(Boolean),
+        quantity: order.quantity,
+        status: order.status,
+        estimatedPrice: order.estimatedPrice,
+        deliveryEstimate: order.deliveryEstimate,
+        confirmedAt: order.confirmedAt?.toISOString() ?? null,
+        createdAt: order.createdAt.toISOString(),
+        productName: order.product.name,
+      })),
+    );
+  } catch (error) {
+    console.error("Failed to load place card inquiries:", error);
+    return NextResponse.json(
+      { error: "Kunne ikke hente forespørslene. Prøv igjen senere." },
+      { status: 500 },
     );
   }
-
-  await prisma.placeCardOrder.updateMany({
-    where: {
-      userId: null,
-      customerEmail: { equals: customerEmail, mode: "insensitive" },
-    },
-    data: { userId: authResult.user.id },
-  });
-
-  const orders = await prisma.placeCardOrder.findMany({
-    where: { userId: authResult.user.id },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      names: true,
-      quantity: true,
-      status: true,
-      estimatedPrice: true,
-      deliveryEstimate: true,
-      confirmedAt: true,
-      createdAt: true,
-      product: { select: { name: true } },
-    },
-  });
-
-  return NextResponse.json(
-    orders.map((order) => ({
-      id: order.id.toString(),
-      names: order.names.split("\n").filter(Boolean),
-      quantity: order.quantity,
-      status: order.status,
-      estimatedPrice: order.estimatedPrice,
-      deliveryEstimate: order.deliveryEstimate,
-      confirmedAt: order.confirmedAt?.toISOString() ?? null,
-      createdAt: order.createdAt.toISOString(),
-      productName: order.product.name,
-    })),
-  );
 }
 
 export async function POST(request: Request) {

@@ -159,9 +159,6 @@ export default function AddCarouselImagePage() {
               disabled={uploading}
               sx={{
                 mt: 2,
-                borderRadius: 999,
-                fontWeight: 700,
-                textTransform: "none",
               }}
             >
               {uploading

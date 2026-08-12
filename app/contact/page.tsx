@@ -53,10 +53,6 @@ export default function Contact() {
               sx={{
                 px: 4,
                 py: 1.3,
-                borderRadius: 999,
-                fontWeight: 700,
-                textTransform: "none",
-                boxShadow: "0 12px 32px rgba(139,94,60,0.5)",
               }}
             >
               orjanva@gmail.com

@@ -43,6 +43,9 @@ som krever oppmerksomhet. De skal ikke brukes som permanente innholdsflater.
 - Én ytre arbeidsflate per forespørsel. Ikke legg kort inni kort.
 - Bruk `border: 1px solid` med `divider`; skygger skal være svake.
 - Handlingsknapper står nær innholdet de påvirker.
+- Knapper har 8 px radius, minst 44 px høyde, vekt 700 og ingen skygge.
+- `contained` brukes for primær handling, `outlined` for sekundær handling og
+	`text` for lavprioriterte lenkehandlinger. Ikke overstyr knappfarger lokalt.
 - Bruk ikon + tekst for viktige kommandoer. Rene ikoner skal ha tooltip.
 - Standard `Alert` er reservert for feil, lagret-status og kortvarige meldinger.
 - Informasjon som pris, levering og passordvalg skal ha egne theme-baserte paneler.

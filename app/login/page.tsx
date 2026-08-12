@@ -221,10 +221,6 @@ export default function UserPage() {
                 onClick={handleLogin}
                 sx={{
                   px: 4,
-                  py: 1.3,
-                  borderRadius: 999,
-                  fontWeight: 700,
-                  textTransform: "none",
                 }}
               >
                 Logg inn med Google
@@ -343,13 +339,7 @@ export default function UserPage() {
               onClick={handleLogout}
               sx={{
                 mt: 1,
-                borderRadius: 999,
                 px: 3,
-                fontWeight: 700,
-                textTransform: "none",
-                borderColor: "divider",
-                color: "text.primary",
-                "&:hover": { borderColor: "primary.light" },
               }}
             >
               Logg ut

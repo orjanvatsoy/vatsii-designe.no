@@ -135,14 +135,8 @@ export default async function ProductPage({
               startIcon={<ArrowBackIcon />}
               sx={{
                 mt: 4,
-                fontWeight: 700,
-                borderRadius: 999,
                 px: 3,
                 py: 1,
-                textTransform: "none",
-                borderColor: "divider",
-                color: "text.primary",
-                "&:hover": { borderColor: "primary.light" },
               }}
             >
               Tilbake til produkter

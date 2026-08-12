@@ -52,6 +52,17 @@ function getFlowStep(status: string) {
   return 0;
 }
 
+async function readJsonResponse<T>(response: Response, fallback: string) {
+  const responseText = await response.text();
+  if (!responseText) throw new Error(fallback);
+
+  try {
+    return JSON.parse(responseText) as T;
+  } catch {
+    throw new Error(fallback);
+  }
+}
+
 export default function OrdersPage() {
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<PlaceCardOrder[]>([]);
@@ -71,16 +82,24 @@ export default function OrdersPage() {
     const response = await fetch("/api/place-card-orders", {
       headers: { Authorization: `Bearer ${token}` },
     });
+    const result = await readJsonResponse<
+      PlaceCardOrder[] | { error?: string }
+    >(response, "Kunne ikke hente forespørslene.");
     if (!response.ok) {
-      const result = (await response.json()) as { error?: string };
-      throw new Error(result.error ?? "Kunne ikke hente forespørslene.");
+      throw new Error(
+        !Array.isArray(result) && result.error
+          ? result.error
+          : "Kunne ikke hente forespørslene.",
+      );
+    }
+    if (!Array.isArray(result)) {
+      throw new Error("Serveren returnerte et ugyldig svar.");
     }
 
-    const data = (await response.json()) as PlaceCardOrder[];
-    setOrders(data);
+    setOrders(result);
     setDrafts(
       Object.fromEntries(
-        data.map((order) => [order.id, order.names.join("\n")]),
+        result.map((order) => [order.id, order.names.join("\n")]),
       ),
     );
   };
@@ -165,10 +184,10 @@ export default function OrdersPage() {
         },
         body: JSON.stringify({ orderId, names }),
       });
-      const result = (await response.json()) as {
+      const result = await readJsonResponse<{
         error?: string;
         quantity?: number;
-      };
+      }>(response, "Kunne ikke lagre endringen.");
       if (!response.ok) {
         setError(result.error ?? "Endringen kunne ikke lagres.");
         return;
@@ -243,7 +262,10 @@ export default function OrdersPage() {
         },
         body: JSON.stringify({ orderId, action: "approve-offer" }),
       });
-      const result = (await response.json()) as { error?: string };
+      const result = await readJsonResponse<{ error?: string }>(
+        response,
+        "Tilbudet kunne ikke godkjennes.",
+      );
       if (!response.ok) {
         setError(result.error ?? "Tilbudet kunne ikke godkjennes.");
         return;
@@ -290,17 +312,6 @@ export default function OrdersPage() {
                 Oppgi e-postadressen du brukte. Du får en sikker engangslenke og
                 trenger ikke passord.
               </Typography>
-              <Button
-                variant="outlined"
-                href="/login"
-                fullWidth
-                sx={{ textTransform: "none" }}
-              >
-                Logg inn med passord
-              </Button>
-              <Typography variant="body2" color="text.secondary">
-                Eller få en ny engangslenke på e-post:
-              </Typography>
               <TextField
                 label="E-postadresse"
                 type="email"
@@ -317,9 +328,13 @@ export default function OrdersPage() {
                 startIcon={<EmailIcon />}
                 onClick={handleLogin}
                 disabled={sendingLink || !loginEmail.trim()}
-                sx={{ textTransform: "none", px: 4 }}
+                fullWidth
               >
                 {sendingLink ? "Sender lenke..." : "Send innloggingslenke"}
+              </Button>
+              <Divider flexItem>eller</Divider>
+              <Button variant="outlined" href="/login" fullWidth>
+                Logg inn med e-post og passord
               </Button>
             </Stack>
           </CardContent>
@@ -380,7 +395,7 @@ export default function OrdersPage() {
                 </Stack>
               </Box>
             )}
-          {orders.length === 0 ? (
+          {error ? null : orders.length === 0 ? (
             <Alert
               severity="info"
               action={

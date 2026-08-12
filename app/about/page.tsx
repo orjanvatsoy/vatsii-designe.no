@@ -261,10 +261,6 @@ export default function About() {
             sx={{
               px: 4.5,
               py: 1.4,
-              borderRadius: 999,
-              fontWeight: 700,
-              textTransform: "none",
-              boxShadow: "0 14px 40px rgba(139,94,60,0.55)",
             }}
           >
             Vatsii_designs

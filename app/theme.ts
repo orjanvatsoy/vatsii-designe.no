@@ -26,7 +26,7 @@ export const theme = createTheme({
       secondary: "#C0B8AD",
     },
     success: {
-      main: "#06d6a0", // kan beholdes som ekstra accent
+      main: "#3F6B4A",
     },
     warning: {
       main: "#ffca3a",
@@ -35,11 +35,88 @@ export const theme = createTheme({
       main: "#fa3947",
     },
     info: {
-      main: "#41DDFF",
+      main: "#D9A066",
     },
     divider: "#3A332C",
   },
   components: {
+    MuiButton: {
+      defaultProps: {
+        disableElevation: true,
+      },
+      styleOverrides: {
+        root: {
+          minHeight: 44,
+          borderRadius: 8,
+          paddingInline: 20,
+          fontWeight: 700,
+          letterSpacing: 0,
+          textTransform: "none",
+          transition:
+            "background-color 160ms ease, border-color 160ms ease, color 160ms ease",
+        },
+        containedPrimary: ({ theme }) => ({
+          backgroundColor: theme.palette.primary.main,
+          color: theme.palette.text.primary,
+          "&:hover": {
+            backgroundColor: theme.palette.primary.dark,
+          },
+        }),
+        outlined: ({ theme }) => ({
+          borderColor: theme.palette.primary.main,
+          color: theme.palette.primary.light,
+          "&:hover": {
+            borderColor: theme.palette.primary.light,
+            backgroundColor: "rgba(139,94,60,0.12)",
+          },
+        }),
+        text: ({ theme }) => ({
+          color: theme.palette.primary.light,
+          "&:hover": {
+            backgroundColor: "rgba(139,94,60,0.1)",
+          },
+        }),
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          borderRadius: 8,
+          borderColor: theme.palette.divider,
+          backgroundImage: "none",
+          boxShadow: "none",
+        }),
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          borderRadius: 8,
+          backgroundColor: "rgba(28,28,26,0.42)",
+          "& .MuiOutlinedInput-notchedOutline": {
+            borderColor: theme.palette.divider,
+          },
+          "&:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: theme.palette.primary.main,
+          },
+          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: theme.palette.primary.light,
+            borderWidth: 1,
+          },
+        }),
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          borderRadius: 8,
+          border: `1px solid ${theme.palette.divider}`,
+          backgroundColor: theme.palette.background.paper,
+          color: theme.palette.text.primary,
+          fontWeight: 700,
+        }),
+      },
+    },
     MuiAlert: {
       styleOverrides: {
         root: ({ ownerState, theme }) => {

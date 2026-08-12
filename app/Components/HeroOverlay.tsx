@@ -71,11 +71,7 @@ export default function HeroOverlay() {
           sx={{
             px: 4.5,
             py: 1.4,
-            borderRadius: 999,
-            fontWeight: 700,
             fontSize: "1rem",
-            boxShadow: "0 14px 40px rgba(139,94,60,0.55)",
-            textTransform: "none",
           }}
         >
           Se alle produkter
@@ -87,17 +83,8 @@ export default function HeroOverlay() {
           sx={{
             px: 4.5,
             py: 1.4,
-            borderRadius: 999,
-            fontWeight: 700,
             fontSize: "1rem",
-            color: "#fff",
-            borderColor: "rgba(255,255,255,0.5)",
             backdropFilter: "blur(4px)",
-            textTransform: "none",
-            "&:hover": {
-              borderColor: "#fff",
-              bgcolor: "rgba(255,255,255,0.08)",
-            },
           }}
         >
           Ta kontakt
