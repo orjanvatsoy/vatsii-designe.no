@@ -156,12 +156,11 @@ export async function POST(request: Request) {
   }
   const submittedName =
     typeof body.customerName === "string" ? body.customerName.trim() : "";
-  const customerName = String(
-    submittedName ||
-      authResult?.user.user_metadata.full_name ??
-      authResult?.user.user_metadata.name ??
-      "",
-  ).trim();
+  const accountName =
+    authResult?.user.user_metadata.full_name ??
+    authResult?.user.user_metadata.name ??
+    "";
+  const customerName = String(submittedName || accountName).trim();
   if (!customerName || customerName.length > MAX_CUSTOMER_NAME_LENGTH) {
     return NextResponse.json(
       { error: "Oppgi navnet ditt, maks 120 tegn." },
