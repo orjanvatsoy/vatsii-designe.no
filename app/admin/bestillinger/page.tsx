@@ -5,12 +5,19 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   CircularProgress,
-  Divider,
+  Paper,
   Stack,
+  Step,
+  StepLabel,
+  Stepper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -28,6 +35,8 @@ interface AdminOrder {
   deliveryEstimate: string | null;
   confirmedAt: string | null;
   createdAt: string;
+  updatedAt: string;
+  customerUpdatedAt: string | null;
   productName: string;
 }
 
@@ -40,6 +49,33 @@ const statusLabels: Record<string, string> = {
   completed: "Levert",
   cancelled: "Kansellert",
 };
+
+const flowSteps = ["Forespørsel", "Tilbud", "Godkjent", "Levert"];
+
+function getFlowStep(status: string) {
+  if (status === "completed") return 3;
+  if (status === "approved" || status === "in_production") return 2;
+  if (status === "estimated" || status === "confirmed") return 1;
+  return 0;
+}
+
+function getLatestActivity(order: AdminOrder) {
+  return Math.max(
+    new Date(order.createdAt).getTime(),
+    new Date(order.updatedAt).getTime(),
+    order.confirmedAt ? new Date(order.confirmedAt).getTime() : 0,
+    order.customerUpdatedAt ? new Date(order.customerUpdatedAt).getTime() : 0,
+  );
+}
+
+function needsAttention(order: AdminOrder) {
+  return (
+    order.status === "new" ||
+    (order.customerUpdatedAt !== null &&
+      new Date(order.customerUpdatedAt).getTime() >
+        (order.confirmedAt ? new Date(order.confirmedAt).getTime() : 0))
+  );
+}
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
@@ -71,7 +107,16 @@ export default function AdminOrdersPage() {
           );
           return;
         }
-        setOrders(result as AdminOrder[]);
+        setOrders(
+          (result as AdminOrder[]).sort((left, right) => {
+            const attentionDifference =
+              Number(needsAttention(right)) - Number(needsAttention(left));
+            return (
+              attentionDifference ||
+              getLatestActivity(right) - getLatestActivity(left)
+            );
+          }),
+        );
       } catch {
         setError("Kunne ikke hente forespørslene.");
       } finally {
@@ -102,106 +147,100 @@ export default function AdminOrdersPage() {
             </Alert>
           )}
 
-          {orders.map((order) => (
-            <Card
-              key={order.id}
+          {!error && orders.length > 0 && (
+            <TableContainer
+              component={Paper}
               sx={{ border: "1px solid", borderColor: "divider" }}
             >
-              <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
-                <Stack spacing={3}>
-                  <Stack
-                    direction={{ xs: "column", md: "row" }}
-                    justifyContent="space-between"
-                    alignItems={{ xs: "flex-start", md: "center" }}
-                    gap={2}
-                  >
-                    <Box>
-                      <Typography variant="h6" fontWeight={700}>
-                        {order.productName} · {order.quantity} stk.
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Forespørsel #{order.id} ·{" "}
-                        {new Intl.DateTimeFormat("nb-NO", {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        }).format(new Date(order.createdAt))}
-                      </Typography>
-                    </Box>
-                    <Chip
-                      label={statusLabels[order.status] ?? order.status}
-                      color={order.status === "new" ? "warning" : "success"}
-                    />
-                  </Stack>
-
-                  <Stack direction={{ xs: "column", sm: "row" }} gap={3}>
-                    <Box sx={{ minWidth: 240 }}>
-                      <Typography variant="overline" color="text.secondary">
-                        Kunde
-                      </Typography>
-                      <Typography fontWeight={700}>
-                        {order.customerName || "Navn ikke oppgitt"}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {order.customerEmail}
-                      </Typography>
-                    </Box>
-                    {order.confirmedAt && (
-                      <Box>
-                        <Typography variant="overline" color="text.secondary">
-                          Besvart
-                        </Typography>
-                        <Typography>
-                          {new Intl.DateTimeFormat("nb-NO", {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                          }).format(new Date(order.confirmedAt))}
-                        </Typography>
-                      </Box>
-                    )}
-                  </Stack>
-
-                  <Divider />
-
-                  <Box>
-                    <Typography variant="overline" color="text.secondary">
-                      Navneliste
-                    </Typography>
-                    <Box
-                      component="ol"
-                      sx={{
-                        mt: 1,
-                        mb: 0,
-                        pl: 3,
-                        columns: { xs: 1, sm: 2, md: 3 },
-                        columnGap: 4,
-                      }}
-                    >
-                      {order.names.map((name, index) => (
-                        <Typography
-                          component="li"
-                          key={`${name}-${index}`}
-                          sx={{ mb: 0.75, breakInside: "avoid" }}
-                        >
-                          {name}
-                        </Typography>
-                      ))}
-                    </Box>
-                  </Box>
-
-                  <Button
-                    variant={order.status === "new" ? "contained" : "outlined"}
-                    startIcon={<VisibilityIcon />}
-                    href={`/admin/bestillinger/${order.id}`}
-                    sx={{ alignSelf: "flex-start", textTransform: "none" }}
-                  >
-                    {order.status === "new"
-                      ? "Åpne og svar"
-                      : "Åpne forespørsel"}
-                  </Button>
-                </Stack>
-              </CardContent>
-            </Card>
-          ))}
+              <Table sx={{ minWidth: 900 }} aria-label="Innkomne forespørsler">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Ordre</TableCell>
+                    <TableCell>Kunde</TableCell>
+                    <TableCell>Fremdrift</TableCell>
+                    <TableCell>Sist aktivitet</TableCell>
+                    <TableCell align="right">Handling</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {orders.map((order) => {
+                    const attention = needsAttention(order);
+                    return (
+                      <TableRow
+                        key={order.id}
+                        hover
+                        sx={{ verticalAlign: "top" }}
+                      >
+                        <TableCell>
+                          <Typography fontWeight={700}>
+                            {order.productName}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            #{order.id} · {order.quantity} stk.
+                          </Typography>
+                          <Chip
+                            size="small"
+                            label={
+                              attention
+                                ? "Need attention"
+                                : (statusLabels[order.status] ?? order.status)
+                            }
+                            color={attention ? "warning" : "default"}
+                            sx={{ mt: 1 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography fontWeight={700}>
+                            {order.customerName || "Navn ikke oppgitt"}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {order.customerEmail}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ minWidth: 280 }}>
+                          <Stepper
+                            activeStep={getFlowStep(order.status)}
+                            alternativeLabel
+                          >
+                            {flowSteps.map((step) => (
+                              <Step key={step}>
+                                <StepLabel>{step}</StepLabel>
+                              </Step>
+                            ))}
+                          </Stepper>
+                        </TableCell>
+                        <TableCell sx={{ whiteSpace: "nowrap" }}>
+                          <Typography variant="body2">
+                            {new Intl.DateTimeFormat("nb-NO", {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            }).format(new Date(getLatestActivity(order)))}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {order.status === "new"
+                              ? "Ny forespørsel"
+                              : needsAttention(order)
+                                ? "Kunden oppdaterte"
+                                : "Sist behandlet"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Button
+                            variant={attention ? "contained" : "outlined"}
+                            startIcon={<VisibilityIcon />}
+                            href={`/admin/bestillinger/${order.id}`}
+                            sx={{ whiteSpace: "nowrap" }}
+                          >
+                            {attention ? "Åpne og svar" : "Åpne"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </Stack>
       )}
     </PageShell>

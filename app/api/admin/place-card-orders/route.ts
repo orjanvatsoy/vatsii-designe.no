@@ -22,6 +22,8 @@ export async function GET(request: Request) {
       deliveryEstimate: true,
       confirmedAt: true,
       createdAt: true,
+      updatedAt: true,
+      customerUpdatedAt: true,
       product: { select: { name: true } },
     },
   });
@@ -38,6 +40,8 @@ export async function GET(request: Request) {
       deliveryEstimate: order.deliveryEstimate,
       confirmedAt: order.confirmedAt?.toISOString() ?? null,
       createdAt: order.createdAt.toISOString(),
+      updatedAt: order.updatedAt.toISOString(),
+      customerUpdatedAt: order.customerUpdatedAt?.toISOString() ?? null,
       productName: order.product.name,
     })),
   );

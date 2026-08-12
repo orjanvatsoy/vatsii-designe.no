@@ -62,6 +62,8 @@ export async function GET(request: Request) {
         deliveryEstimate: true,
         confirmedAt: true,
         createdAt: true,
+        updatedAt: true,
+        customerUpdatedAt: true,
         product: { select: { name: true } },
       },
     });
@@ -76,6 +78,8 @@ export async function GET(request: Request) {
         deliveryEstimate: order.deliveryEstimate,
         confirmedAt: order.confirmedAt?.toISOString() ?? null,
         createdAt: order.createdAt.toISOString(),
+        updatedAt: order.updatedAt.toISOString(),
+        customerUpdatedAt: order.customerUpdatedAt?.toISOString() ?? null,
         productName: order.product.name,
       })),
     );
@@ -265,7 +269,7 @@ export async function PATCH(request: Request) {
         estimatedPrice: { not: null },
         deliveryEstimate: { not: null },
       },
-      data: { status: "approved" },
+      data: { status: "approved", updatedAt: new Date() },
     });
 
     if (result.count === 0) {
@@ -290,7 +294,12 @@ export async function PATCH(request: Request) {
 
   const result = await prisma.placeCardOrder.updateMany({
     where: { id: orderId, userId: authResult.user.id, status: "new" },
-    data: { names: names.join("\n"), quantity: names.length },
+    data: {
+      names: names.join("\n"),
+      quantity: names.length,
+      updatedAt: new Date(),
+      customerUpdatedAt: new Date(),
+    },
   });
 
   if (result.count === 0) {
