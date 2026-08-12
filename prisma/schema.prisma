@@ -38,7 +38,7 @@ model Product {
 
 model PlaceCardOrder {
   id               BigInt    @id @default(autoincrement())
-  userId           String    @map("user_id") @db.Uuid
+  userId           String?   @map("user_id") @db.Uuid
   customerEmail    String    @map("customer_email")
   customerName     String?   @map("customer_name")
   productId        String    @map("product_id") @db.Uuid
@@ -52,6 +52,7 @@ model PlaceCardOrder {
   product          Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@index([userId])
+  @@index([customerEmail])
   @@index([productId])
   @@map("place_card_orders")
 }

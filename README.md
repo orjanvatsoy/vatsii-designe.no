@@ -29,6 +29,32 @@ ORDER_EMAIL_FROM=Vatsii Designe <foresporsel@ditt-verifiserte-domene.no>
 `ORDER_EMAIL_FROM` må bruke et domene som er verifisert i Resend. En
 forespørsel lagres selv om e-posttjenesten midlertidig er utilgjengelig.
 
+## Passordfri innlogging
+
+Kunder kan sende forespørsel uten konto. Supabase sender deretter en magisk
+engangslenke som verifiserer e-postadressen og åpner `/bestillinger`. Legg inn
+produksjonsadressen under **Supabase → Authentication → URL Configuration →
+Redirect URLs**, for eksempel:
+
+```text
+https://vatsii-designe.no/bestillinger
+http://localhost:3000/bestillinger
+```
+
+Aktiver deretter **Supabase → Authentication → Email → Custom SMTP** med
+Resend-kontoen:
+
+```text
+Host: smtp.resend.com
+Port: 587
+Username: resend
+Password: RESEND_API_KEY
+Sender email: foresporsel@vatsii-designe.no
+Sender name: Vatsii Designe
+```
+
+SMTP-passordet er den samme hemmelige Resend API-nøkkelen som brukes i Vercel.
+
 ## Database og migreringer
 
 `prisma/schema.prisma` er kilden til databasestrukturen. Etter en schemaendring

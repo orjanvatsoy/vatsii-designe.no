@@ -1,13 +1,11 @@
 "use client";
 
-import GoogleIcon from "@mui/icons-material/Google";
 import {
   Alert,
   Box,
   Button,
   Card,
   CardContent,
-  CircularProgress,
   FormControl,
   FormControlLabel,
   Grid,
@@ -42,22 +40,31 @@ export default function PlaceCardOrderForm({
   variants: PlaceCardVariant[];
 }) {
   const [user, setUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
   const [productId, setProductId] = useState(variants[0]?.id ?? "");
   const [namesInput, setNamesInput] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [website, setWebsite] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user ?? null);
-      setAuthLoading(false);
+      const currentUser = data.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        setCustomerEmail(currentUser.email ?? "");
+        setCustomerName(
+          currentUser.user_metadata.full_name ??
+            currentUser.user_metadata.name ??
+            "",
+        );
+      }
     });
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      setAuthLoading(false);
     });
     return () => data.subscription.unsubscribe();
   }, []);
@@ -68,13 +75,6 @@ export default function PlaceCardOrderForm({
     .filter(Boolean);
   const selectedVariant = variants.find((variant) => variant.id === productId);
 
-  const handleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.href },
-    });
-  };
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
@@ -82,12 +82,12 @@ export default function PlaceCardOrderForm({
 
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
-    if (!token) {
-      setError("Du må være logget inn for å sende en forespørsel på bordkort.");
-      return;
-    }
     if (!productId || names.length === 0) {
       setError("Velg et bordkort og legg inn minst ett navn.");
+      return;
+    }
+    if (!customerName.trim() || !customerEmail.trim()) {
+      setError("Oppgi navn og e-postadresse.");
       return;
     }
 
@@ -97,13 +97,20 @@ export default function PlaceCardOrderForm({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ productId, names }),
+        body: JSON.stringify({
+          productId,
+          names,
+          customerName,
+          customerEmail,
+          website,
+        }),
       });
       const result = (await response.json()) as {
         error?: string;
         orderId?: string;
+        requiresEmailVerification?: boolean;
       };
       if (!response.ok) {
         setError(
@@ -112,7 +119,27 @@ export default function PlaceCardOrderForm({
         return;
       }
 
-      setSuccess(`Forespørsel på bordkort #${result.orderId} er mottatt.`);
+      if (result.requiresEmailVerification) {
+        const { error: magicLinkError } = await supabase.auth.signInWithOtp({
+          email: customerEmail.trim(),
+          options: {
+            emailRedirectTo: `${window.location.origin}/bestillinger`,
+            data: { full_name: customerName.trim() },
+            shouldCreateUser: true,
+          },
+        });
+        if (magicLinkError) {
+          setError(
+            "Forespørselen er mottatt, men innloggingslenken kunne ikke sendes. Prøv «Mine forespørsler» senere.",
+          );
+        } else {
+          setSuccess(
+            `Forespørsel #${result.orderId} er mottatt. Vi har sendt en sikker lenke til ${customerEmail.trim()} slik at du kan se og oppdatere den.`,
+          );
+        }
+      } else {
+        setSuccess(`Forespørsel på bordkort #${result.orderId} er mottatt.`);
+      }
       setNamesInput("");
     } catch {
       setError("Kunne ikke kontakte serveren. Prøv igjen.");
@@ -120,47 +147,6 @@ export default function PlaceCardOrderForm({
       setSubmitting(false);
     }
   };
-
-  if (authLoading) {
-    return (
-      <Box display="flex" justifyContent="center" py={8}>
-        <CircularProgress aria-label="Kontrollerer innlogging" />
-      </Box>
-    );
-  }
-
-  if (!user) {
-    return (
-      <Card
-        sx={{
-          maxWidth: 560,
-          mx: "auto",
-          border: "1px solid",
-          borderColor: "divider",
-        }}
-      >
-        <CardContent sx={{ p: { xs: 3, md: 5 }, textAlign: "center" }}>
-          <Stack spacing={3} alignItems="center">
-            <Typography variant="h5" fontWeight={700}>
-              Logg inn for å sende forespørsel på bordkort
-            </Typography>
-            <Typography color="text.secondary">
-              Forespørselen er uforpliktende og knyttes sikkert til kontoen din.
-            </Typography>
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<GoogleIcon />}
-              onClick={handleLogin}
-              sx={{ textTransform: "none", px: 4 }}
-            >
-              Logg inn med Google
-            </Button>
-          </Stack>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Box component="form" onSubmit={handleSubmit}>
@@ -224,6 +210,44 @@ export default function PlaceCardOrderForm({
               </Grid>
             </RadioGroup>
           </FormControl>
+        </Box>
+
+        <Box sx={{ maxWidth: 720 }}>
+          <Typography variant="h5" fontWeight={700} mb={2}>
+            3. Kontaktinformasjon
+          </Typography>
+          <Stack spacing={2}>
+            <TextField
+              label="Navn"
+              value={customerName}
+              onChange={(event) => setCustomerName(event.target.value)}
+              required
+              slotProps={{ htmlInput: { maxLength: 120 } }}
+            />
+            <TextField
+              label="E-postadresse"
+              type="email"
+              value={customerEmail}
+              onChange={(event) => setCustomerEmail(event.target.value)}
+              required
+              disabled={Boolean(user)}
+              helperText={
+                user
+                  ? "Forespørselen knyttes til kontoen du er logget inn med."
+                  : "Du får en sikker engangslenke for å se og oppdatere forespørselen."
+              }
+              slotProps={{ htmlInput: { maxLength: 254 } }}
+            />
+            <TextField
+              label="Nettside"
+              value={website}
+              onChange={(event) => setWebsite(event.target.value)}
+              autoComplete="off"
+              tabIndex={-1}
+              sx={{ display: "none" }}
+              aria-hidden
+            />
+          </Stack>
         </Box>
 
         <Box sx={{ maxWidth: 720 }}>
@@ -331,11 +355,11 @@ export default function PlaceCardOrderForm({
           {success && (
             <Alert
               severity="success"
-              action={
+              action={user ? (
                 <Button color="inherit" href="/bestillinger">
                   Se forespørselen
                 </Button>
-              }
+              ) : undefined}
             >
               {success}
             </Alert>

@@ -1,6 +1,6 @@
 "use client";
 
-import GoogleIcon from "@mui/icons-material/Google";
+import EmailIcon from "@mui/icons-material/Email";
 import SaveIcon from "@mui/icons-material/Save";
 import {
   Alert,
@@ -46,6 +46,8 @@ export default function OrdersPage() {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [sendingLink, setSendingLink] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -92,10 +94,28 @@ export default function OrdersPage() {
   }, []);
 
   const handleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.href },
+    setError("");
+    setSuccess("");
+    if (!loginEmail.trim()) {
+      setError("Oppgi e-postadressen du brukte i forespørselen.");
+      return;
+    }
+
+    setSendingLink(true);
+    const { error: loginError } = await supabase.auth.signInWithOtp({
+      email: loginEmail.trim(),
+      options: {
+        emailRedirectTo: `${window.location.origin}/bestillinger`,
+        shouldCreateUser: true,
+      },
     });
+    setSendingLink(false);
+
+    if (loginError) {
+      setError("Innloggingslenken kunne ikke sendes. Prøv igjen.");
+      return;
+    }
+    setSuccess(`Vi har sendt en sikker innloggingslenke til ${loginEmail.trim()}.`);
   };
 
   const handleSave = async (orderId: string) => {
@@ -174,16 +194,31 @@ export default function OrdersPage() {
           <CardContent sx={{ p: { xs: 3, md: 5 }, textAlign: "center" }}>
             <Stack spacing={3} alignItems="center">
               <Typography variant="h5" fontWeight={700}>
-                Logg inn for å se forespørslene
+                Se forespørslene dine
               </Typography>
+              <Typography color="text.secondary">
+                Oppgi e-postadressen du brukte. Du får en sikker engangslenke
+                og trenger ikke passord.
+              </Typography>
+              <TextField
+                label="E-postadresse"
+                type="email"
+                value={loginEmail}
+                onChange={(event) => setLoginEmail(event.target.value)}
+                fullWidth
+                required
+              />
+              {error && <Alert severity="error">{error}</Alert>}
+              {success && <Alert severity="success">{success}</Alert>}
               <Button
                 variant="contained"
                 size="large"
-                startIcon={<GoogleIcon />}
+                startIcon={<EmailIcon />}
                 onClick={handleLogin}
+                disabled={sendingLink || !loginEmail.trim()}
                 sx={{ textTransform: "none", px: 4 }}
               >
-                Logg inn med Google
+                {sendingLink ? "Sender lenke..." : "Send innloggingslenke"}
               </Button>
             </Stack>
           </CardContent>

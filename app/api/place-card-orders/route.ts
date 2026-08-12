@@ -5,6 +5,8 @@ import { requireUser } from "../../lib/requireUser";
 
 const MAX_NAMES = 200;
 const MAX_NAME_LENGTH = 100;
+const MAX_CUSTOMER_NAME_LENGTH = 120;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +32,19 @@ function normalizeNames(value: unknown): string[] | null {
 export async function GET(request: Request) {
   const authResult = await requireUser(request);
   if (authResult instanceof NextResponse) return authResult;
+
+  const customerEmail = authResult.user.email?.trim().toLowerCase();
+  if (!customerEmail) {
+    return NextResponse.json(
+      { error: "Kontoen mangler e-postadresse." },
+      { status: 400 },
+    );
+  }
+
+  await prisma.placeCardOrder.updateMany({
+    where: { userId: null, customerEmail: { equals: customerEmail, mode: "insensitive" } },
+    data: { userId: authResult.user.id },
+  });
 
   const orders = await prisma.placeCardOrder.findMany({
     where: { userId: authResult.user.id },
@@ -63,10 +78,17 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const authResult = await requireUser(request);
+  const hasAuthorization = Boolean(request.headers.get("authorization"));
+  const authResult = hasAuthorization ? await requireUser(request) : null;
   if (authResult instanceof NextResponse) return authResult;
 
-  let body: { productId?: unknown; names?: unknown };
+  let body: {
+    productId?: unknown;
+    names?: unknown;
+    customerEmail?: unknown;
+    customerName?: unknown;
+    website?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
@@ -81,6 +103,10 @@ export async function POST(request: Request) {
       { error: "Produkt og navn er påkrevd." },
       { status: 400 },
     );
+  }
+
+  if (typeof body.website === "string" && body.website.length > 0) {
+    return NextResponse.json({ success: true });
   }
 
   const names = normalizeNames(body.names);
@@ -116,21 +142,49 @@ export async function POST(request: Request) {
     );
   }
 
-  const customerEmail = authResult.user.email;
-  if (!customerEmail) {
+  const customerEmail = (
+    authResult?.user.email ??
+    (typeof body.customerEmail === "string" ? body.customerEmail : "")
+  )
+    .trim()
+    .toLowerCase();
+  if (!EMAIL_PATTERN.test(customerEmail) || customerEmail.length > 254) {
     return NextResponse.json(
-      { error: "Kontoen mangler e-postadresse." },
+      { error: "Oppgi en gyldig e-postadresse." },
       { status: 400 },
     );
   }
-  const customerName =
-    authResult.user.user_metadata.full_name ??
-    authResult.user.user_metadata.name ??
-    null;
+  const submittedName =
+    typeof body.customerName === "string" ? body.customerName.trim() : "";
+  const customerName = String(
+    submittedName ||
+      authResult?.user.user_metadata.full_name ??
+      authResult?.user.user_metadata.name ??
+      "",
+  ).trim();
+  if (!customerName || customerName.length > MAX_CUSTOMER_NAME_LENGTH) {
+    return NextResponse.json(
+      { error: "Oppgi navnet ditt, maks 120 tegn." },
+      { status: 400 },
+    );
+  }
+
+  const recentInquiryCount = await prisma.placeCardOrder.count({
+    where: {
+      customerEmail: { equals: customerEmail, mode: "insensitive" },
+      createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) },
+    },
+  });
+  if (recentInquiryCount >= 5) {
+    return NextResponse.json(
+      { error: "For mange forespørsler på kort tid. Prøv igjen senere." },
+      { status: 429 },
+    );
+  }
 
   const order = await prisma.placeCardOrder.create({
     data: {
-      userId: authResult.user.id,
+      userId: authResult?.user.id ?? null,
       customerEmail,
       customerName,
       productId,
@@ -154,7 +208,11 @@ export async function POST(request: Request) {
     console.error("Failed to send inquiry email:", error);
   }
 
-  return NextResponse.json({ success: true, orderId: order.id.toString() });
+  return NextResponse.json({
+    success: true,
+    orderId: order.id.toString(),
+    requiresEmailVerification: !authResult,
+  });
 }
 
 export async function PATCH(request: Request) {
