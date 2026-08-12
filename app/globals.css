@@ -10,6 +10,7 @@ body {
 }
 
 body {
+  margin: 0;
   color: var(--foreground);
   background: var(--background);
   font-family: "Asap", Arial, Helvetica, sans-serif;
@@ -17,24 +18,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Offset page content below the fixed, transparent navbar.
-   Full-bleed pages (e.g. the landing hero) opt out with .full-bleed. */
-main {
-  padding-top: 56px;
-}
-
-@media (min-width: 600px) {
-  main {
-    padding-top: 64px;
-  }
-}
-
+/* NavBar reserves its own responsive height. Full-bleed heroes opt back
+   into the space behind the transparent app bar. */
 main > .full-bleed {
-  margin-top: -56px;
+  margin-top: -64px;
 }
 
 @media (min-width: 600px) {
   main > .full-bleed {
-    margin-top: -64px;
+    margin-top: -72px;
   }
 }

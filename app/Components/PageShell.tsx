@@ -28,6 +28,8 @@ export default function PageShell({
     <Box
       sx={{
         minHeight: "100vh",
+        mt: { xs: "-64px", sm: "-72px" },
+        pt: { xs: "64px", sm: "72px" },
         background:
           "radial-gradient(110% 60% at 50% 0%, rgba(139,94,60,0.22) 0%, rgba(28,28,26,0) 55%), linear-gradient(180deg, #1C1C1A 0%, #211F1B 100%)",
         pb: 10,

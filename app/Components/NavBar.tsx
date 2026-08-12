@@ -66,13 +66,15 @@ export default function NavBar() {
         elevation={0}
         sx={{
           background:
-            "linear-gradient(to bottom, rgba(15,14,10,0.75) 0%, rgba(15,14,10,0.35) 55%, rgba(15,14,10,0) 100%)",
-          backdropFilter: "blur(4px)",
+            "linear-gradient(to bottom, rgba(15,14,10,0.72) 0%, rgba(15,14,10,0.38) 65%, rgba(15,14,10,0.12) 100%)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
           boxShadow: "none",
+          borderBottom: "1px solid rgba(217,160,102,0.08)",
           borderRadius: 0,
         }}
       >
-        <Toolbar>
+        <Toolbar sx={{ minHeight: { xs: 64, sm: 72 } }}>
           <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
             <IconButton color="inherit" href="/" sx={{ p: 0 }}>
               <HomeIcon sx={{ fontSize: 32 }} />
@@ -115,6 +117,10 @@ export default function NavBar() {
           </IconButton>
         </Toolbar>
       </AppBar>
+      <Toolbar
+        aria-hidden
+        sx={{ minHeight: { xs: 64, sm: 72 }, pointerEvents: "none" }}
+      />
       <Drawer
         anchor="right"
         open={drawerOpen}

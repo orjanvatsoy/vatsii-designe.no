@@ -221,7 +221,7 @@ export async function PATCH(request: Request) {
   const authResult = await requireUser(request);
   if (authResult instanceof NextResponse) return authResult;
 
-  let body: { orderId?: unknown; names?: unknown };
+  let body: { orderId?: unknown; names?: unknown; action?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -246,6 +246,28 @@ export async function PATCH(request: Request) {
       { error: "Ugyldig forespørsel." },
       { status: 400 },
     );
+  }
+
+  if (body.action === "approve-offer") {
+    const result = await prisma.placeCardOrder.updateMany({
+      where: {
+        id: orderId,
+        userId: authResult.user.id,
+        status: "estimated",
+        estimatedPrice: { not: null },
+        deliveryEstimate: { not: null },
+      },
+      data: { status: "approved" },
+    });
+
+    if (result.count === 0) {
+      return NextResponse.json(
+        { error: "Tilbudet finnes ikke eller er allerede behandlet." },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({ success: true, status: "approved" });
   }
 
   const names = normalizeNames(body.names);

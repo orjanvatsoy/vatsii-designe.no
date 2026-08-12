@@ -39,4 +39,32 @@ export const theme = createTheme({
     },
     divider: "#3A332C",
   },
+  components: {
+    MuiAlert: {
+      styleOverrides: {
+        root: ({ ownerState, theme }) => {
+          const accent =
+            ownerState.severity === "error"
+              ? theme.palette.error.main
+              : ownerState.severity === "warning"
+                ? theme.palette.warning.main
+                : ownerState.severity === "success"
+                  ? theme.palette.secondary.main
+                  : theme.palette.primary.light;
+
+          return {
+            border: `1px solid ${theme.palette.divider}`,
+            borderLeft: `3px solid ${accent}`,
+            borderRadius: 8,
+            backgroundColor: theme.palette.background.paper,
+            color: theme.palette.text.primary,
+            boxShadow: "none",
+            "& .MuiAlert-icon": {
+              color: accent,
+            },
+          };
+        },
+      },
+    },
+  },
 });

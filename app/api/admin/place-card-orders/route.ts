@@ -49,6 +49,7 @@ export async function PATCH(request: Request) {
 
   let body: {
     orderId?: unknown;
+    action?: unknown;
     estimatedPrice?: unknown;
     deliveryEstimate?: unknown;
   };
@@ -76,6 +77,22 @@ export async function PATCH(request: Request) {
       { error: "Ugyldig forespørsel." },
       { status: 400 },
     );
+  }
+
+  if (body.action === "mark-delivered") {
+    const result = await prisma.placeCardOrder.updateMany({
+      where: { id: orderId, status: "approved" },
+      data: { status: "completed" },
+    });
+
+    if (result.count === 0) {
+      return NextResponse.json(
+        { error: "Ordren må ha et godkjent tilbud før den kan leveres." },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({ success: true, status: "completed" });
   }
 
   const estimatedPrice = body.estimatedPrice;

@@ -32,11 +32,12 @@ interface AdminOrder {
 }
 
 const statusLabels: Record<string, string> = {
-  new: "Ny",
-  confirmed: "Tidligere bekreftet",
-  estimated: "Estimat sendt",
-  in_production: "I produksjon",
-  completed: "Ferdig",
+  new: "Forespørsel",
+  confirmed: "Tilbud",
+  estimated: "Tilbud sendt",
+  approved: "Godkjent tilbud",
+  in_production: "Godkjent tilbud",
+  completed: "Levert",
   cancelled: "Kansellert",
 };
 

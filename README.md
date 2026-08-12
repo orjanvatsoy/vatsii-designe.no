@@ -13,7 +13,7 @@ npm install
 npm run dev
 ```
 
-Åpne [http://localhost:3000](http://localhost:3000).
+Åpne [http://localhost:3500](http://localhost:3500).
 
 ## E-postvarsler
 
@@ -38,7 +38,7 @@ Redirect URLs**, for eksempel:
 
 ```text
 https://vatsii-designe.no/bestillinger
-http://localhost:3000/bestillinger
+http://localhost:3500/bestillinger
 ```
 
 Aktiver deretter **Supabase → Authentication → Email → Custom SMTP** med

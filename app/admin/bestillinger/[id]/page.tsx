@@ -2,6 +2,7 @@
 
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import {
   Alert,
   Box,
@@ -39,11 +40,12 @@ interface OrderDetails {
 }
 
 const statusLabels: Record<string, string> = {
-  new: "Ny",
-  confirmed: "Tidligere bekreftet",
-  estimated: "Estimat sendt",
-  in_production: "I produksjon",
-  completed: "Ferdig",
+  new: "Forespørsel",
+  confirmed: "Tilbud",
+  estimated: "Tilbud sendt",
+  approved: "Godkjent tilbud",
+  in_production: "Godkjent tilbud",
+  completed: "Levert",
   cancelled: "Kansellert",
 };
 
@@ -147,6 +149,46 @@ export default function AdminOrderDetailsPage() {
           : current,
       );
       setSuccess("Prisestimat og leveringstid er sendt til kunden.");
+    } catch {
+      setError("Kunne ikke kontakte serveren.");
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const handleMarkDelivered = async () => {
+    if (!order) return;
+    setError("");
+    setSuccess("");
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      setError("Du må logge inn på nytt.");
+      return;
+    }
+
+    setConfirming(true);
+    try {
+      const response = await fetch("/api/admin/place-card-orders", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          orderId: order.id,
+          action: "mark-delivered",
+        }),
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setError(result.error ?? "Ordren kunne ikke markeres som levert.");
+        return;
+      }
+      setOrder((current) =>
+        current ? { ...current, status: "completed" } : current,
+      );
+      setSuccess("Ordren er markert som levert.");
     } catch {
       setError("Kunne ikke kontakte serveren.");
     } finally {
@@ -324,18 +366,70 @@ export default function AdminOrderDetailsPage() {
                   {confirming ? "Sender svar..." : "Send estimat til kunden"}
                 </Button>
               </Stack>
-            ) : order.estimatedPrice &&
-              order.deliveryEstimate &&
-              order.confirmedAt ? (
-              <Alert severity="success">
-                Estimat sendt{" "}
-                {new Intl.DateTimeFormat("nb-NO", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                }).format(new Date(order.confirmedAt))}
-                : {new Intl.NumberFormat("nb-NO").format(order.estimatedPrice)}{" "}
-                kr, levering {order.deliveryEstimate}.
-              </Alert>
+            ) : order.estimatedPrice && order.deliveryEstimate ? (
+              <Box
+                sx={{
+                  width: { xs: "100%", md: "70%" },
+                  ml: { md: "auto" },
+                  p: { xs: 2.5, md: 3 },
+                  border: "1px solid",
+                  borderColor: "secondary.main",
+                  borderRadius: 1,
+                  bgcolor: "rgba(50,79,58,0.24)",
+                }}
+              >
+                <Typography variant="overline" color="text.secondary">
+                  Sendt fra Vatsii Designe
+                </Typography>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                    gap: 2,
+                    mt: 1,
+                  }}
+                >
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Pris
+                    </Typography>
+                    <Typography
+                      variant="h5"
+                      color="primary.light"
+                      fontWeight={800}
+                    >
+                      {new Intl.NumberFormat("nb-NO").format(
+                        order.estimatedPrice,
+                      )}{" "}
+                      kr
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Leveringstid
+                    </Typography>
+                    <Typography variant="h6" fontWeight={700}>
+                      {order.deliveryEstimate}
+                    </Typography>
+                  </Box>
+                </Box>
+                {order.status === "approved" && (
+                  <Button
+                    variant="contained"
+                    startIcon={<LocalShippingOutlinedIcon />}
+                    onClick={handleMarkDelivered}
+                    disabled={confirming}
+                    sx={{ mt: 2.5, textTransform: "none" }}
+                  >
+                    {confirming ? "Oppdaterer..." : "Marker som levert"}
+                  </Button>
+                )}
+                {order.status === "completed" && (
+                  <Typography color="primary.light" fontWeight={700} mt={2}>
+                    Ordren er levert.
+                  </Typography>
+                )}
+              </Box>
             ) : null}
           </Stack>
         ) : null}
