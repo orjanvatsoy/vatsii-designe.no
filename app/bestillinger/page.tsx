@@ -119,7 +119,10 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(!useMockData);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [loginEmail, setLoginEmail] = useState("");
-  const [sendingLink, setSendingLink] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [verifyingCode, setVerifyingCode] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [settingPassword, setSettingPassword] = useState(false);
@@ -187,23 +190,45 @@ export default function OrdersPage() {
       return;
     }
 
-    setSendingLink(true);
+    setSendingCode(true);
     const { error: loginError } = await supabase.auth.signInWithOtp({
       email: loginEmail.trim(),
       options: {
-        emailRedirectTo: `${window.location.origin}/bestillinger`,
         shouldCreateUser: true,
       },
     });
-    setSendingLink(false);
+    setSendingCode(false);
 
     if (loginError) {
-      setError("Innloggingslenken kunne ikke sendes. Prøv igjen.");
+      setError("Innloggingskoden kunne ikke sendes. Prøv igjen.");
       return;
     }
+    setCodeSent(true);
     setSuccess(
-      `E-post sendt til ${loginEmail.trim()} fra Vatsii Designe. Åpne den for å gå til forespørslene dine.`,
+      `En sekssifret kode er sendt til ${loginEmail.trim()} fra Vatsii Designe.`,
     );
+  };
+
+  const handleVerifyCode = async () => {
+    setError("");
+    if (!/^\d{6}$/.test(verificationCode)) {
+      setError("Skriv inn den sekssifrede koden fra e-posten.");
+      return;
+    }
+
+    setVerifyingCode(true);
+    const { error: verificationError } = await supabase.auth.verifyOtp({
+      email: loginEmail.trim(),
+      token: verificationCode,
+      type: "email",
+    });
+    setVerifyingCode(false);
+    if (verificationError) {
+      setError("Koden er feil eller har utløpt. Be om en ny kode.");
+      return;
+    }
+
+    window.location.reload();
   };
 
   const handleSave = async (orderId: string) => {
@@ -360,9 +385,8 @@ export default function OrdersPage() {
                 Se forespørslene dine
               </Typography>
               <Typography color="text.secondary">
-                Oppgi e-postadressen du brukte. Vi sender en personlig
-                innloggingslenke fra Vatsii Designe. Lenken kan bare brukes én
-                gang.
+                Oppgi e-postadressen du brukte. Vi sender en sekssifret
+                innloggingskode fra Vatsii Designe.
               </Typography>
               <TextField
                 label="E-postadresse"
@@ -371,19 +395,60 @@ export default function OrdersPage() {
                 onChange={(event) => setLoginEmail(event.target.value)}
                 fullWidth
                 required
+                disabled={codeSent}
               />
+              {codeSent && (
+                <TextField
+                  label="Sekssifret kode"
+                  value={verificationCode}
+                  onChange={(event) =>
+                    setVerificationCode(
+                      event.target.value.replace(/\D/g, "").slice(0, 6),
+                    )
+                  }
+                  autoComplete="one-time-code"
+                  fullWidth
+                  slotProps={{
+                    htmlInput: {
+                      inputMode: "numeric",
+                      pattern: "[0-9]*",
+                      maxLength: 6,
+                    },
+                  }}
+                />
+              )}
               {error && <Alert severity="error">{error}</Alert>}
               {success && <Alert severity="success">{success}</Alert>}
               <Button
                 variant="contained"
                 size="large"
                 startIcon={<EmailIcon />}
-                onClick={handleLogin}
-                disabled={sendingLink || !loginEmail.trim()}
+                onClick={codeSent ? handleVerifyCode : handleLogin}
+                disabled={
+                  sendingCode ||
+                  verifyingCode ||
+                  !loginEmail.trim() ||
+                  (codeSent && verificationCode.length !== 6)
+                }
                 fullWidth
               >
-                {sendingLink ? "Sender lenke..." : "Send innloggingslenke"}
+                {sendingCode
+                  ? "Sender kode..."
+                  : verifyingCode
+                    ? "Kontrollerer..."
+                    : codeSent
+                      ? "Logg inn med kode"
+                      : "Send innloggingskode"}
               </Button>
+              {codeSent && (
+                <Button
+                  variant="text"
+                  onClick={handleLogin}
+                  disabled={sendingCode || verifyingCode}
+                >
+                  Send ny kode
+                </Button>
+              )}
               <Divider flexItem>eller</Divider>
               <Button variant="outlined" href="/login" fullWidth>
                 Logg inn med e-post og passord
@@ -419,7 +484,7 @@ export default function OrdersPage() {
                   </Stack>
                   <Typography color="text.secondary" mt={1}>
                     Opprett et passord for å få enklere tilgang til
-                    forespørslene dine uten nye e-postlenker.
+                    forespørslene dine uten nye e-postkoder.
                   </Typography>
                 </Box>
                 <Stack spacing={1.5}>

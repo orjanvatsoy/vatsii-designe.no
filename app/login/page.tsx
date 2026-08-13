@@ -20,6 +20,14 @@ export default function UserPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState("");
+  const [recoveryCodeSent, setRecoveryCodeSent] = useState(false);
+  const [recoveryVerified, setRecoveryVerified] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirmation, setNewPasswordConfirmation] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -80,7 +88,7 @@ export default function UserPage() {
     window.location.href = "/bestillinger";
   };
 
-  const handleEmailLink = async () => {
+  const handleEmailCode = async () => {
     setError("");
     setSuccess("");
     if (!email.trim()) {
@@ -92,18 +100,107 @@ export default function UserPage() {
     const { error: linkError } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
-        emailRedirectTo: `${window.location.origin}/bestillinger`,
         shouldCreateUser: false,
       },
     });
     setSubmitting(false);
     if (linkError) {
-      setError("Innloggingslenken kunne ikke sendes. Prøv igjen.");
+      setError("Innloggingskoden kunne ikke sendes. Prøv igjen.");
       return;
     }
-    setSuccess(
-      "E-post sendt fra Vatsii Designe. Åpne den for å logge inn på Mine forespørsler.",
+    setCodeSent(true);
+    setSuccess("En sekssifret innloggingskode er sendt fra Vatsii Designe.");
+  };
+
+  const handleVerifyCode = async () => {
+    setError("");
+    if (!/^\d{6}$/.test(verificationCode)) {
+      setError("Skriv inn den sekssifrede koden fra e-posten.");
+      return;
+    }
+
+    setSubmitting(true);
+    const { error: verificationError } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: verificationCode,
+      type: "email",
+    });
+    setSubmitting(false);
+    if (verificationError) {
+      setError("Koden er feil eller har utløpt. Be om en ny kode.");
+      return;
+    }
+    window.location.href = "/bestillinger";
+  };
+
+  const handleRequestPasswordReset = async () => {
+    setError("");
+    setSuccess("");
+    if (!email.trim()) {
+      setError("Oppgi e-postadressen din.");
+      return;
+    }
+
+    setSubmitting(true);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      email.trim(),
     );
+    setSubmitting(false);
+    if (resetError) {
+      setError("Koden kunne ikke sendes. Prøv igjen.");
+      return;
+    }
+
+    setRecoveryCodeSent(true);
+    setSuccess("En sekssifret kode er sendt fra Vatsii Designe.");
+  };
+
+  const handleVerifyRecoveryCode = async () => {
+    setError("");
+    if (!/^\d{6}$/.test(recoveryCode)) {
+      setError("Skriv inn den sekssifrede koden fra e-posten.");
+      return;
+    }
+
+    setSubmitting(true);
+    const { error: verificationError } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: recoveryCode,
+      type: "recovery",
+    });
+    setSubmitting(false);
+    if (verificationError) {
+      setError("Koden er feil eller har utløpt. Be om en ny kode.");
+      return;
+    }
+
+    setRecoveryVerified(true);
+    setSuccess("Koden er godkjent. Velg et nytt passord.");
+  };
+
+  const handleResetPassword = async () => {
+    setError("");
+    if (newPassword.length < 8) {
+      setError("Passordet må ha minst 8 tegn.");
+      return;
+    }
+    if (newPassword !== newPasswordConfirmation) {
+      setError("Passordene er ikke like.");
+      return;
+    }
+
+    setSubmitting(true);
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+      data: { password_configured: true },
+    });
+    setSubmitting(false);
+    if (updateError) {
+      setError("Passordet kunne ikke lagres. Prøv igjen.");
+      return;
+    }
+
+    window.location.href = "/bestillinger";
   };
 
   const handleSetPassword = async () => {
@@ -135,7 +232,7 @@ export default function UserPage() {
     setPassword("");
     setConfirmPassword("");
     setSuccess(
-      "Passordet er lagret. Neste gang kan du logge inn uten e-postlenke.",
+      "Passordet er lagret. Neste gang kan du logge inn uten e-postkode.",
     );
   };
 
@@ -154,12 +251,12 @@ export default function UserPage() {
     );
   }
 
-  if (!user) {
+  if (!user || recoveryMode) {
     return (
       <PageShell
         eyebrow="VELKOMMEN"
         title="Logg inn"
-        subtitle="Bruk e-post og passord, be om en personlig innloggingslenke eller fortsett med Google."
+        subtitle="Bruk e-post og passord, få en sekssifret innloggingskode eller fortsett med Google."
         maxWidth="sm"
       >
         <Box display="flex" justifyContent="center">
@@ -177,7 +274,7 @@ export default function UserPage() {
           >
             <Stack spacing={3} alignItems="center" textAlign="center">
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Velkommen tilbake
+                {recoveryMode ? "Opprett nytt passord" : "Velkommen tilbake"}
               </Typography>
               <TextField
                 label="E-postadresse"
@@ -186,47 +283,160 @@ export default function UserPage() {
                 onChange={(event) => setEmail(event.target.value)}
                 fullWidth
                 required
+                disabled={codeSent || recoveryCodeSent}
               />
-              <TextField
-                label="Passord"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                fullWidth
-              />
+              {!recoveryMode && (
+                <TextField
+                  label="Passord"
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  fullWidth
+                />
+              )}
+              {!recoveryMode && codeSent && (
+                <TextField
+                  label="Sekssifret kode"
+                  value={verificationCode}
+                  onChange={(event) =>
+                    setVerificationCode(
+                      event.target.value.replace(/\D/g, "").slice(0, 6),
+                    )
+                  }
+                  autoComplete="one-time-code"
+                  fullWidth
+                  slotProps={{
+                    htmlInput: { inputMode: "numeric", maxLength: 6 },
+                  }}
+                />
+              )}
+              {recoveryMode && recoveryCodeSent && !recoveryVerified && (
+                <TextField
+                  label="Sekssifret kode"
+                  value={recoveryCode}
+                  onChange={(event) =>
+                    setRecoveryCode(
+                      event.target.value.replace(/\D/g, "").slice(0, 6),
+                    )
+                  }
+                  autoComplete="one-time-code"
+                  fullWidth
+                  slotProps={{
+                    htmlInput: { inputMode: "numeric", maxLength: 6 },
+                  }}
+                />
+              )}
+              {recoveryMode && recoveryVerified && (
+                <>
+                  <TextField
+                    label="Nytt passord"
+                    type="password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    helperText="Minst 8 tegn"
+                    fullWidth
+                  />
+                  <TextField
+                    label="Gjenta nytt passord"
+                    type="password"
+                    value={newPasswordConfirmation}
+                    onChange={(event) =>
+                      setNewPasswordConfirmation(event.target.value)
+                    }
+                    fullWidth
+                  />
+                </>
+              )}
               {error && <Alert severity="error">{error}</Alert>}
               {success && <Alert severity="success">{success}</Alert>}
-              <Button
-                variant="contained"
-                size="large"
-                onClick={handlePasswordLogin}
-                disabled={submitting || !email.trim() || !password}
-                fullWidth
-                sx={{ textTransform: "none" }}
-              >
-                {submitting ? "Logger inn..." : "Logg inn"}
-              </Button>
+              {recoveryMode ? (
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={
+                    recoveryVerified
+                      ? handleResetPassword
+                      : recoveryCodeSent
+                        ? handleVerifyRecoveryCode
+                        : handleRequestPasswordReset
+                  }
+                  disabled={
+                    submitting ||
+                    !email.trim() ||
+                    (recoveryCodeSent &&
+                      !recoveryVerified &&
+                      recoveryCode.length !== 6) ||
+                    (recoveryVerified &&
+                      (!newPassword || !newPasswordConfirmation))
+                  }
+                  fullWidth
+                >
+                  {submitting
+                    ? "Behandler..."
+                    : recoveryVerified
+                      ? "Lagre nytt passord"
+                      : recoveryCodeSent
+                        ? "Kontroller kode"
+                        : "Send kode"}
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={handlePasswordLogin}
+                    disabled={submitting || !email.trim() || !password}
+                    fullWidth
+                    sx={{ textTransform: "none" }}
+                  >
+                    {submitting ? "Logger inn..." : "Logg inn"}
+                  </Button>
+                  <Button
+                    variant="text"
+                    onClick={codeSent ? handleVerifyCode : handleEmailCode}
+                    disabled={submitting || !email.trim()}
+                    sx={{ textTransform: "none" }}
+                  >
+                    {codeSent
+                      ? "Logg inn med kode"
+                      : "Send meg en innloggingskode"}
+                  </Button>
+                </>
+              )}
+              {!recoveryMode && codeSent && (
+                <Button
+                  variant="text"
+                  onClick={handleEmailCode}
+                  disabled={submitting}
+                >
+                  Send ny kode
+                </Button>
+              )}
               <Button
                 variant="text"
-                onClick={handleEmailLink}
-                disabled={submitting || !email.trim()}
-                sx={{ textTransform: "none" }}
-              >
-                Send meg en innloggingslenke
-              </Button>
-              <Divider flexItem>eller</Divider>
-              <Button
-                variant="outlined"
-                color="primary"
-                size="large"
-                startIcon={<GoogleIcon />}
-                onClick={handleLogin}
-                sx={{
-                  px: 4,
+                onClick={() => {
+                  setError("");
+                  setSuccess("");
+                  setRecoveryMode((current) => !current);
                 }}
               >
-                Logg inn med Google
+                {recoveryMode ? "Tilbake til innlogging" : "Glemt passord?"}
               </Button>
+              {!recoveryMode && (
+                <>
+                  <Divider flexItem>eller</Divider>
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    size="large"
+                    startIcon={<GoogleIcon />}
+                    onClick={handleLogin}
+                    sx={{ px: 4 }}
+                  >
+                    Logg inn med Google
+                  </Button>
+                </>
+              )}
             </Stack>
           </Card>
         </Box>
@@ -308,7 +518,7 @@ export default function UserPage() {
                     : "Opprett passord"}
                 </Divider>
                 <Typography variant="body2" color="text.secondary">
-                  Da kan du logge inn direkte uten å få en ny e-postlenke.
+                  Da kan du logge inn direkte uten å få en ny e-postkode.
                 </Typography>
                 <TextField
                   label="Nytt passord"

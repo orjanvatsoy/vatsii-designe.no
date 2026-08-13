@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Bekreft e-postadressen din hos Vatsii Designe</title>
+    <title>Din bekreftelseskode fra Vatsii Designe</title>
   </head>
   <body
     style="
@@ -14,7 +14,7 @@
     "
   >
     <div style="display: none; max-height: 0; overflow: hidden; opacity: 0">
-      Bekreft adressen og se forespørselen din hos Vatsii Designe.
+      Bruk koden for å bekrefte adressen hos Vatsii Designe.
     </div>
     <table
       role="presentation"
@@ -88,32 +88,25 @@
                     line-height: 1.6;
                   "
                 >
-                  Bekreft adressen for å se og oppdatere forespørselen din.
-                  Lenken kan bare brukes én gang og utløper etter kort tid.
+                  Skriv inn denne koden på nettsiden for å bekrefte adressen og
+                  se forespørselen din. Koden kan bare brukes én gang og utløper
+                  etter kort tid.
                 </p>
-                <table
-                  role="presentation"
-                  cellspacing="0"
-                  cellpadding="0"
-                  border="0"
+                <div
+                  style="
+                    padding: 18px 22px;
+                    background: #f4f1ed;
+                    border: 1px solid #ded8d0;
+                    border-radius: 6px;
+                    color: #292723;
+                    font-family: Consolas, monospace;
+                    font-size: 32px;
+                    font-weight: 700;
+                    text-align: center;
+                  "
                 >
-                  <tr>
-                    <td style="background: #8b5e3c; border-radius: 6px">
-                      <a
-                        href="{{ .ConfirmationURL }}"
-                        style="
-                          display: inline-block;
-                          padding: 14px 22px;
-                          color: #ffffff;
-                          font-size: 16px;
-                          font-weight: 700;
-                          text-decoration: none;
-                        "
-                        >Bekreft og se forespørselen</a
-                      >
-                    </td>
-                  </tr>
-                </table>
+                  {{ .Token }}
+                </div>
                 <p
                   style="
                     margin: 28px 0 0;
@@ -123,7 +116,7 @@
                   "
                 >
                   Hvis du ikke sendte en forespørsel, kan du se bort fra denne
-                  e-posten. Ingen konto blir tatt i bruk uten at lenken åpnes.
+                  e-posten. Ingen konto blir tatt i bruk uten at koden brukes.
                 </p>
               </td>
             </tr>

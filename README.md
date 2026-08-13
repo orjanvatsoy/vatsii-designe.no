@@ -47,10 +47,10 @@ forespørsel lagres selv om e-posttjenesten midlertidig er utilgjengelig.
 
 ## Passordfri innlogging
 
-Kunder kan sende forespørsel uten konto. Supabase sender deretter en personlig
-innloggingslenke som bekrefter e-postadressen og åpner `/bestillinger`. Legg inn
-produksjonsadressen under **Supabase → Authentication → URL Configuration →
-Redirect URLs**, for eksempel:
+Kunder kan sende forespørsel uten konto. Supabase sender deretter en sekssifret
+kode som kunden bruker til å bekrefte e-postadressen på `/bestillinger`. Legg
+inn produksjonsadressen under **Supabase → Authentication → URL Configuration
+→ Redirect URLs**, for eksempel:
 
 ```text
 https://vatsii-designe.no/bestillinger
@@ -78,16 +78,19 @@ Vatsii-avsender konsekvent for å gjøre e-postene gjenkjennelige.
 Hosted Supabase leser ikke malene fra repoet automatisk. Åpne **Supabase →
 Authentication → Email Templates** og lim inn følgende:
 
-| Supabase-mal   | Emne                                          | HTML-fil                               |
-| -------------- | --------------------------------------------- | -------------------------------------- |
-| Magic Link     | `Din innlogging til Vatsii Designe`           | `supabase/templates/magic-link.html`   |
-| Confirm signup | `Bekreft e-postadressen din · Vatsii Designe` | `supabase/templates/confirmation.html` |
+| Supabase-mal         | Emne                                           | HTML-fil                                   |
+| -------------------- | ---------------------------------------------- | ------------------------------------------ |
+| Confirm sign up      | `Din bekreftelseskode fra Vatsii Designe`      | `supabase/templates/confirmation.html`     |
+| Invite user          | `Du er invitert til Vatsii Designe`            | `supabase/templates/invite.html`           |
+| Magic link or OTP    | `Din innloggingskode fra Vatsii Designe`       | `supabase/templates/magic-link.html`       |
+| Change email address | `Bekreft ny e-postadresse hos Vatsii Designe`  | `supabase/templates/change-email.html`     |
+| Reset password       | `Din kode for nytt passord fra Vatsii Designe` | `supabase/templates/recovery.html`         |
+| Reauthentication     | `Din sikkerhetskode fra Vatsii Designe`        | `supabase/templates/reauthentication.html` |
 
-Begge malene bruker Supabase-variabelen `{{ .ConfirmationURL }}`. De omtaler
-ikke lenken som «magisk», forklarer hvorfor e-posten ble sendt og har bare én
-handling. For best mulig tillit kan Supabase Auth også få et eget domene som
-`auth.vatsii-designe.no`; uten dette vil måladressen fortsatt inneholde
-Supabase-prosjektets domene.
+Confirm sign up, Magic link or OTP, Reset password og Reauthentication bruker
+`{{ .Token }}`. Invite user og Change email address bruker
+`{{ .ConfirmationURL }}`, siden appen ikke har egne kodefelt for disse to
+sjeldne flytene.
 
 ## Database og migreringer
 
