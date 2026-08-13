@@ -45,9 +45,6 @@ export default function PlaceCardOrderForm({
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [website, setWebsite] = useState("");
-  const [verificationEmail, setVerificationEmail] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
-  const [verifyingCode, setVerifyingCode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -136,10 +133,12 @@ export default function PlaceCardOrderForm({
             "Forespørselen er mottatt, men bekreftelseskoden kunne ikke sendes. Prøv «Mine forespørsler» senere.",
           );
         } else {
-          setVerificationEmail(customerEmail.trim());
-          setSuccess(
-            "Forespørselen er mottatt. Skriv inn den sekssifrede koden vi har sendt fra Vatsii Designe.",
+          sessionStorage.setItem(
+            "pendingVerificationEmail",
+            customerEmail.trim(),
           );
+          window.location.href = "/bekreft-epost";
+          return;
         }
       } else {
         setSuccess(`Forespørsel på bordkort #${result.orderId} er mottatt.`);
@@ -150,28 +149,6 @@ export default function PlaceCardOrderForm({
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleVerifyCode = async () => {
-    setError("");
-    if (!/^\d{6}$/.test(verificationCode)) {
-      setError("Skriv inn den sekssifrede koden fra e-posten.");
-      return;
-    }
-
-    setVerifyingCode(true);
-    const { error: verificationError } = await supabase.auth.verifyOtp({
-      email: verificationEmail,
-      token: verificationCode,
-      type: "email",
-    });
-    setVerifyingCode(false);
-    if (verificationError) {
-      setError("Koden er feil eller har utløpt.");
-      return;
-    }
-
-    window.location.href = "/bestillinger";
   };
 
   return (
@@ -402,34 +379,6 @@ export default function PlaceCardOrderForm({
             >
               {success}
             </Alert>
-          )}
-          {verificationEmail && !user && (
-            <Stack spacing={1.5}>
-              <TextField
-                label="Sekssifret kode"
-                value={verificationCode}
-                onChange={(event) =>
-                  setVerificationCode(
-                    event.target.value.replace(/\D/g, "").slice(0, 6),
-                  )
-                }
-                autoComplete="one-time-code"
-                slotProps={{
-                  htmlInput: { inputMode: "numeric", maxLength: 6 },
-                }}
-              />
-              <Button
-                type="button"
-                variant="contained"
-                onClick={handleVerifyCode}
-                disabled={verifyingCode || verificationCode.length !== 6}
-                sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
-              >
-                {verifyingCode
-                  ? "Kontrollerer..."
-                  : "Bekreft og åpne forespørselen"}
-              </Button>
-            </Stack>
           )}
           <Button
             type="submit"
