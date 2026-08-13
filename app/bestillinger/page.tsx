@@ -1,6 +1,7 @@
 "use client";
 
 import EmailIcon from "@mui/icons-material/Email";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import SaveIcon from "@mui/icons-material/Save";
@@ -12,6 +13,11 @@ import {
   Card,
   CardContent,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   Stack,
   TextField,
@@ -127,6 +133,8 @@ export default function OrdersPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [settingPassword, setSettingPassword] = useState(false);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -359,6 +367,54 @@ export default function OrdersPage() {
     }
   };
 
+  const handleCancelOrder = async () => {
+    if (!cancelOrderId) return;
+
+    setError("");
+    setSuccess("");
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      setCancelOrderId(null);
+      setError("Du må logge inn på nytt.");
+      return;
+    }
+
+    setCancellingId(cancelOrderId);
+    try {
+      const response = await fetch("/api/place-card-orders", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ orderId: cancelOrderId, action: "cancel" }),
+      });
+      const result = await readJsonResponse<{ error?: string }>(
+        response,
+        "Ordren kunne ikke kanselleres.",
+      );
+      if (!response.ok) {
+        setError(result.error ?? "Ordren kunne ikke kanselleres.");
+        return;
+      }
+
+      setOrders((current) =>
+        current.map((order) =>
+          order.id === cancelOrderId
+            ? { ...order, status: "cancelled" }
+            : order,
+        ),
+      );
+      setSuccess(`Forespørsel #${cancelOrderId} er kansellert.`);
+      setCancelOrderId(null);
+    } catch {
+      setError("Kunne ikke kontakte serveren. Prøv igjen.");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   return (
     <PageShell
       eyebrow="DIN KONTO"
@@ -528,6 +584,10 @@ export default function OrdersPage() {
             orders.map((order) => {
               const editable = order.status === "new";
               const delivered = order.status === "completed";
+              const cancelled = order.status === "cancelled";
+              const cancellable = ["new", "estimated", "confirmed"].includes(
+                order.status,
+              );
               const currentStep = getFlowStep(order.status);
               const draftNames = (drafts[order.id] ?? "")
                 .split("\n")
@@ -831,6 +891,11 @@ export default function OrdersPage() {
                                 </Typography>
                               )}
                             </>
+                          ) : cancelled ? (
+                            <Typography color="text.secondary" mt={0.5}>
+                              Forespørselen er kansellert og blir ikke behandlet
+                              videre.
+                            </Typography>
                           ) : (
                             <Typography color="text.secondary" mt={0.5}>
                               Vi går gjennom forespørselen og kommer tilbake med
@@ -838,6 +903,25 @@ export default function OrdersPage() {
                             </Typography>
                           )}
                         </Box>
+
+                        {cancellable && (
+                          <>
+                            <Divider />
+                            <Button
+                              color="error"
+                              variant="outlined"
+                              startIcon={<CancelOutlinedIcon />}
+                              onClick={() => setCancelOrderId(order.id)}
+                              disabled={cancellingId === order.id}
+                              sx={{
+                                alignSelf: { xs: "stretch", sm: "flex-start" },
+                                textTransform: "none",
+                              }}
+                            >
+                              Kanseller forespørsel
+                            </Button>
+                          </>
+                        )}
                       </Stack>
                     </Stack>
                   </CardContent>
@@ -847,6 +931,39 @@ export default function OrdersPage() {
           )}
         </Stack>
       )}
+      <Dialog
+        open={Boolean(cancelOrderId)}
+        onClose={() => {
+          if (!cancellingId) setCancelOrderId(null);
+        }}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Kanseller forespørselen?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Forespørselen avsluttes og blir ikke behandlet videre. Dette kan
+            ikke angres.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button
+            color="inherit"
+            onClick={() => setCancelOrderId(null)}
+            disabled={Boolean(cancellingId)}
+          >
+            Behold
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={handleCancelOrder}
+            disabled={Boolean(cancellingId)}
+          >
+            {cancellingId ? "Kansellerer..." : "Ja, kanseller"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageShell>
   );
 }

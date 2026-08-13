@@ -282,6 +282,26 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ success: true, status: "approved" });
   }
 
+  if (body.action === "cancel") {
+    const result = await prisma.placeCardOrder.updateMany({
+      where: {
+        id: orderId,
+        userId: authResult.user.id,
+        status: { in: ["new", "estimated", "confirmed"] },
+      },
+      data: { status: "cancelled", updatedAt: new Date() },
+    });
+
+    if (result.count === 0) {
+      return NextResponse.json(
+        { error: "Ordren finnes ikke eller kan ikke lenger kanselleres." },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({ success: true, status: "cancelled" });
+  }
+
   const names = normalizeNames(body.names);
   if (!names) {
     return NextResponse.json(
