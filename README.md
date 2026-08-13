@@ -15,6 +15,22 @@ npm run dev
 
 Åpne [http://localhost:3500](http://localhost:3500).
 
+### Lokal visuell testing uten database
+
+For å vise bordkortskjemaet med testprodukter uten databasepassord, legg dette
+i `.env.local` og start utviklingsserveren på nytt:
+
+```env
+USE_MOCK_DATA="true"
+NEXT_PUBLIC_USE_MOCK_DATA="true"
+```
+
+Mockdata er deaktivert i produksjon selv om variabelen skulle bli satt der.
+`USE_MOCK_DATA` viser testprodukter i bordkortskjemaet, mens
+`NEXT_PUBLIC_USE_MOCK_DATA` viser testforespørsler på `/bestillinger` uten
+innlogging. Skjema og responsivt design kan testes lokalt, men lagring og
+innsending krever fortsatt en konfigurert database og Supabase.
+
 ## E-postvarsler
 
 Forespørsler bruker [Resend](https://resend.com) til å varsle eier og sende
@@ -31,8 +47,8 @@ forespørsel lagres selv om e-posttjenesten midlertidig er utilgjengelig.
 
 ## Passordfri innlogging
 
-Kunder kan sende forespørsel uten konto. Supabase sender deretter en magisk
-engangslenke som verifiserer e-postadressen og åpner `/bestillinger`. Legg inn
+Kunder kan sende forespørsel uten konto. Supabase sender deretter en personlig
+innloggingslenke som bekrefter e-postadressen og åpner `/bestillinger`. Legg inn
 produksjonsadressen under **Supabase → Authentication → URL Configuration →
 Redirect URLs**, for eksempel:
 
@@ -54,6 +70,24 @@ Sender name: Vatsii Designe
 ```
 
 SMTP-passordet er den samme hemmelige Resend API-nøkkelen som brukes i Vercel.
+Avsenderdomenet må være verifisert i Resend med SPF og DKIM. Bruk samme
+Vatsii-avsender konsekvent for å gjøre e-postene gjenkjennelige.
+
+### E-postmaler i Supabase
+
+Hosted Supabase leser ikke malene fra repoet automatisk. Åpne **Supabase →
+Authentication → Email Templates** og lim inn følgende:
+
+| Supabase-mal   | Emne                                          | HTML-fil                               |
+| -------------- | --------------------------------------------- | -------------------------------------- |
+| Magic Link     | `Din innlogging til Vatsii Designe`           | `supabase/templates/magic-link.html`   |
+| Confirm signup | `Bekreft e-postadressen din · Vatsii Designe` | `supabase/templates/confirmation.html` |
+
+Begge malene bruker Supabase-variabelen `{{ .ConfirmationURL }}`. De omtaler
+ikke lenken som «magisk», forklarer hvorfor e-posten ble sendt og har bare én
+handling. For best mulig tillit kan Supabase Auth også få et eget domene som
+`auth.vatsii-designe.no`; uten dette vil måladressen fortsatt inneholde
+Supabase-prosjektets domene.
 
 ## Database og migreringer
 

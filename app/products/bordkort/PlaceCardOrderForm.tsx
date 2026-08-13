@@ -120,21 +120,22 @@ export default function PlaceCardOrderForm({
       }
 
       if (result.requiresEmailVerification) {
-        const { error: magicLinkError } = await supabase.auth.signInWithOtp({
-          email: customerEmail.trim(),
-          options: {
-            emailRedirectTo: `${window.location.origin}/bestillinger`,
-            data: { full_name: customerName.trim() },
-            shouldCreateUser: true,
-          },
-        });
-        if (magicLinkError) {
+        const { error: verificationLinkError } =
+          await supabase.auth.signInWithOtp({
+            email: customerEmail.trim(),
+            options: {
+              emailRedirectTo: `${window.location.origin}/bestillinger`,
+              data: { full_name: customerName.trim() },
+              shouldCreateUser: true,
+            },
+          });
+        if (verificationLinkError) {
           setError(
             "Forespørselen er mottatt, men innloggingslenken kunne ikke sendes. Prøv «Mine forespørsler» senere.",
           );
         } else {
           setSuccess(
-            "Du får en e-post fra Supabase Auth <noreply@mail.app.supabase.io> som du må bekrefte.",
+            "Forespørselen er mottatt. Vi har sendt en e-post fra Vatsii Designe slik at du kan bekrefte adressen og se forespørselen din.",
           );
         }
       } else {
@@ -150,9 +151,14 @@ export default function PlaceCardOrderForm({
 
   return (
     <Box component="form" onSubmit={handleSubmit}>
-      <Stack spacing={5}>
+      <Stack spacing={{ xs: 3.5, sm: 5 }}>
         <Box>
-          <Typography variant="h5" fontWeight={700} mb={2}>
+          <Typography
+            variant="h5"
+            fontWeight={700}
+            fontSize={{ xs: "1.25rem", sm: "1.5rem" }}
+            mb={2}
+          >
             1. Velg bordkort
           </Typography>
           <FormControl fullWidth>
@@ -176,7 +182,7 @@ export default function PlaceCardOrderForm({
                         <Box
                           sx={{
                             position: "relative",
-                            height: 210,
+                            height: { xs: 170, sm: 210 },
                             bgcolor: "#16150F",
                           }}
                         >
@@ -189,7 +195,7 @@ export default function PlaceCardOrderForm({
                           />
                         </Box>
                       )}
-                      <CardContent>
+                      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                         <FormControlLabel
                           value={variant.id}
                           control={<Radio />}
@@ -213,45 +219,12 @@ export default function PlaceCardOrderForm({
         </Box>
 
         <Box sx={{ maxWidth: 720 }}>
-          <Typography variant="h5" fontWeight={700} mb={2}>
-            3. Kontaktinformasjon
-          </Typography>
-          <Stack spacing={2}>
-            <TextField
-              label="Navn"
-              value={customerName}
-              onChange={(event) => setCustomerName(event.target.value)}
-              required
-              slotProps={{ htmlInput: { maxLength: 120 } }}
-            />
-            <TextField
-              label="E-postadresse"
-              type="email"
-              value={customerEmail}
-              onChange={(event) => setCustomerEmail(event.target.value)}
-              required
-              disabled={Boolean(user)}
-              helperText={
-                user
-                  ? "Forespørselen knyttes til kontoen du er logget inn med."
-                  : "Du får en sikker engangslenke for å se og oppdatere forespørselen."
-              }
-              slotProps={{ htmlInput: { maxLength: 254 } }}
-            />
-            <TextField
-              label="Nettside"
-              value={website}
-              onChange={(event) => setWebsite(event.target.value)}
-              autoComplete="off"
-              tabIndex={-1}
-              sx={{ display: "none" }}
-              aria-hidden
-            />
-          </Stack>
-        </Box>
-
-        <Box sx={{ maxWidth: 720 }}>
-          <Typography variant="h5" fontWeight={700} mb={2}>
+          <Typography
+            variant="h5"
+            fontWeight={700}
+            fontSize={{ xs: "1.25rem", sm: "1.5rem" }}
+            mb={2}
+          >
             2. Legg inn navn
           </Typography>
           <TextField
@@ -311,7 +284,7 @@ export default function PlaceCardOrderForm({
                         component="span"
                         sx={{
                           maxWidth: "100%",
-                          fontSize: { xs: "2.8rem", sm: "3.15rem" },
+                          fontSize: { xs: "2.35rem", sm: "3.15rem" },
                           fontWeight: 400,
                           lineHeight: 1.05,
                           textAlign: "center",
@@ -346,6 +319,49 @@ export default function PlaceCardOrderForm({
           )}
         </Box>
 
+        <Box sx={{ maxWidth: 720 }}>
+          <Typography
+            variant="h5"
+            fontWeight={700}
+            fontSize={{ xs: "1.25rem", sm: "1.5rem" }}
+            mb={2}
+          >
+            3. Kontaktinformasjon
+          </Typography>
+          <Stack spacing={2}>
+            <TextField
+              label="Navn"
+              value={customerName}
+              onChange={(event) => setCustomerName(event.target.value)}
+              required
+              slotProps={{ htmlInput: { maxLength: 120 } }}
+            />
+            <TextField
+              label="E-postadresse"
+              type="email"
+              value={customerEmail}
+              onChange={(event) => setCustomerEmail(event.target.value)}
+              required
+              disabled={Boolean(user)}
+              helperText={
+                user
+                  ? "Forespørselen knyttes til kontoen du er logget inn med."
+                  : "Vi sender en personlig innloggingslenke fra Vatsii Designe, slik at du kan se og oppdatere forespørselen."
+              }
+              slotProps={{ htmlInput: { maxLength: 254 } }}
+            />
+            <TextField
+              label="Nettside"
+              value={website}
+              onChange={(event) => setWebsite(event.target.value)}
+              autoComplete="off"
+              tabIndex={-1}
+              sx={{ display: "none" }}
+              aria-hidden
+            />
+          </Stack>
+        </Box>
+
         <Stack spacing={2} sx={{ maxWidth: 720 }}>
           {error && <Alert severity="error">{error}</Alert>}
           {success && (
@@ -367,7 +383,12 @@ export default function PlaceCardOrderForm({
             variant="contained"
             size="large"
             disabled={submitting || names.length === 0}
-            sx={{ alignSelf: "flex-start", textTransform: "none", px: 4 }}
+            sx={{
+              alignSelf: { xs: "stretch", sm: "flex-start" },
+              textTransform: "none",
+              px: { xs: 2, sm: 4 },
+              whiteSpace: "normal",
+            }}
           >
             {submitting
               ? "Sender forespørsel..."

@@ -1,12 +1,41 @@
 import { Alert } from "@mui/material";
 import PageShell from "../../Components/PageShell";
-import { prisma } from "../../lib/prisma";
-import { signImageUrl } from "../../lib/storage";
 import PlaceCardOrderForm from "./PlaceCardOrderForm";
 
 export const revalidate = 86400;
 
-export default async function PlaceCardsPage() {
+const mockVariants = [
+  {
+    id: "11111111-1111-4111-8111-111111111111",
+    name: "Valnøtt",
+    description: "Et varmt og klassisk bordkort i mørkt tre.",
+    imageUrl: "/CarouselPic/IMG_5203.JPEG",
+  },
+  {
+    id: "22222222-2222-4222-8222-222222222222",
+    name: "Lys eik",
+    description: "Et lyst og naturlig uttrykk til borddekkingen.",
+    imageUrl: "/CarouselPic/IMG_5829.JPEG",
+  },
+  {
+    id: "33333333-3333-4333-8333-333333333333",
+    name: "Skoggrønn",
+    description: "Et dempet grønt bordkort med et moderne preg.",
+    imageUrl: "/CarouselPic/IMG_5683.JPEG",
+  },
+];
+
+async function getVariants() {
+  const useMockData =
+    process.env.NODE_ENV !== "production" &&
+    process.env.USE_MOCK_DATA === "true";
+
+  if (useMockData) return mockVariants;
+
+  const [{ prisma }, { signImageUrl }] = await Promise.all([
+    import("../../lib/prisma"),
+    import("../../lib/storage"),
+  ]);
   const products = await prisma.product.findMany({
     where: {
       active: true,
@@ -15,7 +44,7 @@ export default async function PlaceCardsPage() {
     orderBy: { name: "asc" },
   });
 
-  const variants = await Promise.all(
+  return Promise.all(
     products.map(async (product) => ({
       id: product.id.toString(),
       name: product.name,
@@ -25,6 +54,10 @@ export default async function PlaceCardsPage() {
         : "",
     })),
   );
+}
+
+export default async function PlaceCardsPage() {
+  const variants = await getVariants();
 
   return (
     <PageShell

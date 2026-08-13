@@ -1,6 +1,7 @@
 "use client";
 
 import EmailIcon from "@mui/icons-material/Email";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import SaveIcon from "@mui/icons-material/Save";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
@@ -32,6 +33,46 @@ interface PlaceCardOrder {
   createdAt: string;
   productName: string;
 }
+
+const useMockData =
+  process.env.NODE_ENV !== "production" &&
+  process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
+
+const mockOrders: PlaceCardOrder[] = [
+  {
+    id: "1042",
+    names: ["Ingrid", "Marius", "Sofie", "Henrik"],
+    quantity: 4,
+    status: "estimated",
+    estimatedPrice: 480,
+    deliveryEstimate: "7-10 virkedager",
+    confirmedAt: null,
+    createdAt: "2026-08-12T10:30:00.000Z",
+    productName: "Bordkort i valnøtt",
+  },
+  {
+    id: "1038",
+    names: ["Amalie", "Oskar", "Thea"],
+    quantity: 3,
+    status: "new",
+    estimatedPrice: null,
+    deliveryEstimate: null,
+    confirmedAt: null,
+    createdAt: "2026-08-11T14:15:00.000Z",
+    productName: "Bordkort i lys eik",
+  },
+  {
+    id: "1021",
+    names: ["Ida", "Jonas", "Emilie", "Noah", "Selma"],
+    quantity: 5,
+    status: "completed",
+    estimatedPrice: 600,
+    deliveryEstimate: "Levert 2. august",
+    confirmedAt: "2026-07-25T09:00:00.000Z",
+    createdAt: "2026-07-20T08:45:00.000Z",
+    productName: "Bordkort i valnøtt",
+  },
+];
 
 const statusLabels: Record<string, string> = {
   new: "Forespørsel",
@@ -65,9 +106,17 @@ async function readJsonResponse<T>(response: Response, fallback: string) {
 
 export default function OrdersPage() {
   const [user, setUser] = useState<User | null>(null);
-  const [orders, setOrders] = useState<PlaceCardOrder[]>([]);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<PlaceCardOrder[]>(
+    useMockData ? mockOrders : [],
+  );
+  const [drafts, setDrafts] = useState<Record<string, string>>(
+    useMockData
+      ? Object.fromEntries(
+          mockOrders.map((order) => [order.id, order.names.join("\n")]),
+        )
+      : {},
+  );
+  const [loading, setLoading] = useState(!useMockData);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [loginEmail, setLoginEmail] = useState("");
   const [sendingLink, setSendingLink] = useState(false);
@@ -105,6 +154,8 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
+    if (useMockData) return;
+
     supabase.auth.getSession().then(async ({ data }) => {
       setUser(data.session?.user ?? null);
       if (data.session?.access_token) {
@@ -151,7 +202,7 @@ export default function OrdersPage() {
       return;
     }
     setSuccess(
-      `Vi har sendt en sikker innloggingslenke til ${loginEmail.trim()}.`,
+      `E-post sendt til ${loginEmail.trim()} fra Vatsii Designe. Åpne den for å gå til forespørslene dine.`,
     );
   };
 
@@ -294,7 +345,7 @@ export default function OrdersPage() {
         <Box display="flex" justifyContent="center" py={8}>
           <CircularProgress aria-label="Henter forespørsler" />
         </Box>
-      ) : !user ? (
+      ) : !user && !useMockData ? (
         <Card
           sx={{
             maxWidth: 560,
@@ -309,8 +360,9 @@ export default function OrdersPage() {
                 Se forespørslene dine
               </Typography>
               <Typography color="text.secondary">
-                Oppgi e-postadressen du brukte. Du får en sikker engangslenke og
-                trenger ikke passord.
+                Oppgi e-postadressen du brukte. Vi sender en personlig
+                innloggingslenke fra Vatsii Designe. Lenken kan bare brukes én
+                gang.
               </Typography>
               <TextField
                 label="E-postadresse"
@@ -343,7 +395,8 @@ export default function OrdersPage() {
         <Stack spacing={3}>
           {error && <Alert severity="error">{error}</Alert>}
           {success && <Alert severity="success">{success}</Alert>}
-          {user.app_metadata.provider === "email" &&
+          {user &&
+            user.app_metadata.provider === "email" &&
             !user.user_metadata.password_configured && (
               <Box
                 sx={{
@@ -409,6 +462,7 @@ export default function OrdersPage() {
           ) : (
             orders.map((order) => {
               const editable = order.status === "new";
+              const delivered = order.status === "completed";
               const currentStep = getFlowStep(order.status);
               const draftNames = (drafts[order.id] ?? "")
                 .split("\n")
@@ -418,32 +472,77 @@ export default function OrdersPage() {
               return (
                 <Card
                   key={order.id}
-                  sx={{ border: "1px solid", borderColor: "divider" }}
+                  component={delivered ? "details" : "div"}
+                  sx={{
+                    border: "1px solid",
+                    borderColor: "divider",
+                    "&[open] .delivered-expand-icon": {
+                      transform: "rotate(180deg)",
+                    },
+                  }}
                 >
-                  <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
-                    <Stack spacing={4}>
-                      <Stack
-                        direction={{ xs: "column", sm: "row" }}
-                        justifyContent="space-between"
-                        alignItems={{ xs: "flex-start", sm: "center" }}
-                        gap={1}
-                      >
-                        <Box>
-                          <Typography variant="h6" fontWeight={700}>
-                            {order.productName}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Forespørsel #{order.id} ·{" "}
-                            {new Intl.DateTimeFormat("nb-NO", {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            }).format(new Date(order.createdAt))}
-                          </Typography>
-                        </Box>
-                        <Typography color="primary.light" fontWeight={700}>
-                          {statusLabels[order.status] ?? order.status}
+                  {delivered && (
+                    <Box
+                      component="summary"
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 2,
+                        p: { xs: 2, sm: 2.5 },
+                        cursor: "pointer",
+                        listStyle: "none",
+                        "&::-webkit-details-marker": { display: "none" },
+                      }}
+                    >
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography fontWeight={700} noWrap>
+                          {order.productName}
                         </Typography>
-                      </Stack>
+                        <Typography variant="body2" color="text.secondary">
+                          Forespørsel #{order.id} · Levert
+                        </Typography>
+                      </Box>
+                      <ExpandMoreIcon
+                        className="delivered-expand-icon"
+                        color="primary"
+                        sx={{
+                          flexShrink: 0,
+                          transition: "transform 160ms ease",
+                        }}
+                      />
+                    </Box>
+                  )}
+                  <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 4 } }}>
+                    <Stack spacing={{ xs: 3, sm: 4 }}>
+                      {!delivered && (
+                        <Stack
+                          direction={{ xs: "column", sm: "row" }}
+                          justifyContent="space-between"
+                          alignItems={{ xs: "flex-start", sm: "center" }}
+                          gap={1}
+                        >
+                          <Box>
+                            <Typography variant="h6" fontWeight={700}>
+                              {order.productName}
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ overflowWrap: "anywhere" }}
+                            >
+                              Forespørsel #{order.id} ·{" "}
+                              {new Intl.DateTimeFormat("nb-NO", {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              }).format(new Date(order.createdAt))}
+                            </Typography>
+                          </Box>
+                          <Typography color="primary.light" fontWeight={700}>
+                            {statusLabels[order.status] ?? order.status}
+                          </Typography>
+                        </Stack>
+                      )}
 
                       <Box
                         sx={{
@@ -457,7 +556,7 @@ export default function OrdersPage() {
                             <Box
                               sx={{
                                 height: 3,
-                                mb: 1,
+                                mb: { xs: 0, sm: 1 },
                                 bgcolor:
                                   index <= currentStep
                                     ? "primary.light"
@@ -472,17 +571,33 @@ export default function OrdersPage() {
                                   : "text.secondary"
                               }
                               fontWeight={index === currentStep ? 700 : 400}
+                              sx={{ display: { xs: "none", sm: "block" } }}
                             >
                               {step}
                             </Typography>
                           </Box>
                         ))}
                       </Box>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: { xs: "block", sm: "none" }, mt: -2 }}
+                      >
+                        Steg {currentStep + 1} av {flowSteps.length} ·{" "}
+                        <Box
+                          component="span"
+                          color="text.primary"
+                          fontWeight={700}
+                        >
+                          {flowSteps[currentStep]}
+                        </Box>
+                      </Typography>
 
                       <Stack spacing={2.5}>
                         <Box
                           sx={{
                             width: { xs: "100%", md: "76%" },
+                            boxSizing: "border-box",
                             p: { xs: 2, md: 2.5 },
                             border: "1px solid",
                             borderColor: "primary.dark",
@@ -496,45 +611,74 @@ export default function OrdersPage() {
                           <Typography fontWeight={700} mb={2}>
                             {order.quantity} bordkort · {order.productName}
                           </Typography>
-                          <TextField
-                            label="Ett navn per linje"
-                            value={drafts[order.id] ?? ""}
-                            onChange={(event) =>
-                              setDrafts((current) => ({
-                                ...current,
-                                [order.id]: event.target.value,
-                              }))
-                            }
-                            multiline
-                            minRows={5}
-                            fullWidth
-                            disabled={!editable}
-                            helperText={
-                              editable
-                                ? `${draftNames.length} bordkort · kan endres frem til tilbudet sendes`
-                                : `${order.quantity} bordkort · navnelisten er låst`
-                            }
-                          />
-                          {editable && (
-                            <Button
-                              variant="outlined"
-                              startIcon={<SaveIcon />}
-                              disabled={
-                                savingId === order.id || draftNames.length === 0
-                              }
-                              onClick={() => handleSave(order.id)}
-                              sx={{ mt: 2, textTransform: "none" }}
+                          {editable ? (
+                            <>
+                              <TextField
+                                label="Ett navn per linje"
+                                value={drafts[order.id] ?? ""}
+                                onChange={(event) =>
+                                  setDrafts((current) => ({
+                                    ...current,
+                                    [order.id]: event.target.value,
+                                  }))
+                                }
+                                multiline
+                                minRows={5}
+                                fullWidth
+                                helperText={`${draftNames.length} bordkort · kan endres frem til tilbudet sendes`}
+                              />
+                              <Button
+                                variant="outlined"
+                                startIcon={<SaveIcon />}
+                                disabled={
+                                  savingId === order.id ||
+                                  draftNames.length === 0
+                                }
+                                onClick={() => handleSave(order.id)}
+                                sx={{
+                                  mt: 2,
+                                  width: { xs: "100%", sm: "auto" },
+                                  textTransform: "none",
+                                }}
+                              >
+                                {savingId === order.id
+                                  ? "Lagrer..."
+                                  : "Lagre navneliste"}
+                              </Button>
+                            </>
+                          ) : (
+                            <Box
+                              component="details"
+                              sx={{
+                                border: "1px solid",
+                                borderColor: "divider",
+                                borderRadius: 1,
+                                px: 2,
+                                py: 1.5,
+                                "& summary": {
+                                  cursor: "pointer",
+                                  fontWeight: 700,
+                                },
+                              }}
                             >
-                              {savingId === order.id
-                                ? "Lagrer..."
-                                : "Lagre navneliste"}
-                            </Button>
+                              <Box component="summary">
+                                Vis navneliste ({order.quantity})
+                              </Box>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mt: 1.5, whiteSpace: "pre-line" }}
+                              >
+                                {order.names.join("\n")}
+                              </Typography>
+                            </Box>
                           )}
                         </Box>
 
                         <Box
                           sx={{
                             width: { xs: "100%", md: "70%" },
+                            boxSizing: "border-box",
                             alignSelf: "flex-end",
                             p: { xs: 2, md: 2.5 },
                             border: "1px solid",
@@ -604,7 +748,10 @@ export default function OrdersPage() {
                                     startIcon={<TaskAltIcon />}
                                     onClick={() => handleApproveOffer(order.id)}
                                     disabled={approvingId === order.id}
-                                    sx={{ textTransform: "none" }}
+                                    sx={{
+                                      width: { xs: "100%", sm: "auto" },
+                                      textTransform: "none",
+                                    }}
                                   >
                                     {approvingId === order.id
                                       ? "Godkjenner..."

@@ -1,5 +1,7 @@
 "use client";
 
+import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
+import UnarchiveOutlinedIcon from "@mui/icons-material/UnarchiveOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Alert,
@@ -37,6 +39,7 @@ interface AdminOrder {
   createdAt: string;
   updatedAt: string;
   customerUpdatedAt: string | null;
+  archivedAt: string | null;
   productName: string;
 }
 
@@ -79,8 +82,11 @@ function needsAttention(order: AdminOrder) {
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -93,9 +99,10 @@ export default function AdminOrdersPage() {
       }
 
       try {
-        const response = await fetch("/api/admin/place-card-orders", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await fetch(
+          `/api/admin/place-card-orders?archived=${showArchived}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
         const result = (await response.json()) as
           | AdminOrder[]
           | { error?: string };
@@ -125,7 +132,51 @@ export default function AdminOrdersPage() {
     };
 
     loadOrders();
-  }, []);
+  }, [showArchived]);
+
+  const handleArchiveChange = async (order: AdminOrder) => {
+    setError("");
+    setSuccess("");
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      setError("Du må være logget inn som administrator.");
+      return;
+    }
+
+    setUpdatingId(order.id);
+    try {
+      const response = await fetch("/api/admin/place-card-orders", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          orderId: order.id,
+          action: showArchived ? "restore" : "archive",
+        }),
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setError(result.error ?? "Bestillingen kunne ikke oppdateres.");
+        return;
+      }
+
+      setOrders((current) =>
+        current.filter((currentOrder) => currentOrder.id !== order.id),
+      );
+      setSuccess(
+        showArchived
+          ? `Bestilling #${order.id} er flyttet tilbake til aktive.`
+          : `Bestilling #${order.id} er arkivert.`,
+      );
+    } catch {
+      setError("Kunne ikke kontakte serveren. Prøv igjen.");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   return (
     <PageShell
@@ -141,9 +192,37 @@ export default function AdminOrdersPage() {
       ) : (
         <Stack spacing={3}>
           {error && <Alert severity="error">{error}</Alert>}
+          {success && <Alert severity="success">{success}</Alert>}
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant={showArchived ? "outlined" : "contained"}
+              onClick={() => {
+                setSuccess("");
+                setLoading(true);
+                setShowArchived(false);
+              }}
+              disabled={loading || !showArchived}
+            >
+              Aktive
+            </Button>
+            <Button
+              variant={showArchived ? "contained" : "outlined"}
+              startIcon={<ArchiveOutlinedIcon />}
+              onClick={() => {
+                setSuccess("");
+                setLoading(true);
+                setShowArchived(true);
+              }}
+              disabled={loading || showArchived}
+            >
+              Arkiv
+            </Button>
+          </Stack>
           {!error && orders.length === 0 && (
             <Alert severity="info">
-              Ingen forespørsler har kommet inn ennå.
+              {showArchived
+                ? "Ingen bestillinger er arkivert."
+                : "Ingen forespørsler har kommet inn ennå."}
             </Alert>
           )}
 
@@ -225,14 +304,41 @@ export default function AdminOrdersPage() {
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
-                          <Button
-                            variant={attention ? "contained" : "outlined"}
-                            startIcon={<VisibilityIcon />}
-                            href={`/admin/bestillinger/${order.id}`}
-                            sx={{ whiteSpace: "nowrap" }}
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            justifyContent="flex-end"
                           >
-                            {attention ? "Åpne og svar" : "Åpne"}
-                          </Button>
+                            <Button
+                              variant={attention ? "contained" : "outlined"}
+                              startIcon={<VisibilityIcon />}
+                              href={`/admin/bestillinger/${order.id}`}
+                              sx={{ whiteSpace: "nowrap" }}
+                            >
+                              {attention ? "Åpne og svar" : "Åpne"}
+                            </Button>
+                            {(showArchived || order.status === "completed") && (
+                              <Button
+                                variant="outlined"
+                                startIcon={
+                                  showArchived ? (
+                                    <UnarchiveOutlinedIcon />
+                                  ) : (
+                                    <ArchiveOutlinedIcon />
+                                  )
+                                }
+                                onClick={() => handleArchiveChange(order)}
+                                disabled={updatingId === order.id}
+                                sx={{ whiteSpace: "nowrap" }}
+                              >
+                                {updatingId === order.id
+                                  ? "Oppdaterer..."
+                                  : showArchived
+                                    ? "Gjenopprett"
+                                    : "Arkiver"}
+                              </Button>
+                            )}
+                          </Stack>
                         </TableCell>
                       </TableRow>
                     );

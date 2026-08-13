@@ -80,7 +80,7 @@ export default function UserPage() {
     window.location.href = "/bestillinger";
   };
 
-  const handleMagicLink = async () => {
+  const handleEmailLink = async () => {
     setError("");
     setSuccess("");
     if (!email.trim()) {
@@ -101,7 +101,9 @@ export default function UserPage() {
       setError("Innloggingslenken kunne ikke sendes. Prøv igjen.");
       return;
     }
-    setSuccess("Vi har sendt en innloggingslenke til e-postadressen din.");
+    setSuccess(
+      "E-post sendt fra Vatsii Designe. Åpne den for å logge inn på Mine forespørsler.",
+    );
   };
 
   const handleSetPassword = async () => {
@@ -157,7 +159,7 @@ export default function UserPage() {
       <PageShell
         eyebrow="VELKOMMEN"
         title="Logg inn"
-        subtitle="Bruk e-post og passord, få en engangslenke eller fortsett med Google."
+        subtitle="Bruk e-post og passord, be om en personlig innloggingslenke eller fortsett med Google."
         maxWidth="sm"
       >
         <Box display="flex" justifyContent="center">
@@ -206,7 +208,7 @@ export default function UserPage() {
               </Button>
               <Button
                 variant="text"
-                onClick={handleMagicLink}
+                onClick={handleEmailLink}
                 disabled={submitting || !email.trim()}
                 sx={{ textTransform: "none" }}
               >

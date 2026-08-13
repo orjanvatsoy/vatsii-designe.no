@@ -9,7 +9,10 @@ export async function GET(request: Request) {
   const adminResult = await requireAdmin(request);
   if (adminResult instanceof NextResponse) return adminResult;
 
+  const archived = new URL(request.url).searchParams.get("archived") === "true";
+
   const orders = await prisma.placeCardOrder.findMany({
+    where: { archivedAt: archived ? { not: null } : null },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -24,6 +27,7 @@ export async function GET(request: Request) {
       createdAt: true,
       updatedAt: true,
       customerUpdatedAt: true,
+      archivedAt: true,
       product: { select: { name: true } },
     },
   });
@@ -42,6 +46,7 @@ export async function GET(request: Request) {
       createdAt: order.createdAt.toISOString(),
       updatedAt: order.updatedAt.toISOString(),
       customerUpdatedAt: order.customerUpdatedAt?.toISOString() ?? null,
+      archivedAt: order.archivedAt?.toISOString() ?? null,
       productName: order.product.name,
     })),
   );
@@ -81,6 +86,42 @@ export async function PATCH(request: Request) {
       { error: "Ugyldig forespørsel." },
       { status: 400 },
     );
+  }
+
+  if (body.action === "archive") {
+    const archivedAt = new Date();
+    const result = await prisma.placeCardOrder.updateMany({
+      where: { id: orderId, status: "completed", archivedAt: null },
+      data: { archivedAt },
+    });
+
+    if (result.count === 0) {
+      return NextResponse.json(
+        { error: "Bare leverte bestillinger kan arkiveres." },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      archivedAt: archivedAt.toISOString(),
+    });
+  }
+
+  if (body.action === "restore") {
+    const result = await prisma.placeCardOrder.updateMany({
+      where: { id: orderId, archivedAt: { not: null } },
+      data: { archivedAt: null },
+    });
+
+    if (result.count === 0) {
+      return NextResponse.json(
+        { error: "Bestillingen er ikke arkivert." },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({ success: true, archivedAt: null });
   }
 
   if (body.action === "mark-delivered") {
