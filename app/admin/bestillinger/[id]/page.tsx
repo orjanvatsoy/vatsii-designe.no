@@ -2,6 +2,7 @@
 
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import DownloadIcon from "@mui/icons-material/Download";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import {
   Alert,
@@ -48,6 +49,28 @@ const statusLabels: Record<string, string> = {
   completed: "Levert",
   cancelled: "Kansellert",
 };
+
+function formatNames(names: string[], maxLength = 28) {
+  const lines: string[] = [];
+  let currentLine = "";
+
+  for (const name of names.map((value) => value.trim().replaceAll(" ", ""))) {
+    const nextLine = currentLine ? `${currentLine} ${name}` : name;
+    if (nextLine.length <= maxLength) {
+      currentLine = nextLine;
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = name;
+    }
+  }
+
+  if (currentLine) lines.push(currentLine);
+  return lines;
+}
+
+function escapeCsvValue(value: string) {
+  return `"${value.replaceAll('"', '""')}"`;
+}
 
 export default function AdminOrderDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -196,6 +219,28 @@ export default function AdminOrderDetailsPage() {
     }
   };
 
+  const handleDownloadCsv = () => {
+    if (!order) return;
+
+    const shouldFormatNames =
+      order.product.name.trim().toLocaleLowerCase("nb-NO") === "navn";
+    const rows = shouldFormatNames ? formatNames(order.names) : order.names;
+    const csv = `\uFEFF${rows.map(escapeCsvValue).join("\r\n")}\r\n`;
+    const blobUrl = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8" }),
+    );
+    const link = document.createElement("a");
+    const productName = order.product.name
+      .trim()
+      .toLocaleLowerCase("nb-NO")
+      .replaceAll(/[^a-z0-9æøå]+/g, "-")
+      .replaceAll(/^-|-$/g, "");
+    link.href = blobUrl;
+    link.download = `bordkort-${order.id}-${productName || "navn"}.csv`;
+    link.click();
+    URL.revokeObjectURL(blobUrl);
+  };
+
   return (
     <PageShell
       eyebrow="ADMIN · FORESPØRSEL"
@@ -304,9 +349,25 @@ export default function AdminOrderDetailsPage() {
             <Divider />
 
             <Box>
-              <Typography variant="h5" fontWeight={700} mb={0.5}>
-                Navneliste
-              </Typography>
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                alignItems={{ xs: "flex-start", sm: "center" }}
+                justifyContent="space-between"
+                gap={1.5}
+                mb={0.5}
+              >
+                <Typography variant="h5" fontWeight={700}>
+                  Navneliste
+                </Typography>
+                <Button
+                  variant="outlined"
+                  startIcon={<DownloadIcon />}
+                  onClick={handleDownloadCsv}
+                  sx={{ textTransform: "none" }}
+                >
+                  Last ned CSV
+                </Button>
+              </Stack>
               <Typography color="text.secondary" mb={2.5}>
                 {order.quantity} navn inngår i forespørselen.
               </Typography>
