@@ -42,6 +42,7 @@ const inputModeLabels: Record<string, string> = {
   name_list: "Navneliste",
   single_name: "Ett navn",
   comment: "Kommentar",
+  custom_order: "Spesialbestilling",
 };
 
 export default function AdminProductPage() {
@@ -323,6 +324,9 @@ export default function AdminProductPage() {
                     <ToggleButton value="name_list">Navneliste</ToggleButton>
                     <ToggleButton value="single_name">Ett navn</ToggleButton>
                     <ToggleButton value="comment">Kommentar</ToggleButton>
+                    <ToggleButton value="custom_order">
+                      Spesialbestilling
+                    </ToggleButton>
                   </ToggleButtonGroup>
                   <Typography variant="caption" color="text.secondary">
                     Bestemmer hva kunden må fylle inn når forespørselen sendes.
@@ -514,6 +518,9 @@ export default function AdminProductPage() {
               <ToggleButton value="name_list">Navneliste</ToggleButton>
               <ToggleButton value="single_name">Ett navn</ToggleButton>
               <ToggleButton value="comment">Kommentar</ToggleButton>
+              <ToggleButton value="custom_order">
+                Spesialbestilling
+              </ToggleButton>
             </ToggleButtonGroup>
             <FormControlLabel
               control={

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sendNewInquiryEmail } from "../../lib/email";
 import { prisma } from "../../lib/prisma";
 import { requireUser } from "../../lib/requireUser";
+import { signImageUrl } from "../../lib/storage";
 
 const MAX_NAMES = 200;
 const MAX_NAME_LENGTH = 100;
@@ -71,6 +72,9 @@ export async function GET(request: Request) {
         inputMode: true,
         names: true,
         quantity: true,
+        customDimensions: true,
+        customBudget: true,
+        desiredDeliveryDate: true,
         status: true,
         estimatedPrice: true,
         deliveryEstimate: true,
@@ -79,16 +83,21 @@ export async function GET(request: Request) {
         createdAt: true,
         updatedAt: true,
         customerUpdatedAt: true,
+        attachments: true,
         product: { select: { name: true } },
       },
     });
 
     return NextResponse.json(
-      orders.map((order) => ({
+      await Promise.all(orders.map(async (order) => ({
         id: order.id.toString(),
         inputMode: order.inputMode,
         names: order.names.split("\n").filter(Boolean),
         quantity: order.quantity,
+        customDimensions: order.customDimensions,
+        customBudget: order.customBudget,
+        desiredDeliveryDate:
+          order.desiredDeliveryDate?.toISOString().slice(0, 10) ?? null,
         status: order.status,
         estimatedPrice: order.estimatedPrice,
         deliveryEstimate: order.deliveryEstimate,
@@ -97,8 +106,21 @@ export async function GET(request: Request) {
         createdAt: order.createdAt.toISOString(),
         updatedAt: order.updatedAt.toISOString(),
         customerUpdatedAt: order.customerUpdatedAt?.toISOString() ?? null,
+        attachments: await Promise.all(
+          order.attachments.map(async (attachment) => ({
+            id: attachment.id,
+            fileName: attachment.fileName,
+            contentType: attachment.contentType,
+            sizeBytes: attachment.sizeBytes,
+            url: await signImageUrl(
+              attachment.objectKey,
+              "inquiry-attachments",
+              60 * 60,
+            ),
+          })),
+        ),
         productName: order.product.name,
-      })),
+      }))),
     );
   } catch (error) {
     console.error("Failed to load place card inquiries:", error);
@@ -160,7 +182,12 @@ export async function POST(request: Request) {
       { status: 404 },
     );
   }
-
+  if (product.inquiryInputMode === "custom_order") {
+    return NextResponse.json(
+      { error: "Spesialbestillingen må sendes med det utvidede skjemaet." },
+      { status: 400 },
+    );
+  }
   const submission = normalizeSubmission(body.names, product.inquiryInputMode);
   if (!submission) {
     const error =
@@ -328,6 +355,12 @@ export async function PATCH(request: Request) {
   if (!order) {
     return NextResponse.json(
       { error: "Forespørselen finnes ikke eller kan ikke lenger endres." },
+      { status: 409 },
+    );
+  }
+  if (order.inputMode === "custom_order") {
+    return NextResponse.json(
+      { error: "Spesialbestillingen kan ikke endres etter innsending." },
       { status: 409 },
     );
   }

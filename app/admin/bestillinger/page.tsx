@@ -257,7 +257,9 @@ export default function AdminOrdersPage() {
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
                             #{order.id}
-                            {order.inputMode === "name_list"
+                            {["name_list", "custom_order"].includes(
+                              order.inputMode,
+                            )
                               ? ` · ${order.quantity} stk.`
                               : ""}
                           </Typography>

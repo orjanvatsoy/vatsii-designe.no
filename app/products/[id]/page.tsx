@@ -8,8 +8,8 @@ import {
   Chip,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import Image from "next/image";
 import PageShell from "../../Components/PageShell";
+import ProductImageViewer from "../../Components/ProductImageViewer";
 import { signImageUrl } from "../../lib/storage";
 import { prisma } from "../../lib/prisma";
 import ProductInquiryForm from "./ProductInquiryForm";
@@ -71,33 +71,7 @@ export default async function ProductPage({
           }}
         >
           {imageUrl && (
-            <Box
-              sx={{
-                position: "relative",
-                width: "100%",
-                height: { xs: 280, sm: 380, md: 440 },
-                bgcolor: "#16150F",
-              }}
-            >
-              <Image
-                src={imageUrl}
-                alt={product.name}
-                fill
-                style={{ objectFit: "cover" }}
-                priority
-                sizes="(max-width: 600px) 100vw, 720px"
-              />
-              <Box
-                aria-hidden
-                sx={{
-                  position: "absolute",
-                  inset: 0,
-                  background:
-                    "linear-gradient(to top, rgba(42,42,38,0.85) 0%, rgba(42,42,38,0) 40%)",
-                  pointerEvents: "none",
-                }}
-              />
-            </Box>
+            <ProductImageViewer src={imageUrl} alt={product.name} priority />
           )}
           <CardContent sx={{ p: { xs: 3, md: 4 } }}>
             {product.category && (

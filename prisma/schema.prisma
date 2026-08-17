@@ -46,6 +46,9 @@ model PlaceCardOrder {
   inputMode        String    @default("name_list") @map("input_mode")
   names            String    @db.Text
   quantity         Int
+  customDimensions String?   @map("custom_dimensions") @db.Text
+  customBudget      Int?      @map("custom_budget")
+  desiredDeliveryDate DateTime? @map("desired_delivery_date") @db.Date
   status           String    @default("new")
   estimatedPrice   Int?      @map("estimated_price")
   deliveryEstimate String?   @map("delivery_estimate")
@@ -56,11 +59,26 @@ model PlaceCardOrder {
   customerUpdatedAt DateTime? @map("customer_updated_at") @db.Timestamptz(6)
   archivedAt        DateTime? @map("archived_at") @db.Timestamptz(6)
   product          Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+  attachments      InquiryAttachment[]
 
   @@index([userId])
   @@index([customerEmail])
   @@index([productId])
   @@map("place_card_orders")
+}
+
+model InquiryAttachment {
+  id          String   @id @default(uuid()) @db.Uuid
+  orderId     BigInt   @map("order_id")
+  objectKey   String   @map("object_key")
+  fileName    String   @map("file_name")
+  contentType String   @map("content_type")
+  sizeBytes   Int      @map("size_bytes")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  order       PlaceCardOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("inquiry_attachments")
 }
 
 model TemperatureData {

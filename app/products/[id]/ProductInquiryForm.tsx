@@ -1,5 +1,6 @@
 "use client";
 
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { Alert, Button, Stack, TextField, Typography } from "@mui/material";
 import type { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
@@ -33,6 +34,13 @@ const fieldConfig = {
     maxLength: 2000,
     minRows: 5,
   },
+  custom_order: {
+    heading: "Spesialbestilling",
+    label: "Hva ønsker du laget?",
+    helper: "Beskriv idéen, bruksområdet og andre viktige detaljer",
+    maxLength: 3000,
+    minRows: 6,
+  },
 } as const;
 
 export default function ProductInquiryForm({
@@ -44,6 +52,11 @@ export default function ProductInquiryForm({
   const config = fieldConfig[mode as keyof typeof fieldConfig];
   const [user, setUser] = useState<User | null>(null);
   const [input, setInput] = useState("");
+  const [dimensions, setDimensions] = useState("");
+  const [quantity, setQuantity] = useState("1");
+  const [budget, setBudget] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [website, setWebsite] = useState("");
@@ -94,20 +107,44 @@ export default function ProductInquiryForm({
     const token = data.session?.access_token;
     setSubmitting(true);
     try {
-      const response = await fetch("/api/place-card-orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          productId,
-          names: values,
-          customerName,
-          customerEmail,
-          website,
-        }),
-      });
+      let response: Response;
+      if (mode === "custom_order") {
+        if (!dimensions.trim() || !quantity || Number(quantity) < 1) {
+          setError("Oppgi mål eller størrelse og et gyldig antall.");
+          return;
+        }
+        const formData = new FormData();
+        formData.append("productId", productId);
+        formData.append("description", input.trim());
+        formData.append("dimensions", dimensions.trim());
+        formData.append("quantity", quantity);
+        formData.append("budget", budget);
+        formData.append("deliveryDate", deliveryDate);
+        formData.append("customerName", customerName.trim());
+        formData.append("customerEmail", customerEmail.trim());
+        formData.append("website", website);
+        attachments.forEach((file) => formData.append("attachments", file));
+        response = await fetch("/api/custom-orders", {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        });
+      } else {
+        response = await fetch("/api/place-card-orders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            productId,
+            names: values,
+            customerName,
+            customerEmail,
+            website,
+          }),
+        });
+      }
       const result = (await response.json()) as {
         error?: string;
         orderId?: string;
@@ -142,6 +179,11 @@ export default function ProductInquiryForm({
         setSuccess(`Forespørsel #${result.orderId} er mottatt.`);
       }
       setInput("");
+      setDimensions("");
+      setQuantity("1");
+      setBudget("");
+      setDeliveryDate("");
+      setAttachments([]);
     } catch {
       setError("Kunne ikke kontakte serveren. Prøv igjen.");
     } finally {
@@ -168,6 +210,68 @@ export default function ProductInquiryForm({
         }
         slotProps={{ htmlInput: { maxLength: config.maxLength } }}
       />
+      {mode === "custom_order" && (
+        <>
+          <TextField
+            label="Mål eller ønsket størrelse"
+            value={dimensions}
+            onChange={(event) => setDimensions(event.target.value)}
+            required
+            helperText="For eksempel 120 × 40 × 3 cm"
+            slotProps={{ htmlInput: { maxLength: 300 } }}
+          />
+          <TextField
+            label="Antall"
+            type="number"
+            value={quantity}
+            onChange={(event) => setQuantity(event.target.value)}
+            required
+            slotProps={{ htmlInput: { min: 1, max: 10000, step: 1 } }}
+          />
+          <Button
+            component="label"
+            variant="outlined"
+            startIcon={<UploadFileIcon />}
+            sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
+          >
+            Legg ved bilder eller skisse
+            <input
+              hidden
+              type="file"
+              multiple
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              onChange={(event) => {
+                const files = Array.from(event.target.files ?? []).slice(0, 5);
+                setAttachments(files);
+                event.target.value = "";
+              }}
+            />
+          </Button>
+          <Typography variant="caption" color="text.secondary">
+            {attachments.length > 0
+              ? attachments.map((file) => file.name).join(", ")
+              : "Valgfritt · inntil 5 bilder eller PDF-er, maks 5 MB per fil"}
+          </Typography>
+          <TextField
+            label="Omtrentlig budsjett (kr)"
+            type="number"
+            value={budget}
+            onChange={(event) => setBudget(event.target.value)}
+            helperText="Valgfritt"
+            slotProps={{
+              htmlInput: { min: 0, max: 10000000, step: 1 },
+            }}
+          />
+          <TextField
+            label="Ønsket leveringsdato"
+            type="date"
+            value={deliveryDate}
+            onChange={(event) => setDeliveryDate(event.target.value)}
+            helperText="Valgfritt"
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
+        </>
+      )}
       <TextField
         label="Ditt navn"
         value={customerName}

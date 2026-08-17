@@ -16,7 +16,12 @@ const ALLOWED_MIME = new Set([
   "image/webp",
   "image/gif",
 ]);
-const INQUIRY_INPUT_MODES = new Set(["name_list", "single_name", "comment"]);
+const INQUIRY_INPUT_MODES = new Set([
+  "name_list",
+  "single_name",
+  "comment",
+  "custom_order",
+]);
 
 export async function GET(req: NextRequest) {
   const adminResult = await requireAdmin(req);

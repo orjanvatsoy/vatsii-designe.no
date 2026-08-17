@@ -16,9 +16,9 @@ import {
   Typography,
 } from "@mui/material";
 import type { User } from "@supabase/supabase-js";
-import Image from "next/image";
 import { Great_Vibes } from "next/font/google";
 import { useEffect, useState } from "react";
+import ProductImageViewer from "../../Components/ProductImageViewer";
 import { supabase } from "../../lib/supabaseClient";
 
 const previewFont = Great_Vibes({
@@ -191,21 +191,11 @@ export default function PlaceCardOrderForm({
                       }}
                     >
                       {variant.imageUrl && (
-                        <Box
-                          sx={{
-                            position: "relative",
-                            height: { xs: 170, sm: 210 },
-                            bgcolor: "#16150F",
-                          }}
-                        >
-                          <Image
-                            src={variant.imageUrl}
-                            alt={variant.name}
-                            fill
-                            sizes="(max-width: 600px) 100vw, 33vw"
-                            style={{ objectFit: "cover" }}
-                          />
-                        </Box>
+                        <ProductImageViewer
+                          src={variant.imageUrl}
+                          alt={variant.name}
+                          compact
+                        />
                       )}
                       <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                         <FormControlLabel

@@ -29,6 +29,16 @@ interface OrderDetails {
   inputMode: string;
   names: string[];
   quantity: number;
+  customDimensions: string | null;
+  customBudget: number | null;
+  desiredDeliveryDate: string | null;
+  attachments: Array<{
+    id: string;
+    fileName: string;
+    contentType: string;
+    sizeBytes: number;
+    url: string;
+  }>;
   status: string;
   estimatedPrice: number | null;
   deliveryEstimate: string | null;
@@ -376,7 +386,7 @@ export default function AdminOrderDetailsPage() {
 
                 <Stack direction="row" gap={1} flexWrap="wrap">
                   <Chip label={order.product.category} variant="outlined" />
-                  {order.inputMode === "name_list" && (
+                  {["name_list", "custom_order"].includes(order.inputMode) && (
                     <Chip label={`${order.quantity} stk.`} />
                   )}
                   <Chip
@@ -428,9 +438,11 @@ export default function AdminOrderDetailsPage() {
                     ? "Navneliste"
                     : order.inputMode === "single_name"
                       ? "Navn"
-                      : "Kommentar"}
+                      : order.inputMode === "custom_order"
+                        ? "Spesialbestilling"
+                        : "Kommentar"}
                 </Typography>
-                {order.inputMode !== "comment" && (
+                {["name_list", "single_name"].includes(order.inputMode) && (
                   <Button
                     variant="outlined"
                     startIcon={<DownloadIcon />}
@@ -441,7 +453,109 @@ export default function AdminOrderDetailsPage() {
                   </Button>
                 )}
               </Stack>
-              {order.inputMode === "name_list" ? (
+              {order.inputMode === "custom_order" ? (
+                <Stack spacing={3} mt={2}>
+                  <Box>
+                    <Typography variant="overline" color="text.secondary">
+                      Hva ønsker kunden laget?
+                    </Typography>
+                    <Typography sx={{ whiteSpace: "pre-wrap" }}>
+                      {order.names.join("\n")}
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                      gap: 2,
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Mål eller størrelse
+                      </Typography>
+                      <Typography fontWeight={700}>
+                        {order.customDimensions}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Antall
+                      </Typography>
+                      <Typography fontWeight={700}>{order.quantity}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Omtrentlig budsjett
+                      </Typography>
+                      <Typography fontWeight={700}>
+                        {order.customBudget === null
+                          ? "Ikke oppgitt"
+                          : `${new Intl.NumberFormat("nb-NO").format(order.customBudget)} kr`}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Ønsket leveringsdato
+                      </Typography>
+                      <Typography fontWeight={700}>
+                        {order.desiredDeliveryDate
+                          ? new Intl.DateTimeFormat("nb-NO", {
+                              dateStyle: "long",
+                              timeZone: "UTC",
+                            }).format(
+                              new Date(`${order.desiredDeliveryDate}T00:00:00Z`),
+                            )
+                          : "Ikke oppgitt"}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  {order.attachments.length > 0 && (
+                    <Box>
+                      <Typography variant="h6" fontWeight={700} mb={1.5}>
+                        Bilder og skisser
+                      </Typography>
+                      <Stack direction="row" gap={2} flexWrap="wrap">
+                        {order.attachments.map((attachment) =>
+                          attachment.contentType.startsWith("image/") ? (
+                            <Button
+                              key={attachment.id}
+                              component="a"
+                              href={attachment.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              sx={{ p: 0, display: "block" }}
+                            >
+                              <Box
+                                component="img"
+                                src={attachment.url}
+                                alt={attachment.fileName}
+                                sx={{
+                                  width: 160,
+                                  height: 120,
+                                  objectFit: "cover",
+                                  borderRadius: 1,
+                                }}
+                              />
+                            </Button>
+                          ) : (
+                            <Button
+                              key={attachment.id}
+                              variant="outlined"
+                              component="a"
+                              href={attachment.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Åpne {attachment.fileName}
+                            </Button>
+                          ),
+                        )}
+                      </Stack>
+                    </Box>
+                  )}
+                </Stack>
+              ) : order.inputMode === "name_list" ? (
                 <>
                   <Typography color="text.secondary" mb={2.5}>
                     {order.quantity} navn inngår i forespørselen.

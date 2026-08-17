@@ -32,12 +32,16 @@ export async function GET(
       inputMode: true,
       names: true,
       quantity: true,
+      customDimensions: true,
+      customBudget: true,
+      desiredDeliveryDate: true,
       status: true,
       estimatedPrice: true,
       deliveryEstimate: true,
       confirmedAt: true,
       cancellationReason: true,
       createdAt: true,
+      attachments: true,
       product: {
         select: {
           name: true,
@@ -63,12 +67,29 @@ export async function GET(
     inputMode: order.inputMode,
     names: order.names.split("\n").filter(Boolean),
     quantity: order.quantity,
+    customDimensions: order.customDimensions,
+    customBudget: order.customBudget,
+    desiredDeliveryDate:
+      order.desiredDeliveryDate?.toISOString().slice(0, 10) ?? null,
     status: order.status,
     estimatedPrice: order.estimatedPrice,
     deliveryEstimate: order.deliveryEstimate,
     confirmedAt: order.confirmedAt?.toISOString() ?? null,
     cancellationReason: order.cancellationReason,
     createdAt: order.createdAt.toISOString(),
+    attachments: await Promise.all(
+      order.attachments.map(async (attachment) => ({
+        id: attachment.id,
+        fileName: attachment.fileName,
+        contentType: attachment.contentType,
+        sizeBytes: attachment.sizeBytes,
+        url: await signImageUrl(
+          attachment.objectKey,
+          "inquiry-attachments",
+          60 * 60,
+        ),
+      })),
+    ),
     product: {
       name: order.product.name,
       category: order.product.category,

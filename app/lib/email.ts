@@ -36,7 +36,7 @@ export async function sendNewInquiryEmail(input: {
       `Ny forespørsel fra ${input.customerName ?? input.customerEmail}.`,
       `E-post: ${input.customerEmail}`,
       `Produkt: ${input.productName}`,
-      input.inputMode === "name_list"
+      input.inputMode === "name_list" || input.inputMode === "custom_order"
         ? `Antall: ${input.quantity}`
         : `Innholdstype: ${input.inputMode === "single_name" ? "Navn" : "Kommentar"}`,
       `Åpne forespørselen: ${input.adminUrl}`,

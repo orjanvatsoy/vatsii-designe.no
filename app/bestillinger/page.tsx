@@ -33,6 +33,16 @@ interface PlaceCardOrder {
   inputMode: string;
   names: string[];
   quantity: number;
+  customDimensions?: string | null;
+  customBudget?: number | null;
+  desiredDeliveryDate?: string | null;
+  attachments?: Array<{
+    id: string;
+    fileName: string;
+    contentType: string;
+    sizeBytes: number;
+    url: string;
+  }>;
   status: string;
   estimatedPrice: number | null;
   deliveryEstimate: string | null;
@@ -598,7 +608,8 @@ export default function OrdersPage() {
             </Alert>
           ) : (
             orders.map((order) => {
-              const editable = order.status === "new";
+              const editable =
+                order.status === "new" && order.inputMode !== "custom_order";
               const delivered = order.status === "completed";
               const cancelled = order.status === "cancelled";
               const cancellable = ["new", "estimated", "confirmed"].includes(
@@ -756,12 +767,104 @@ export default function OrdersPage() {
                             Du · forespørsel
                           </Typography>
                           <Typography fontWeight={700} mb={2}>
-                            {order.inputMode === "name_list"
+                            {["name_list", "custom_order"].includes(
+                              order.inputMode,
+                            )
                               ? `${order.quantity} stk. · `
                               : ""}
                             {order.productName}
                           </Typography>
-                          {editable ? (
+                          {order.inputMode === "custom_order" ? (
+                            <Stack spacing={2}>
+                              <Box>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  Hva ønsker du laget?
+                                </Typography>
+                                <Typography sx={{ whiteSpace: "pre-wrap" }}>
+                                  {order.names.join("\n")}
+                                </Typography>
+                              </Box>
+                              <Box>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  Mål eller ønsket størrelse
+                                </Typography>
+                                <Typography fontWeight={700}>
+                                  {order.customDimensions}
+                                </Typography>
+                              </Box>
+                              <Typography variant="body2">
+                                Antall: <strong>{order.quantity}</strong>
+                              </Typography>
+                              <Typography variant="body2">
+                                Budsjett: {" "}
+                                <strong>
+                                  {order.customBudget === null ||
+                                  order.customBudget === undefined
+                                    ? "Ikke oppgitt"
+                                    : `${new Intl.NumberFormat("nb-NO").format(order.customBudget)} kr`}
+                                </strong>
+                              </Typography>
+                              <Typography variant="body2">
+                                Ønsket leveringsdato: {" "}
+                                <strong>
+                                  {order.desiredDeliveryDate
+                                    ? new Intl.DateTimeFormat("nb-NO", {
+                                        dateStyle: "long",
+                                        timeZone: "UTC",
+                                      }).format(
+                                        new Date(
+                                          `${order.desiredDeliveryDate}T00:00:00Z`,
+                                        ),
+                                      )
+                                    : "Ikke oppgitt"}
+                                </strong>
+                              </Typography>
+                              {(order.attachments ?? []).length > 0 && (
+                                <Stack direction="row" gap={1.5} flexWrap="wrap">
+                                  {(order.attachments ?? []).map((attachment) =>
+                                    attachment.contentType.startsWith("image/") ? (
+                                      <Box
+                                        key={attachment.id}
+                                        component="a"
+                                        href={attachment.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      >
+                                        <Box
+                                          component="img"
+                                          src={attachment.url}
+                                          alt={attachment.fileName}
+                                          sx={{
+                                            width: 120,
+                                            height: 90,
+                                            objectFit: "cover",
+                                            borderRadius: 1,
+                                          }}
+                                        />
+                                      </Box>
+                                    ) : (
+                                      <Button
+                                        key={attachment.id}
+                                        variant="outlined"
+                                        component="a"
+                                        href={attachment.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      >
+                                        Åpne {attachment.fileName}
+                                      </Button>
+                                    ),
+                                  )}
+                                </Stack>
+                              )}
+                            </Stack>
+                          ) : editable ? (
                             <>
                               <TextField
                                 label={
