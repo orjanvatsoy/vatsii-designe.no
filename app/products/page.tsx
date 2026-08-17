@@ -44,7 +44,7 @@ export default async function ProductsPage() {
       ...placeCardProducts[0],
       id: "bordkort",
       name: "Bordkort",
-      description: `${placeCardProducts.length} varianter samlet på én side. Velg design og legg inn navnene du ønsker.`,
+      description: `${placeCardProducts.length} varianter samlet på én side. Velg design og send en forespørsel.`,
       href: "/products/bordkort",
     });
   }

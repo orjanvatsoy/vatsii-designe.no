@@ -29,6 +29,7 @@ model Product {
   name            String
   description     String
   category        String
+  inquiryInputMode String          @default("comment") @map("inquiry_input_mode")
   imageUrl        String?          @map("image_url")
   active          Boolean          @default(true)
   placeCardOrders PlaceCardOrder[]
@@ -42,6 +43,7 @@ model PlaceCardOrder {
   customerEmail    String    @map("customer_email")
   customerName     String?   @map("customer_name")
   productId        String    @map("product_id") @db.Uuid
+  inputMode        String    @default("name_list") @map("input_mode")
   names            String    @db.Text
   quantity         Int
   status           String    @default("new")

@@ -12,6 +12,7 @@ import Image from "next/image";
 import PageShell from "../../Components/PageShell";
 import { signImageUrl } from "../../lib/storage";
 import { prisma } from "../../lib/prisma";
+import ProductInquiryForm from "./ProductInquiryForm";
 
 export const revalidate = 86400;
 
@@ -24,7 +25,7 @@ export default async function ProductPage({
 
   let product = null;
   try {
-    product = await prisma.product.findUnique({ where: { id } });
+    product = await prisma.product.findFirst({ where: { id, active: true } });
   } catch {
     product = null;
   }
@@ -129,6 +130,11 @@ export default async function ProductPage({
             >
               {product.description}
             </Typography>
+            <ProductInquiryForm
+              productId={product.id}
+              productName={product.name}
+              inputMode={product.inquiryInputMode}
+            />
             <Button
               href="/products"
               variant="outlined"

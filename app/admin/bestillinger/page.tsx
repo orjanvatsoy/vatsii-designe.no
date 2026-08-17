@@ -30,6 +30,7 @@ interface AdminOrder {
   id: string;
   customerName: string | null;
   customerEmail: string;
+  inputMode: string;
   names: string[];
   quantity: number;
   status: string;
@@ -255,7 +256,10 @@ export default function AdminOrdersPage() {
                             {order.productName}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            #{order.id} · {order.quantity} stk.
+                            #{order.id}
+                            {order.inputMode === "name_list"
+                              ? ` · ${order.quantity} stk.`
+                              : ""}
                           </Typography>
                           <Chip
                             size="small"

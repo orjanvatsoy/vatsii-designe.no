@@ -9,18 +9,21 @@ const mockVariants = [
     id: "11111111-1111-4111-8111-111111111111",
     name: "Valnøtt",
     description: "Et varmt og klassisk bordkort i mørkt tre.",
+    inquiryInputMode: "name_list",
     imageUrl: "/CarouselPic/IMG_5203.JPEG",
   },
   {
     id: "22222222-2222-4222-8222-222222222222",
     name: "Lys eik",
     description: "Et lyst og naturlig uttrykk til borddekkingen.",
+    inquiryInputMode: "name_list",
     imageUrl: "/CarouselPic/IMG_5829.JPEG",
   },
   {
     id: "33333333-3333-4333-8333-333333333333",
     name: "Skoggrønn",
     description: "Et dempet grønt bordkort med et moderne preg.",
+    inquiryInputMode: "name_list",
     imageUrl: "/CarouselPic/IMG_5683.JPEG",
   },
 ];
@@ -49,6 +52,7 @@ async function getVariants() {
       id: product.id.toString(),
       name: product.name,
       description: product.description,
+      inquiryInputMode: product.inquiryInputMode,
       imageUrl: product.imageUrl
         ? await signImageUrl(product.imageUrl, "products")
         : "",
@@ -63,7 +67,7 @@ export default async function PlaceCardsPage() {
     <PageShell
       eyebrow="PERSONLIG TIL BORDET"
       title="Forespørsel på bordkort"
-      subtitle="Velg uttrykket du ønsker og legg inn ett navn per linje. Forespørselen er uforpliktende, og du får prisestimat og leveringstid før du bestemmer deg."
+      subtitle="Velg uttrykket du ønsker og fyll ut forespørselen. Du får prisestimat og leveringstid før du bestemmer deg."
       maxWidth="lg"
     >
       {variants.length > 0 ? (

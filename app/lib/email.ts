@@ -16,6 +16,7 @@ export async function sendNewInquiryEmail(input: {
   customerEmail: string;
   productName: string;
   quantity: number;
+  inputMode: string;
   adminUrl: string;
 }) {
   const resend = getResend();
@@ -30,12 +31,14 @@ export async function sendNewInquiryEmail(input: {
   const { error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: recipient,
-    subject: `Ny bordkortforespørsel #${input.inquiryId}`,
+    subject: `Ny produktforespørsel #${input.inquiryId}`,
     text: [
       `Ny forespørsel fra ${input.customerName ?? input.customerEmail}.`,
       `E-post: ${input.customerEmail}`,
       `Produkt: ${input.productName}`,
-      `Antall: ${input.quantity}`,
+      input.inputMode === "name_list"
+        ? `Antall: ${input.quantity}`
+        : `Innholdstype: ${input.inputMode === "single_name" ? "Navn" : "Kommentar"}`,
       `Åpne forespørselen: ${input.adminUrl}`,
     ].join("\n"),
   });
@@ -60,7 +63,7 @@ export async function sendInquiryEstimateEmail(input: {
   const { error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: input.customerEmail,
-    subject: `Svar på bordkortforespørsel #${input.inquiryId}`,
+    subject: `Svar på produktforespørsel #${input.inquiryId}`,
     text: [
       `Vi har vurdert forespørselen din for ${input.productName}.`,
       `Estimert pris: ${new Intl.NumberFormat("nb-NO").format(input.estimatedPrice)} kr`,
@@ -89,7 +92,7 @@ export async function sendOrderCancellationEmail(input: {
   const { error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: input.customerEmail,
-    subject: `Bordkortforespørsel #${input.inquiryId} er kansellert`,
+    subject: `Produktforespørsel #${input.inquiryId} er kansellert`,
     text: [
       `Vi har dessverre kansellert forespørselen din for ${input.productName}.`,
       `Begrunnelse: ${input.reason}`,

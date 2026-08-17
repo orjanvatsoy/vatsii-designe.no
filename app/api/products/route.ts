@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "../../lib/requireAdmin";
 import { prisma } from "../../lib/prisma";
+import { signImageUrl } from "../../lib/storage";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -15,20 +16,153 @@ const ALLOWED_MIME = new Set([
   "image/webp",
   "image/gif",
 ]);
+const INQUIRY_INPUT_MODES = new Set(["name_list", "single_name", "comment"]);
 
 export async function GET(req: NextRequest) {
   const adminResult = await requireAdmin(req);
   if (adminResult instanceof NextResponse) return adminResult;
 
   const products = await prisma.product.findMany({
-    select: { category: true },
-    distinct: ["category"],
-    orderBy: { category: "asc" },
+    orderBy: { name: "asc" },
   });
 
   return NextResponse.json({
-    categories: products.map((product) => product.category),
+    categories: [...new Set(products.map((product) => product.category))].sort(
+      (left, right) => left.localeCompare(right, "nb-NO"),
+    ),
+    products: await Promise.all(
+      products.map(async (product) => ({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        category: product.category,
+        inquiryInputMode: product.inquiryInputMode,
+        active: product.active,
+        imageUrl: product.imageUrl
+          ? await signImageUrl(product.imageUrl, "products")
+          : "",
+      })),
+    ),
   });
+}
+
+export async function PATCH(req: NextRequest) {
+  const adminResult = await requireAdmin(req);
+  if (adminResult instanceof NextResponse) return adminResult;
+
+  const formData = await req.formData();
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const category = String(formData.get("category") ?? "").trim();
+  const inquiryInputMode = String(formData.get("inquiryInputMode") ?? "");
+  const active = formData.get("active") === "true";
+  const image = formData.get("image");
+  const imageFile = image instanceof File && image.size > 0 ? image : null;
+
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      id,
+    ) ||
+    !name ||
+    !description ||
+    !category ||
+    !INQUIRY_INPUT_MODES.has(inquiryInputMode)
+  ) {
+    return NextResponse.json(
+      { error: "Produktdataene er ugyldige." },
+      { status: 400 },
+    );
+  }
+
+  if (imageFile && !ALLOWED_MIME.has(imageFile.type)) {
+    return NextResponse.json(
+      { error: "Bildet må være JPEG, PNG, WebP eller GIF." },
+      { status: 400 },
+    );
+  }
+  if (imageFile && imageFile.size > MAX_FILE_BYTES) {
+    return NextResponse.json(
+      { error: "Bildet kan ikke være større enn 5 MB." },
+      { status: 400 },
+    );
+  }
+
+  const currentProduct = await prisma.product.findUnique({ where: { id } });
+  if (!currentProduct) {
+    return NextResponse.json(
+      { error: "Produktet finnes ikke." },
+      { status: 404 },
+    );
+  }
+
+  let newObjectKey: string | null = null;
+  if (imageFile) {
+    const safeName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    newObjectKey = `${adminResult.user.id}/${Date.now()}_${safeName}`;
+    const { error: storageError } = await supabase.storage
+      .from("products")
+      .upload(newObjectKey, imageFile, { contentType: imageFile.type });
+    if (storageError) {
+      return NextResponse.json(
+        { error: storageError.message },
+        { status: 500 },
+      );
+    }
+  }
+
+  try {
+    const product = await prisma.product.update({
+      where: { id },
+      data: {
+        name,
+        description,
+        category,
+        inquiryInputMode,
+        active,
+        ...(newObjectKey ? { imageUrl: newObjectKey } : {}),
+      },
+    });
+
+    if (newObjectKey && currentProduct.imageUrl) {
+      const { error: removeError } = await supabase.storage
+        .from("products")
+        .remove([currentProduct.imageUrl]);
+      if (removeError) {
+        console.error("Failed to remove replaced product image:", removeError);
+      }
+    }
+
+    revalidatePath("/products");
+    revalidatePath(`/products/${id}`);
+    if (
+      [currentProduct.category, category].some(
+        (value) => value.trim().toLowerCase() === "bordkort",
+      )
+    ) {
+      revalidatePath("/products/bordkort");
+    }
+
+    return NextResponse.json({
+      product: {
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        category: product.category,
+        inquiryInputMode: product.inquiryInputMode,
+        active: product.active,
+        imageUrl: product.imageUrl
+          ? await signImageUrl(product.imageUrl, "products")
+          : "",
+      },
+    });
+  } catch (error) {
+    if (newObjectKey) {
+      await supabase.storage.from("products").remove([newObjectKey]);
+    }
+    const message = error instanceof Error ? error.message : "Database error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -40,11 +174,18 @@ export async function POST(req: NextRequest) {
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
   const category = formData.get("category") as string;
+  const inquiryInputMode = formData.get("inquiryInputMode") as string;
   const imageFile = formData.get("image") as File;
 
-  if (!name || !description || !category || !imageFile) {
+  if (
+    !name ||
+    !description ||
+    !category ||
+    !INQUIRY_INPUT_MODES.has(inquiryInputMode) ||
+    !imageFile
+  ) {
     return NextResponse.json(
-      { error: "All fields are required!" },
+      { error: "Alle felt må fylles ut." },
       { status: 400 },
     );
   }
@@ -77,6 +218,7 @@ export async function POST(req: NextRequest) {
         name,
         description,
         category,
+        inquiryInputMode,
         imageUrl: objectKey,
       },
     });

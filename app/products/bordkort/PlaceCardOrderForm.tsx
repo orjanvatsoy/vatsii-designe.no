@@ -31,6 +31,7 @@ interface PlaceCardVariant {
   id: string;
   name: string;
   description: string;
+  inquiryInputMode: string;
   imageUrl: string;
 }
 
@@ -69,11 +70,17 @@ export default function PlaceCardOrderForm({
     return () => data.subscription.unsubscribe();
   }, []);
 
-  const names = namesInput
-    .split("\n")
-    .map((name) => name.trim())
-    .filter(Boolean);
   const selectedVariant = variants.find((variant) => variant.id === productId);
+  const inputMode = selectedVariant?.inquiryInputMode ?? "name_list";
+  const names =
+    inputMode === "name_list"
+      ? namesInput
+          .split("\n")
+          .map((name) => name.trim())
+          .filter(Boolean)
+      : namesInput.trim()
+        ? [namesInput.trim()]
+        : [];
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -83,7 +90,7 @@ export default function PlaceCardOrderForm({
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
     if (!productId || names.length === 0) {
-      setError("Velg et bordkort og legg inn minst ett navn.");
+      setError("Velg et produkt og fyll ut forespørselen.");
       return;
     }
     if (!customerName.trim() || !customerEmail.trim()) {
@@ -166,7 +173,10 @@ export default function PlaceCardOrderForm({
           <FormControl fullWidth>
             <RadioGroup
               value={productId}
-              onChange={(event) => setProductId(event.target.value)}
+              onChange={(event) => {
+                setProductId(event.target.value);
+                setNamesInput("");
+              }}
             >
               <Grid container spacing={3}>
                 {variants.map((variant) => (
@@ -227,21 +237,44 @@ export default function PlaceCardOrderForm({
             fontSize={{ xs: "1.25rem", sm: "1.5rem" }}
             mb={2}
           >
-            2. Legg inn navn
+            {inputMode === "comment" ? "2. Hva ønsker du?" : "2. Legg inn navn"}
           </Typography>
           <TextField
-            label="Ett navn per linje"
+            label={
+              inputMode === "name_list"
+                ? "Ett navn per linje"
+                : inputMode === "single_name"
+                  ? "Navn"
+                  : "Kommentar"
+            }
             value={namesInput}
             onChange={(event) => setNamesInput(event.target.value)}
-            multiline
-            minRows={8}
+            multiline={inputMode !== "single_name"}
+            minRows={
+              inputMode === "name_list" ? 8 : inputMode === "comment" ? 5 : 1
+            }
             fullWidth
             required
-            slotProps={{ htmlInput: { maxLength: 20200 } }}
-            helperText={`${names.length} bordkort`}
+            slotProps={{
+              htmlInput: {
+                maxLength:
+                  inputMode === "name_list"
+                    ? 20200
+                    : inputMode === "single_name"
+                      ? 100
+                      : 2000,
+              },
+            }}
+            helperText={
+              inputMode === "name_list"
+                ? `${names.length} bordkort`
+                : inputMode === "single_name"
+                  ? "Maks 100 tegn"
+                  : "Beskriv ønskene dine, maks 2000 tegn"
+            }
           />
 
-          {names.length > 0 && (
+          {inputMode === "name_list" && names.length > 0 && (
             <Box sx={{ mt: 4 }}>
               <Typography variant="h6" fontWeight={700} mb={2}>
                 Forhåndsvisning
@@ -394,7 +427,9 @@ export default function PlaceCardOrderForm({
           >
             {submitting
               ? "Sender forespørsel..."
-              : `Send uforpliktende forespørsel på ${names.length || ""} bordkort`}
+              : inputMode === "name_list"
+                ? `Send uforpliktende forespørsel på ${names.length || ""} bordkort`
+                : "Send uforpliktende forespørsel"}
           </Button>
         </Stack>
       </Stack>

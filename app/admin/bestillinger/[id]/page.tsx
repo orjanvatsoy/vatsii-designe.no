@@ -26,6 +26,7 @@ interface OrderDetails {
   id: string;
   customerName: string | null;
   customerEmail: string;
+  inputMode: string;
   names: string[];
   quantity: number;
   status: string;
@@ -309,7 +310,7 @@ export default function AdminOrderDetailsPage() {
     <PageShell
       eyebrow="ADMIN · FORESPØRSEL"
       title={order ? `Forespørsel #${order.id}` : "Forespørsel"}
-      subtitle="Kontroller produkt, kunde og navneliste, og svar med prisestimat og leveringstid."
+      subtitle="Kontroller produkt, kunde og innhold, og svar med prisestimat og leveringstid."
       maxWidth="lg"
     >
       <Stack spacing={3}>
@@ -375,7 +376,9 @@ export default function AdminOrderDetailsPage() {
 
                 <Stack direction="row" gap={1} flexWrap="wrap">
                   <Chip label={order.product.category} variant="outlined" />
-                  <Chip label={`${order.quantity} bordkort`} />
+                  {order.inputMode === "name_list" && (
+                    <Chip label={`${order.quantity} stk.`} />
+                  )}
                   <Chip
                     label={statusLabels[order.status] ?? order.status}
                     color={order.status === "new" ? "warning" : "success"}
@@ -421,39 +424,53 @@ export default function AdminOrderDetailsPage() {
                 mb={0.5}
               >
                 <Typography variant="h5" fontWeight={700}>
-                  Navneliste
+                  {order.inputMode === "name_list"
+                    ? "Navneliste"
+                    : order.inputMode === "single_name"
+                      ? "Navn"
+                      : "Kommentar"}
                 </Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<DownloadIcon />}
-                  onClick={handleDownloadCsv}
-                  sx={{ textTransform: "none" }}
-                >
-                  Last ned CSV
-                </Button>
-              </Stack>
-              <Typography color="text.secondary" mb={2.5}>
-                {order.quantity} navn inngår i forespørselen.
-              </Typography>
-              <Box
-                component="ol"
-                sx={{
-                  m: 0,
-                  pl: 3,
-                  columns: { xs: 1, sm: 2, md: 3 },
-                  columnGap: 5,
-                }}
-              >
-                {order.names.map((name, index) => (
-                  <Typography
-                    component="li"
-                    key={`${name}-${index}`}
-                    sx={{ py: 0.75, breakInside: "avoid" }}
+                {order.inputMode !== "comment" && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    onClick={handleDownloadCsv}
+                    sx={{ textTransform: "none" }}
                   >
-                    {name}
+                    Last ned CSV
+                  </Button>
+                )}
+              </Stack>
+              {order.inputMode === "name_list" ? (
+                <>
+                  <Typography color="text.secondary" mb={2.5}>
+                    {order.quantity} navn inngår i forespørselen.
                   </Typography>
-                ))}
-              </Box>
+                  <Box
+                    component="ol"
+                    sx={{
+                      m: 0,
+                      pl: 3,
+                      columns: { xs: 1, sm: 2, md: 3 },
+                      columnGap: 5,
+                    }}
+                  >
+                    {order.names.map((name, index) => (
+                      <Typography
+                        component="li"
+                        key={`${name}-${index}`}
+                        sx={{ py: 0.75, breakInside: "avoid" }}
+                      >
+                        {name}
+                      </Typography>
+                    ))}
+                  </Box>
+                </>
+              ) : (
+                <Typography sx={{ whiteSpace: "pre-wrap" }}>
+                  {order.names.join("\n")}
+                </Typography>
+              )}
             </Box>
 
             {order.status === "new" ? (
@@ -573,7 +590,9 @@ export default function AdminOrderDetailsPage() {
                 <TextField
                   label="Begrunnelse til kunden"
                   value={cancellationReason}
-                  onChange={(event) => setCancellationReason(event.target.value)}
+                  onChange={(event) =>
+                    setCancellationReason(event.target.value)
+                  }
                   multiline
                   minRows={3}
                   required

@@ -6,6 +6,7 @@ import { requireUser } from "../../lib/requireUser";
 const MAX_NAMES = 200;
 const MAX_NAME_LENGTH = 100;
 const MAX_CUSTOMER_NAME_LENGTH = 120;
+const MAX_COMMENT_LENGTH = 2000;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,18 @@ function normalizeNames(value: unknown): string[] | null {
   }
 
   return names;
+}
+
+function normalizeSubmission(value: unknown, inputMode: string) {
+  if (inputMode === "name_list") return normalizeNames(value);
+  if (!Array.isArray(value) || value.length !== 1) return null;
+
+  const submission = typeof value[0] === "string" ? value[0].trim() : "";
+  const maxLength =
+    inputMode === "single_name" ? MAX_NAME_LENGTH : MAX_COMMENT_LENGTH;
+  return submission.length > 0 && submission.length <= maxLength
+    ? [submission]
+    : null;
 }
 
 export async function GET(request: Request) {
@@ -55,6 +68,7 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
+        inputMode: true,
         names: true,
         quantity: true,
         status: true,
@@ -72,6 +86,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       orders.map((order) => ({
         id: order.id.toString(),
+        inputMode: order.inputMode,
         names: order.names.split("\n").filter(Boolean),
         quantity: order.quantity,
         status: order.status,
@@ -117,23 +132,13 @@ export async function POST(request: Request) {
 
   if (typeof body.productId !== "string" || !Array.isArray(body.names)) {
     return NextResponse.json(
-      { error: "Produkt og navn er påkrevd." },
+      { error: "Produkt og innhold er påkrevd." },
       { status: 400 },
     );
   }
 
   if (typeof body.website === "string" && body.website.length > 0) {
     return NextResponse.json({ success: true });
-  }
-
-  const names = normalizeNames(body.names);
-  if (!names) {
-    return NextResponse.json(
-      {
-        error: `Legg inn 1-${MAX_NAMES} navn, maks ${MAX_NAME_LENGTH} tegn per navn.`,
-      },
-      { status: 400 },
-    );
   }
 
   const productId = body.productId;
@@ -147,16 +152,24 @@ export async function POST(request: Request) {
 
   const product = await prisma.product.findUnique({
     where: { id: productId },
-    select: { active: true, category: true, name: true },
+    select: { active: true, inquiryInputMode: true, name: true },
   });
-  if (
-    !product?.active ||
-    product.category.trim().toLowerCase() !== "bordkort"
-  ) {
+  if (!product?.active) {
     return NextResponse.json(
       { error: "Produktet er ikke tilgjengelig." },
       { status: 404 },
     );
+  }
+
+  const submission = normalizeSubmission(body.names, product.inquiryInputMode);
+  if (!submission) {
+    const error =
+      product.inquiryInputMode === "name_list"
+        ? `Legg inn 1-${MAX_NAMES} navn, maks ${MAX_NAME_LENGTH} tegn per navn.`
+        : product.inquiryInputMode === "single_name"
+          ? `Oppgi ett navn, maks ${MAX_NAME_LENGTH} tegn.`
+          : `Oppgi en kommentar, maks ${MAX_COMMENT_LENGTH} tegn.`;
+    return NextResponse.json({ error }, { status: 400 });
   }
 
   const customerEmail = (
@@ -204,8 +217,10 @@ export async function POST(request: Request) {
       customerEmail,
       customerName,
       productId,
-      names: names.join("\n"),
-      quantity: names.length,
+      inputMode: product.inquiryInputMode,
+      names: submission.join("\n"),
+      quantity:
+        product.inquiryInputMode === "name_list" ? submission.length : 1,
     },
     select: { id: true },
   });
@@ -217,7 +232,9 @@ export async function POST(request: Request) {
       customerName,
       customerEmail,
       productName: product.name,
-      quantity: names.length,
+      quantity:
+        product.inquiryInputMode === "name_list" ? submission.length : 1,
+      inputMode: product.inquiryInputMode,
       adminUrl: `${origin}/admin/bestillinger/${order.id}`,
     });
   } catch (error) {
@@ -304,12 +321,21 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ success: true, status: "cancelled" });
   }
 
-  const names = normalizeNames(body.names);
-  if (!names) {
+  const order = await prisma.placeCardOrder.findFirst({
+    where: { id: orderId, userId: authResult.user.id, status: "new" },
+    select: { inputMode: true },
+  });
+  if (!order) {
     return NextResponse.json(
-      {
-        error: `Legg inn 1-${MAX_NAMES} navn, maks ${MAX_NAME_LENGTH} tegn per navn.`,
-      },
+      { error: "Forespørselen finnes ikke eller kan ikke lenger endres." },
+      { status: 409 },
+    );
+  }
+
+  const submission = normalizeSubmission(body.names, order.inputMode);
+  if (!submission) {
+    return NextResponse.json(
+      { error: "Innholdet er tomt eller for langt." },
       { status: 400 },
     );
   }
@@ -317,8 +343,8 @@ export async function PATCH(request: Request) {
   const result = await prisma.placeCardOrder.updateMany({
     where: { id: orderId, userId: authResult.user.id, status: "new" },
     data: {
-      names: names.join("\n"),
-      quantity: names.length,
+      names: submission.join("\n"),
+      quantity: order.inputMode === "name_list" ? submission.length : 1,
       updatedAt: new Date(),
       customerUpdatedAt: new Date(),
     },
@@ -331,5 +357,8 @@ export async function PATCH(request: Request) {
     );
   }
 
-  return NextResponse.json({ success: true, quantity: names.length });
+  return NextResponse.json({
+    success: true,
+    quantity: order.inputMode === "name_list" ? submission.length : 1,
+  });
 }

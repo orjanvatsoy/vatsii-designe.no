@@ -30,6 +30,7 @@ import { supabase } from "../lib/supabaseClient";
 
 interface PlaceCardOrder {
   id: string;
+  inputMode: string;
   names: string[];
   quantity: number;
   status: string;
@@ -48,6 +49,7 @@ const useMockData =
 const mockOrders: PlaceCardOrder[] = [
   {
     id: "1042",
+    inputMode: "name_list",
     names: ["Ingrid", "Marius", "Sofie", "Henrik"],
     quantity: 4,
     status: "estimated",
@@ -60,6 +62,7 @@ const mockOrders: PlaceCardOrder[] = [
   },
   {
     id: "1038",
+    inputMode: "name_list",
     names: ["Amalie", "Oskar", "Thea"],
     quantity: 3,
     status: "new",
@@ -72,6 +75,7 @@ const mockOrders: PlaceCardOrder[] = [
   },
   {
     id: "1021",
+    inputMode: "name_list",
     names: ["Ida", "Jonas", "Emilie", "Noah", "Selma"],
     quantity: 5,
     status: "completed",
@@ -246,10 +250,18 @@ export default function OrdersPage() {
   const handleSave = async (orderId: string) => {
     setError("");
     setSuccess("");
-    const names = (drafts[orderId] ?? "")
-      .split("\n")
-      .map((name) => name.trim())
-      .filter(Boolean);
+    const order = orders.find((item) => item.id === orderId);
+    if (!order) return;
+    const draft = drafts[orderId] ?? "";
+    const names =
+      order.inputMode === "name_list"
+        ? draft
+            .split("\n")
+            .map((name) => name.trim())
+            .filter(Boolean)
+        : draft.trim()
+          ? [draft.trim()]
+          : [];
     if (names.length === 0) {
       setError("Navnelisten kan ikke være tom.");
       return;
@@ -423,7 +435,7 @@ export default function OrdersPage() {
     <PageShell
       eyebrow="DIN KONTO"
       title="Mine forespørsler"
-      subtitle="Se forespørslene dine, oppdater navnelisten før du får svar, og finn prisestimat og leveringstid."
+      subtitle="Se forespørslene dine, oppdater innholdet før du får svar, og finn prisestimat og leveringstid."
       maxWidth="md"
     >
       {loading ? (
@@ -577,8 +589,8 @@ export default function OrdersPage() {
             <Alert
               severity="info"
               action={
-                <Button color="inherit" href="/products/bordkort">
-                  Send forespørsel
+                <Button color="inherit" href="/products">
+                  Se produkter
                 </Button>
               }
             >
@@ -593,10 +605,16 @@ export default function OrdersPage() {
                 order.status,
               );
               const currentStep = getFlowStep(order.status);
-              const draftNames = (drafts[order.id] ?? "")
-                .split("\n")
-                .map((name) => name.trim())
-                .filter(Boolean);
+              const draft = drafts[order.id] ?? "";
+              const draftValues =
+                order.inputMode === "name_list"
+                  ? draft
+                      .split("\n")
+                      .map((name) => name.trim())
+                      .filter(Boolean)
+                  : draft.trim()
+                    ? [draft.trim()]
+                    : [];
 
               return (
                 <Card
@@ -738,12 +756,21 @@ export default function OrdersPage() {
                             Du · forespørsel
                           </Typography>
                           <Typography fontWeight={700} mb={2}>
-                            {order.quantity} bordkort · {order.productName}
+                            {order.inputMode === "name_list"
+                              ? `${order.quantity} stk. · `
+                              : ""}
+                            {order.productName}
                           </Typography>
                           {editable ? (
                             <>
                               <TextField
-                                label="Ett navn per linje"
+                                label={
+                                  order.inputMode === "name_list"
+                                    ? "Ett navn per linje"
+                                    : order.inputMode === "single_name"
+                                      ? "Navn"
+                                      : "Kommentar"
+                                }
                                 value={drafts[order.id] ?? ""}
                                 onChange={(event) =>
                                   setDrafts((current) => ({
@@ -751,17 +778,33 @@ export default function OrdersPage() {
                                     [order.id]: event.target.value,
                                   }))
                                 }
-                                multiline
-                                minRows={5}
+                                multiline={order.inputMode !== "single_name"}
+                                minRows={
+                                  order.inputMode === "single_name" ? 1 : 5
+                                }
                                 fullWidth
-                                helperText={`${draftNames.length} bordkort · kan endres frem til tilbudet sendes`}
+                                helperText={
+                                  order.inputMode === "name_list"
+                                    ? `${draftValues.length} navn · kan endres frem til tilbudet sendes`
+                                    : "Kan endres frem til tilbudet sendes"
+                                }
+                                slotProps={{
+                                  htmlInput: {
+                                    maxLength:
+                                      order.inputMode === "name_list"
+                                        ? 20200
+                                        : order.inputMode === "single_name"
+                                          ? 100
+                                          : 2000,
+                                  },
+                                }}
                               />
                               <Button
                                 variant="outlined"
                                 startIcon={<SaveIcon />}
                                 disabled={
                                   savingId === order.id ||
-                                  draftNames.length === 0
+                                  draftValues.length === 0
                                 }
                                 onClick={() => handleSave(order.id)}
                                 sx={{
@@ -775,7 +818,7 @@ export default function OrdersPage() {
                                   : "Lagre navneliste"}
                               </Button>
                             </>
-                          ) : (
+                          ) : order.inputMode === "name_list" ? (
                             <Box
                               component="details"
                               sx={{
@@ -801,6 +844,13 @@ export default function OrdersPage() {
                                 {order.names.join("\n")}
                               </Typography>
                             </Box>
+                          ) : (
+                            <Typography
+                              color="text.secondary"
+                              sx={{ whiteSpace: "pre-wrap" }}
+                            >
+                              {order.names.join("\n")}
+                            </Typography>
                           )}
                         </Box>
 
