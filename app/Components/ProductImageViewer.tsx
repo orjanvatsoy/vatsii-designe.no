@@ -86,9 +86,8 @@ export default function ProductImageViewer({
           className="product-detail-image"
           src={src}
           alt={alt}
-          fill
           style={{
-            inset: "auto",
+            position: "absolute",
             left: `${positionX}%`,
             top: `${positionY}%`,
             width: quarterTurn ? "100cqh" : "100cqw",

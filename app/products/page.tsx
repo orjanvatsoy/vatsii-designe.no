@@ -104,9 +104,8 @@ export default async function ProductsPage() {
                       className="product-img"
                       src={product.image_url}
                       alt={product.name}
-                      fill
                       style={{
-                        inset: "auto",
+                        position: "absolute",
                         left: `${product.imagePositionX}%`,
                         top: `${product.imagePositionY}%`,
                         width:
