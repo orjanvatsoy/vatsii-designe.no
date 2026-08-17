@@ -9,17 +9,6 @@ export async function GET(request: Request) {
   if (authResult instanceof NextResponse) return authResult;
 
   const userId = authResult.user.id;
-  const customerEmail = authResult.user.email?.trim().toLowerCase();
-  if (customerEmail) {
-    await prisma.placeCardOrder.updateMany({
-      where: {
-        userId: null,
-        customerEmail: { equals: customerEmail, mode: "insensitive" },
-      },
-      data: { userId },
-    });
-  }
-
   const profile = await prisma.profile.findUnique({
     where: { id: userId },
     select: { role: true },

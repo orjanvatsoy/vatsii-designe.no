@@ -1,31 +1,22 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import { Card } from "@mui/material";
 import { supabase } from "../lib/supabaseClient";
-import { getCurrentProfileRole } from "../lib/profileClient";
 import PageShell from "../Components/PageShell";
+import { RequireRole, useAuth } from "../Components/AuthProvider";
 
 export default function AddCarouselImagePage() {
+  const { role } = useAuth();
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [role, setRole] = useState<string>("");
-  const [authChecked, setAuthChecked] = useState(false);
-
-  useEffect(() => {
-    const check = async () => {
-      setRole(await getCurrentProfileRole());
-      setAuthChecked(true);
-    };
-    check();
-  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -75,19 +66,11 @@ export default function AddCarouselImagePage() {
     setUploading(false);
   };
 
-  if (!authChecked) {
-    return (
-      <Typography sx={{ mt: 8, textAlign: "center" }}>Loading…</Typography>
-    );
-  }
-
   if (role !== "King") {
     return (
-      <Box mt={8} textAlign="center">
-        <Typography variant="h5" color="error">
-          Access denied. Only King can use this page.
-        </Typography>
-      </Box>
+      <RequireRole roles={["King"]}>
+        <></>
+      </RequireRole>
     );
   }
 

@@ -14,90 +14,22 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import Divider from "@mui/material/Divider";
-import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
-import { supabase } from "../lib/supabaseClient";
+import { useState } from "react";
+import { useAuth } from "./AuthProvider";
 
 export default function NavBar() {
-  const pathname = usePathname();
-  const [userName, setUserName] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [role, setRole] = useState<string>("");
-  const [customerAttentionCount, setCustomerAttentionCount] = useState(0);
-  const [adminAttentionCount, setAdminAttentionCount] = useState(0);
+  const {
+    user,
+    role,
+    customerAttentionCount,
+    adminAttentionCount,
+  } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  useEffect(() => {
-    const loadAttention = async (token: string) => {
-      try {
-        const response = await fetch("/api/attention", {
-          headers: { Authorization: `Bearer ${token}` },
-          cache: "no-store",
-        });
-        if (!response.ok) return;
-        const result = (await response.json()) as {
-          role: string;
-          customerAttentionCount: number;
-          adminAttentionCount: number;
-        };
-        setRole(result.role);
-        setCustomerAttentionCount(result.customerAttentionCount);
-        setAdminAttentionCount(result.adminAttentionCount);
-      } catch {
-        // Navigation remains usable if the attention check is unavailable.
-      }
-    };
-
-    const getUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      const user = data.session?.user;
-      setUserName(
-        user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? null,
-      );
-      setUserEmail(user?.email ?? null);
-      setAvatarUrl(user?.user_metadata?.avatar_url ?? null);
-      if (data.session?.access_token) {
-        await loadAttention(data.session.access_token);
-      }
-    };
-    getUser();
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        const user = session?.user;
-        setUserName(
-          user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? null,
-        );
-        setUserEmail(user?.email ?? null);
-        setAvatarUrl(user?.user_metadata?.avatar_url ?? null);
-        if (session?.access_token) {
-          loadAttention(session.access_token);
-        } else {
-          setRole("");
-          setCustomerAttentionCount(0);
-          setAdminAttentionCount(0);
-        }
-      },
-    );
-
-    const refreshAttention = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.access_token) {
-        await loadAttention(data.session.access_token);
-      }
-    };
-    const intervalId = window.setInterval(refreshAttention, 60_000);
-    window.addEventListener("focus", refreshAttention);
-    window.addEventListener("attention-updated", refreshAttention);
-
-    return () => {
-      listener.subscription.unsubscribe();
-      window.clearInterval(intervalId);
-      window.removeEventListener("focus", refreshAttention);
-      window.removeEventListener("attention-updated", refreshAttention);
-    };
-  }, [pathname]);
+  const userName =
+    user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? null;
+  const userEmail = user?.email ?? null;
+  const avatarUrl = user?.user_metadata?.avatar_url ?? null;
 
   const totalAttentionCount = customerAttentionCount + adminAttentionCount;
 

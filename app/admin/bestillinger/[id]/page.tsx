@@ -19,6 +19,7 @@ import {
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { RequireRole, useAuth } from "../../../Components/AuthProvider";
 import OrderMessages, {
   type OrderMessage,
 } from "../../../Components/OrderMessages";
@@ -91,6 +92,7 @@ function escapeCsvValue(value: string) {
 
 export default function AdminOrderDetailsPage() {
   const { id } = useParams<{ id: string }>();
+  const { role, session } = useAuth();
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
@@ -102,13 +104,9 @@ export default function AdminOrderDetailsPage() {
 
   useEffect(() => {
     const loadOrder = async () => {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (!token) {
-        setError("Du må være logget inn som administrator.");
-        setLoading(false);
-        return;
-      }
+      if (role !== "King") return;
+      const token = session?.access_token;
+      if (!token) return;
 
       try {
         const response = await fetch(`/api/admin/place-card-orders/${id}`, {
@@ -134,8 +132,8 @@ export default function AdminOrderDetailsPage() {
       }
     };
 
-    loadOrder();
-  }, [id]);
+    void loadOrder();
+  }, [id, role, session?.access_token]);
 
   const handleConfirm = async () => {
     if (!order) return;
@@ -320,6 +318,14 @@ export default function AdminOrderDetailsPage() {
       setConfirming(false);
     }
   };
+
+  if (role !== "King") {
+    return (
+      <RequireRole roles={["King"]}>
+        <></>
+      </RequireRole>
+    );
+  }
 
   return (
     <PageShell

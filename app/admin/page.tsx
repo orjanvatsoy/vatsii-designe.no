@@ -7,7 +7,6 @@ import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { getCurrentProfileRole } from "../lib/profileClient";
 
 import {
   Autocomplete,
@@ -35,6 +34,7 @@ import {
   Typography,
 } from "@mui/material";
 import PageShell from "../Components/PageShell";
+import { RequireRole, useAuth } from "../Components/AuthProvider";
 
 interface AdminProduct {
   id: string;
@@ -62,7 +62,7 @@ function imageScale(rotation: number, zoom: number) {
 }
 
 export default function AdminProductPage() {
-  const [role, setRole] = useState("");
+  const { role, session } = useAuth();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
@@ -93,12 +93,8 @@ export default function AdminProductPage() {
 
   useEffect(() => {
     const loadAdminData = async () => {
-      const currentRole = await getCurrentProfileRole();
-      setRole(currentRole);
-      if (currentRole !== "King") return;
-
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
+      if (role !== "King") return;
+      const token = session?.access_token;
       if (!token) return;
 
       const response = await fetch("/api/products", {
@@ -113,8 +109,8 @@ export default function AdminProductPage() {
       setCategories(result.categories);
       setProducts(result.products);
     };
-    loadAdminData();
-  }, []);
+    void loadAdminData();
+  }, [role, session?.access_token]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -284,11 +280,9 @@ export default function AdminProductPage() {
 
   if (role !== "King") {
     return (
-      <Box mt={8} textAlign="center">
-        <Typography variant="h5" color="error">
-          Access denied. Only King can use this page.
-        </Typography>
-      </Box>
+      <RequireRole roles={["King"]}>
+        <></>
+      </RequireRole>
     );
   }
 

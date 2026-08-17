@@ -1,22 +1,26 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { getCurrentProfileRole } from "../lib/profileClient";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import { Alert, Avatar, Card, Divider, Stack, TextField } from "@mui/material";
 import GoogleIcon from "@mui/icons-material/Google";
 import LogoutIcon from "@mui/icons-material/Logout";
-import type { User } from "@supabase/supabase-js";
+import { useAuth } from "../Components/AuthProvider";
 import PageShell from "../Components/PageShell";
 
+function getSafeNextPath() {
+  const nextPath = new URLSearchParams(window.location.search).get("next");
+  return nextPath?.startsWith("/") && !nextPath.startsWith("//")
+    ? nextPath
+    : "/bestillinger";
+}
+
 export default function UserPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, role, loading, error: authError } = useAuth();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [role, setRole] = useState<string>("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -30,39 +34,11 @@ export default function UserPage() {
   const [newPasswordConfirmation, setNewPasswordConfirmation] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    const getUserAndRole = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      const currentUser = data.session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser?.id) {
-        setRole(await getCurrentProfileRole());
-      }
-      setLoading(false);
-      if (error) setError(error.message);
-    };
-    getUserAndRole();
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user.id) {
-          getCurrentProfileRole().then(setRole);
-        } else {
-          setRole("");
-        }
-      },
-    );
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
-
   const handleLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin + "/",
+        redirectTo: window.location.origin + getSafeNextPath(),
       },
     });
   };
@@ -85,7 +61,7 @@ export default function UserPage() {
       setError("E-post eller passord er feil.");
       return;
     }
-    window.location.href = "/bestillinger";
+    window.location.href = getSafeNextPath();
   };
 
   const handleEmailCode = async () => {
@@ -130,7 +106,7 @@ export default function UserPage() {
       setError("Koden er feil eller har utløpt. Be om en ny kode.");
       return;
     }
-    window.location.href = "/bestillinger";
+    window.location.href = getSafeNextPath();
   };
 
   const handleRequestPasswordReset = async () => {
@@ -200,7 +176,7 @@ export default function UserPage() {
       return;
     }
 
-    window.location.href = "/bestillinger";
+    window.location.href = getSafeNextPath();
   };
 
   const handleSetPassword = async () => {
@@ -216,7 +192,7 @@ export default function UserPage() {
     }
 
     setSubmitting(true);
-    const { data, error: updateError } = await supabase.auth.updateUser({
+    const { error: updateError } = await supabase.auth.updateUser({
       password,
       data: {
         ...user?.user_metadata,
@@ -228,7 +204,6 @@ export default function UserPage() {
       setError("Passordet kunne ikke lagres. Prøv igjen.");
       return;
     }
-    setUser(data.user);
     setPassword("");
     setConfirmPassword("");
     setSuccess(
@@ -238,7 +213,6 @@ export default function UserPage() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setUser(null);
   };
 
   if (loading) {
@@ -347,7 +321,9 @@ export default function UserPage() {
                   />
                 </>
               )}
-              {error && <Alert severity="error">{error}</Alert>}
+              {(error || authError) && (
+                <Alert severity="error">{error || authError}</Alert>
+              )}
               {success && <Alert severity="success">{success}</Alert>}
               {recoveryMode ? (
                 <Button

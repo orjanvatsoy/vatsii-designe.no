@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Skeleton } from "@mui/material";
 import { supabase } from "../lib/supabaseClient";
-import { getCurrentProfileRole } from "../lib/profileClient";
+import { useAuth } from "./AuthProvider";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import { Typography, Box, IconButton, Button } from "@mui/material";
@@ -28,17 +28,10 @@ const PictureCarousel: React.FC<PictureCarouselProps> = ({
 }) => {
   const [pictures, setPictures] = useState(images);
   const [index, setIndex] = useState(0);
-  const [role, setRole] = useState<string>("");
+  const { role } = useAuth();
   const [deleting, setDeleting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [imageLoaded, setImageLoaded] = useState(false); // Declare useState for imageLoaded only once
-  // Fetch user role for delete access
-  useEffect(() => {
-    const getRole = async () => {
-      setRole(await getCurrentProfileRole());
-    };
-    getRole();
-  }, []);
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 

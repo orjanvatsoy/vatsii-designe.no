@@ -13,8 +13,7 @@ import {
 import PageShell from "../Components/PageShell";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
-import { getCurrentProfileRole } from "../lib/profileClient";
+import { RequireRole, useAuth } from "../Components/AuthProvider";
 
 interface IotTemperatureChartProps {
   data: TemperatureData[];
@@ -38,18 +37,7 @@ const IotTemperatureChart = dynamic<IotTemperatureChartProps>(
 );
 
 export default function IotTemperatureCard({ data }: IotTemperatureCardProps) {
-  const [role, setRole] = useState<string>("");
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const getRole = async () => {
-      setLoading(true);
-      setRole(await getCurrentProfileRole());
-      setLoading(false);
-    };
-    getRole();
-  }, []);
-
+  const { role } = useAuth();
   const isKing = role === "King" || role === "User";
   const latestReading = data.reduce<TemperatureData | null>((latest, entry) => {
     if (!latest) return entry;
@@ -71,6 +59,14 @@ export default function IotTemperatureCard({ data }: IotTemperatureCardProps) {
       }).format(new Date(latestReading.created_at))
     : null;
 
+  if (!isKing) {
+    return (
+      <RequireRole roles={["King", "User"]}>
+        <></>
+      </RequireRole>
+    );
+  }
+
   return (
     <PageShell
       eyebrow="SANNTID"
@@ -88,7 +84,7 @@ export default function IotTemperatureCard({ data }: IotTemperatureCardProps) {
           overflow: "hidden",
         }}
       >
-        {!loading && isKing && latestReading && (
+        {latestReading && (
           <Box
             sx={{
               display: "grid",
@@ -143,7 +139,7 @@ export default function IotTemperatureCard({ data }: IotTemperatureCardProps) {
             </Stack>
           </Box>
         )}
-        {!loading && isKing && latestReading && <Divider />}
+        {latestReading && <Divider />}
 
         <CardContent sx={{ p: { xs: 2, sm: 3.5 } }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
@@ -151,7 +147,7 @@ export default function IotTemperatureCard({ data }: IotTemperatureCardProps) {
           </Typography>
           <IotTemperatureChart
             data={data}
-            loading={loading}
+            loading={false}
             authorized={isKing}
           />
         </CardContent>

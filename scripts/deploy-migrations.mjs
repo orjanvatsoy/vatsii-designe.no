@@ -7,9 +7,9 @@ import pg from "pg";
 const envFile = existsSync(".env.local") ? ".env.local" : ".env";
 if (existsSync(envFile)) loadEnvFile(envFile);
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
 if (!connectionString) {
-  throw new Error("DATABASE_URL is required to deploy migrations.");
+  throw new Error("DIRECT_URL or DATABASE_URL is required to deploy migrations.");
 }
 
 const prismaCli = join(
@@ -23,7 +23,7 @@ const prismaCli = join(
 function runPrisma(args) {
   const result = spawnSync(process.execPath, [prismaCli, ...args], {
     stdio: "inherit",
-    env: process.env,
+    env: { ...process.env, DATABASE_URL: connectionString },
   });
   if (result.status !== 0) process.exit(result.status ?? 1);
 }

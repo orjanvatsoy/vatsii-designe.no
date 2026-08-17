@@ -15,6 +15,17 @@ npm run dev
 
 Åpne [http://localhost:3500](http://localhost:3500).
 
+### Databaseforbindelser i Vercel
+
+Vercel-funksjoner skal bruke Supabase **Transaction pooler** til runtime-trafikk.
+Velg denne under **Supabase → Connect → Transaction pooler** og lagre URI-en
+med port `6543` som `DATABASE_URL` i Vercel. Session mode på port `5432` har
+et lavt antall klientplasser og vil gi `EMAXCONNSESSION` under samtidige kall.
+
+Sett `DIRECT_URL` til Supabase **Session pooler** på port `5432` eller en
+direkte databaseforbindelse. Den brukes bare av migreringsskriptet under build.
+Etter endring av miljøvariablene må produksjonen deployes på nytt.
+
 ### Lokal visuell testing uten database
 
 For å vise bordkortskjemaet med testprodukter uten databasepassord, legg dette

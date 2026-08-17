@@ -23,6 +23,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
+import { RequireRole, useAuth } from "../../Components/AuthProvider";
 import PageShell from "../../Components/PageShell";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -86,6 +87,7 @@ function needsAttention(order: AdminOrder) {
 }
 
 export default function AdminOrdersPage() {
+  const { role, session } = useAuth();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -95,13 +97,9 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     const loadOrders = async () => {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (!token) {
-        setError("Du må være logget inn som administrator.");
-        setLoading(false);
-        return;
-      }
+      if (role !== "King") return;
+      const token = session?.access_token;
+      if (!token) return;
 
       try {
         const response = await fetch(
@@ -136,8 +134,8 @@ export default function AdminOrdersPage() {
       }
     };
 
-    loadOrders();
-  }, [showArchived]);
+    void loadOrders();
+  }, [role, session?.access_token, showArchived]);
 
   const handleArchiveChange = async (order: AdminOrder) => {
     setError("");
@@ -182,6 +180,14 @@ export default function AdminOrdersPage() {
       setUpdatingId(null);
     }
   };
+
+  if (role !== "King") {
+    return (
+      <RequireRole roles={["King"]}>
+        <></>
+      </RequireRole>
+    );
+  }
 
   return (
     <PageShell
