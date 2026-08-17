@@ -78,9 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (active && currentRequest === requestId.current) {
           loadedToken.current = token;
           setRole(accessState.role ?? "");
-          setCustomerAttentionCount(
-            accessState.customerAttentionCount ?? 0,
-          );
+          setCustomerAttentionCount(accessState.customerAttentionCount ?? 0);
           setAdminAttentionCount(accessState.adminAttentionCount ?? 0);
           setError("");
         }

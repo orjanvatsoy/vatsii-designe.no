@@ -9,7 +9,9 @@ if (existsSync(envFile)) loadEnvFile(envFile);
 
 const connectionString = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
 if (!connectionString) {
-  throw new Error("DIRECT_URL or DATABASE_URL is required to deploy migrations.");
+  throw new Error(
+    "DIRECT_URL or DATABASE_URL is required to deploy migrations.",
+  );
 }
 
 const prismaCli = join(

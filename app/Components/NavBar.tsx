@@ -18,12 +18,7 @@ import { useState } from "react";
 import { useAuth } from "./AuthProvider";
 
 export default function NavBar() {
-  const {
-    user,
-    role,
-    customerAttentionCount,
-    adminAttentionCount,
-  } = useAuth();
+  const { user, role, customerAttentionCount, adminAttentionCount } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const userName =
