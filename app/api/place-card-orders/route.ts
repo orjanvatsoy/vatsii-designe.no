@@ -84,9 +84,21 @@ export async function GET(request: Request) {
         updatedAt: true,
         customerUpdatedAt: true,
         attachments: true,
+        messages: { orderBy: { createdAt: "asc" } },
         product: { select: { name: true } },
       },
     });
+
+    if (orders.length > 0) {
+      await prisma.orderMessage.updateMany({
+        where: {
+          orderId: { in: orders.map((order) => order.id) },
+          senderRole: "admin",
+          customerReadAt: null,
+        },
+        data: { customerReadAt: new Date() },
+      });
+    }
 
     return NextResponse.json(
       await Promise.all(
@@ -107,6 +119,12 @@ export async function GET(request: Request) {
           createdAt: order.createdAt.toISOString(),
           updatedAt: order.updatedAt.toISOString(),
           customerUpdatedAt: order.customerUpdatedAt?.toISOString() ?? null,
+          messages: order.messages.map((message) => ({
+            id: message.id,
+            senderRole: message.senderRole,
+            body: message.body,
+            createdAt: message.createdAt.toISOString(),
+          })),
           attachments: await Promise.all(
             order.attachments.map(async (attachment) => ({
               id: attachment.id,

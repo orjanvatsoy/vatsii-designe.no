@@ -32,6 +32,18 @@ export async function GET(request: Request) {
       updatedAt: true,
       customerUpdatedAt: true,
       archivedAt: true,
+      messages: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { createdAt: true },
+      },
+      _count: {
+        select: {
+          messages: {
+            where: { senderRole: "customer", adminReadAt: null },
+          },
+        },
+      },
       product: { select: { name: true } },
     },
   });
@@ -52,6 +64,8 @@ export async function GET(request: Request) {
       updatedAt: order.updatedAt.toISOString(),
       customerUpdatedAt: order.customerUpdatedAt?.toISOString() ?? null,
       archivedAt: order.archivedAt?.toISOString() ?? null,
+      latestMessageAt: order.messages[0]?.createdAt.toISOString() ?? null,
+      unreadCustomerMessageCount: order._count.messages,
       productName: order.product.name,
     })),
   );

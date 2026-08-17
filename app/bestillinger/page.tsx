@@ -25,6 +25,7 @@ import {
 } from "@mui/material";
 import type { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
+import OrderMessages, { type OrderMessage } from "../Components/OrderMessages";
 import PageShell from "../Components/PageShell";
 import { supabase } from "../lib/supabaseClient";
 
@@ -33,6 +34,7 @@ interface PlaceCardOrder {
   inputMode: string;
   names: string[];
   quantity: number;
+  messages: OrderMessage[];
   customDimensions?: string | null;
   customBudget?: number | null;
   desiredDeliveryDate?: string | null;
@@ -62,6 +64,7 @@ const mockOrders: PlaceCardOrder[] = [
     inputMode: "name_list",
     names: ["Ingrid", "Marius", "Sofie", "Henrik"],
     quantity: 4,
+    messages: [],
     status: "estimated",
     estimatedPrice: 480,
     deliveryEstimate: "7-10 virkedager",
@@ -75,6 +78,7 @@ const mockOrders: PlaceCardOrder[] = [
     inputMode: "name_list",
     names: ["Amalie", "Oskar", "Thea"],
     quantity: 3,
+    messages: [],
     status: "new",
     estimatedPrice: null,
     deliveryEstimate: null,
@@ -88,6 +92,7 @@ const mockOrders: PlaceCardOrder[] = [
     inputMode: "name_list",
     names: ["Ida", "Jonas", "Emilie", "Noah", "Selma"],
     quantity: 5,
+    messages: [],
     status: "completed",
     estimatedPrice: 600,
     deliveryEstimate: "Levert 2. august",
@@ -175,6 +180,7 @@ export default function OrdersPage() {
     }
 
     setOrders(result);
+    window.dispatchEvent(new Event("attention-updated"));
     setDrafts(
       Object.fromEntries(
         result.map((order) => [order.id, order.names.join("\n")]),
@@ -1077,6 +1083,30 @@ export default function OrdersPage() {
                             </Typography>
                           )}
                         </Box>
+
+                        <Divider />
+
+                        <OrderMessages
+                          orderId={order.id}
+                          currentRole="customer"
+                          messages={order.messages}
+                          endpoint={`/api/place-card-orders/${order.id}/messages`}
+                          onMessageSent={(message) =>
+                            setOrders((current) =>
+                              current.map((currentOrder) =>
+                                currentOrder.id === order.id
+                                  ? {
+                                      ...currentOrder,
+                                      messages: [
+                                        ...currentOrder.messages,
+                                        message,
+                                      ],
+                                    }
+                                  : currentOrder,
+                              ),
+                            )
+                          }
+                        />
 
                         {cancellable && (
                           <>

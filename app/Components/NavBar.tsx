@@ -1,5 +1,6 @@
 "use client";
 import AppBar from "@mui/material/AppBar";
+import Badge from "@mui/material/Badge";
 import HomeIcon from "@mui/icons-material/Home";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
@@ -14,17 +15,40 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import Divider from "@mui/material/Divider";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
-import { getCurrentProfileRole } from "../lib/profileClient";
 
 export default function NavBar() {
+  const pathname = usePathname();
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [role, setRole] = useState<string>("");
+  const [customerAttentionCount, setCustomerAttentionCount] = useState(0);
+  const [adminAttentionCount, setAdminAttentionCount] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
+    const loadAttention = async (token: string) => {
+      try {
+        const response = await fetch("/api/attention", {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const result = (await response.json()) as {
+          role: string;
+          customerAttentionCount: number;
+          adminAttentionCount: number;
+        };
+        setRole(result.role);
+        setCustomerAttentionCount(result.customerAttentionCount);
+        setAdminAttentionCount(result.adminAttentionCount);
+      } catch {
+        // Navigation remains usable if the attention check is unavailable.
+      }
+    };
+
     const getUser = async () => {
       const { data } = await supabase.auth.getSession();
       const user = data.session?.user;
@@ -33,8 +57,8 @@ export default function NavBar() {
       );
       setUserEmail(user?.email ?? null);
       setAvatarUrl(user?.user_metadata?.avatar_url ?? null);
-      if (user?.id) {
-        setRole(await getCurrentProfileRole());
+      if (data.session?.access_token) {
+        await loadAttention(data.session.access_token);
       }
     };
     getUser();
@@ -47,17 +71,35 @@ export default function NavBar() {
         );
         setUserEmail(user?.email ?? null);
         setAvatarUrl(user?.user_metadata?.avatar_url ?? null);
-        if (user?.id) {
-          getCurrentProfileRole().then(setRole);
+        if (session?.access_token) {
+          loadAttention(session.access_token);
         } else {
           setRole("");
+          setCustomerAttentionCount(0);
+          setAdminAttentionCount(0);
         }
       },
     );
+
+    const refreshAttention = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.access_token) {
+        await loadAttention(data.session.access_token);
+      }
+    };
+    const intervalId = window.setInterval(refreshAttention, 60_000);
+    window.addEventListener("focus", refreshAttention);
+    window.addEventListener("attention-updated", refreshAttention);
+
     return () => {
       listener.subscription.unsubscribe();
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshAttention);
+      window.removeEventListener("attention-updated", refreshAttention);
     };
-  }, []);
+  }, [pathname]);
+
+  const totalAttentionCount = customerAttentionCount + adminAttentionCount;
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -112,8 +154,15 @@ export default function NavBar() {
             edge="end"
             sx={{ mr: 1 }}
             onClick={() => setDrawerOpen(true)}
+            aria-label={
+              totalAttentionCount > 0
+                ? `Åpne meny, ${totalAttentionCount} trenger oppmerksomhet`
+                : "Åpne meny"
+            }
           >
-            <MenuIcon />
+            <Badge badgeContent={totalAttentionCount} color="error" max={99}>
+              <MenuIcon />
+            </Badge>
           </IconButton>
         </Toolbar>
       </AppBar>
@@ -155,6 +204,13 @@ export default function NavBar() {
             <ListItem disablePadding>
               <ListItemButton href="/bestillinger">
                 <ListItemText primary="Mine forespørsler" />
+                <Badge
+                  badgeContent={customerAttentionCount}
+                  color="error"
+                  max={99}
+                >
+                  <Box sx={{ width: 18, height: 18 }} />
+                </Badge>
               </ListItemButton>
             </ListItem>
             {role === "King" && (
@@ -173,6 +229,13 @@ export default function NavBar() {
                 <ListItem disablePadding>
                   <ListItemButton href="/admin/bestillinger">
                     <ListItemText primary="Innkomne forespørsler" />
+                    <Badge
+                      badgeContent={adminAttentionCount}
+                      color="error"
+                      max={99}
+                    >
+                      <Box sx={{ width: 18, height: 18 }} />
+                    </Badge>
                   </ListItemButton>
                 </ListItem>
               </>

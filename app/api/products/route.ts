@@ -42,6 +42,9 @@ export async function GET(req: NextRequest) {
         description: product.description,
         category: product.category,
         inquiryInputMode: product.inquiryInputMode,
+        imagePositionX: product.imagePositionX,
+        imagePositionY: product.imagePositionY,
+        imageRotation: product.imageRotation,
         active: product.active,
         imageUrl: product.imageUrl
           ? await signImageUrl(product.imageUrl, "products")
@@ -61,6 +64,9 @@ export async function PATCH(req: NextRequest) {
   const description = String(formData.get("description") ?? "").trim();
   const category = String(formData.get("category") ?? "").trim();
   const inquiryInputMode = String(formData.get("inquiryInputMode") ?? "");
+  const imagePositionX = Number(formData.get("imagePositionX"));
+  const imagePositionY = Number(formData.get("imagePositionY"));
+  const imageRotation = Number(formData.get("imageRotation"));
   const active = formData.get("active") === "true";
   const image = formData.get("image");
   const imageFile = image instanceof File && image.size > 0 ? image : null;
@@ -72,7 +78,14 @@ export async function PATCH(req: NextRequest) {
     !name ||
     !description ||
     !category ||
-    !INQUIRY_INPUT_MODES.has(inquiryInputMode)
+    !INQUIRY_INPUT_MODES.has(inquiryInputMode) ||
+    !Number.isInteger(imagePositionX) ||
+    imagePositionX < 0 ||
+    imagePositionX > 100 ||
+    !Number.isInteger(imagePositionY) ||
+    imagePositionY < 0 ||
+    imagePositionY > 100 ||
+    ![0, 90, 180, 270].includes(imageRotation)
   ) {
     return NextResponse.json(
       { error: "Produktdataene er ugyldige." },
@@ -124,6 +137,9 @@ export async function PATCH(req: NextRequest) {
         description,
         category,
         inquiryInputMode,
+        imagePositionX,
+        imagePositionY,
+        imageRotation,
         active,
         ...(newObjectKey ? { imageUrl: newObjectKey } : {}),
       },
@@ -155,6 +171,9 @@ export async function PATCH(req: NextRequest) {
         description: product.description,
         category: product.category,
         inquiryInputMode: product.inquiryInputMode,
+        imagePositionX: product.imagePositionX,
+        imagePositionY: product.imagePositionY,
+        imageRotation: product.imageRotation,
         active: product.active,
         imageUrl: product.imageUrl
           ? await signImageUrl(product.imageUrl, "products")

@@ -60,6 +60,15 @@ export async function GET(
     );
   }
 
+  await prisma.orderMessage.updateMany({
+    where: { orderId, senderRole: "customer", adminReadAt: null },
+    data: { adminReadAt: new Date() },
+  });
+  const messages = await prisma.orderMessage.findMany({
+    where: { orderId },
+    orderBy: { createdAt: "asc" },
+  });
+
   return NextResponse.json({
     id: order.id.toString(),
     customerName: order.customerName,
@@ -77,6 +86,12 @@ export async function GET(
     confirmedAt: order.confirmedAt?.toISOString() ?? null,
     cancellationReason: order.cancellationReason,
     createdAt: order.createdAt.toISOString(),
+    messages: messages.map((message) => ({
+      id: message.id,
+      senderRole: message.senderRole,
+      body: message.body,
+      createdAt: message.createdAt.toISOString(),
+    })),
     attachments: await Promise.all(
       order.attachments.map(async (attachment) => ({
         id: attachment.id,

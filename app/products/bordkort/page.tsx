@@ -11,6 +11,9 @@ const mockVariants = [
     description: "Et varmt og klassisk bordkort i mørkt tre.",
     inquiryInputMode: "name_list",
     imageUrl: "/CarouselPic/IMG_5203.JPEG",
+    imagePositionX: 50,
+    imagePositionY: 50,
+    imageRotation: 0,
   },
   {
     id: "22222222-2222-4222-8222-222222222222",
@@ -18,6 +21,9 @@ const mockVariants = [
     description: "Et lyst og naturlig uttrykk til borddekkingen.",
     inquiryInputMode: "name_list",
     imageUrl: "/CarouselPic/IMG_5829.JPEG",
+    imagePositionX: 50,
+    imagePositionY: 50,
+    imageRotation: 0,
   },
   {
     id: "33333333-3333-4333-8333-333333333333",
@@ -25,6 +31,9 @@ const mockVariants = [
     description: "Et dempet grønt bordkort med et moderne preg.",
     inquiryInputMode: "name_list",
     imageUrl: "/CarouselPic/IMG_5683.JPEG",
+    imagePositionX: 50,
+    imagePositionY: 50,
+    imageRotation: 0,
   },
 ];
 
@@ -53,6 +62,9 @@ async function getVariants() {
       name: product.name,
       description: product.description,
       inquiryInputMode: product.inquiryInputMode,
+      imagePositionX: product.imagePositionX,
+      imagePositionY: product.imagePositionY,
+      imageRotation: product.imageRotation,
       imageUrl: product.imageUrl
         ? await signImageUrl(product.imageUrl, "products")
         : "",

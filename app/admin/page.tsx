@@ -1,5 +1,8 @@
 "use client";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import RotateLeftIcon from "@mui/icons-material/RotateLeft";
+import RotateRightIcon from "@mui/icons-material/RotateRight";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { getCurrentProfileRole } from "../lib/profileClient";
@@ -19,11 +22,14 @@ import {
   DialogTitle,
   FormControlLabel,
   Grid,
+  IconButton,
+  Slider,
   Stack,
   Switch,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import PageShell from "../Components/PageShell";
@@ -34,6 +40,9 @@ interface AdminProduct {
   description: string;
   category: string;
   inquiryInputMode: string;
+  imagePositionX: number;
+  imagePositionY: number;
+  imageRotation: number;
   active: boolean;
   imageUrl: string;
 }
@@ -44,6 +53,10 @@ const inputModeLabels: Record<string, string> = {
   comment: "Kommentar",
   custom_order: "Spesialbestilling",
 };
+
+function imageScale(rotation: number) {
+  return rotation % 180 === 0 ? 1 : 1.7;
+}
 
 export default function AdminProductPage() {
   const [role, setRole] = useState("");
@@ -63,6 +76,9 @@ export default function AdminProductPage() {
   const [editDescription, setEditDescription] = useState("");
   const [editCategory, setEditCategory] = useState("");
   const [editInputMode, setEditInputMode] = useState("comment");
+  const [editImagePositionX, setEditImagePositionX] = useState(50);
+  const [editImagePositionY, setEditImagePositionY] = useState(50);
+  const [editImageRotation, setEditImageRotation] = useState(0);
   const [editActive, setEditActive] = useState(true);
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState("");
@@ -109,6 +125,9 @@ export default function AdminProductPage() {
     setEditDescription(product.description);
     setEditCategory(product.category);
     setEditInputMode(product.inquiryInputMode);
+    setEditImagePositionX(product.imagePositionX);
+    setEditImagePositionY(product.imagePositionY);
+    setEditImageRotation(product.imageRotation);
     setEditActive(product.active);
     setEditImageFile(null);
     setEditImagePreview(product.imageUrl);
@@ -146,6 +165,9 @@ export default function AdminProductPage() {
     formData.append("description", editDescription.trim());
     formData.append("category", editCategory.trim());
     formData.append("inquiryInputMode", editInputMode);
+    formData.append("imagePositionX", String(editImagePositionX));
+    formData.append("imagePositionY", String(editImagePositionY));
+    formData.append("imageRotation", String(editImageRotation));
     formData.append("active", String(editActive));
     if (editImageFile) formData.append("image", editImageFile);
 
@@ -414,7 +436,12 @@ export default function AdminProductPage() {
                         component="img"
                         image={product.imageUrl}
                         alt={product.name}
-                        sx={{ height: 160, objectFit: "cover" }}
+                        sx={{
+                          height: 160,
+                          objectFit: "cover",
+                          objectPosition: `${product.imagePositionX}% ${product.imagePositionY}%`,
+                          transform: `rotate(${product.imageRotation}deg) scale(${imageScale(product.imageRotation)})`,
+                        }}
                       />
                     )}
                     <CardContent>
@@ -467,12 +494,91 @@ export default function AdminProductPage() {
           <Stack spacing={2} pt={1}>
             {editImagePreview && (
               <Box
-                component="img"
-                src={editImagePreview}
-                alt="Forhåndsvisning"
-                sx={{ width: "100%", height: 220, objectFit: "cover" }}
-              />
+                sx={{
+                  position: "relative",
+                  width: "100%",
+                  height: 220,
+                  overflow: "hidden",
+                  bgcolor: "#16150F",
+                }}
+              >
+                <Box
+                  component="img"
+                  src={editImagePreview}
+                  alt="Forhåndsvisning"
+                  sx={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    objectPosition: `${editImagePositionX}% ${editImagePositionY}%`,
+                    transform: `rotate(${editImageRotation}deg) scale(${imageScale(editImageRotation)})`,
+                    transition:
+                      "transform 160ms ease, object-position 160ms ease",
+                  }}
+                />
+              </Box>
             )}
+            <Stack direction="row" alignItems="center" spacing={0.5}>
+              <Typography fontWeight={700} flex={1}>
+                Tilpass bilde
+              </Typography>
+              <Tooltip title="Roter mot venstre">
+                <IconButton
+                  aria-label="Roter bildet mot venstre"
+                  onClick={() =>
+                    setEditImageRotation((current) => (current + 270) % 360)
+                  }
+                >
+                  <RotateLeftIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Roter mot høyre">
+                <IconButton
+                  aria-label="Roter bildet mot høyre"
+                  onClick={() =>
+                    setEditImageRotation((current) => (current + 90) % 360)
+                  }
+                >
+                  <RotateRightIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Tilbakestill bilde">
+                <IconButton
+                  aria-label="Tilbakestill bildeplassering"
+                  onClick={() => {
+                    setEditImagePositionX(50);
+                    setEditImagePositionY(50);
+                    setEditImageRotation(0);
+                  }}
+                >
+                  <RestartAltIcon />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+            <Box>
+              <Typography variant="caption" color="text.secondary">
+                Flytt vannrett
+              </Typography>
+              <Slider
+                value={editImagePositionX}
+                onChange={(_, value) => setEditImagePositionX(value as number)}
+                min={0}
+                max={100}
+                aria-label="Flytt bildet vannrett"
+              />
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary">
+                Flytt loddrett
+              </Typography>
+              <Slider
+                value={editImagePositionY}
+                onChange={(_, value) => setEditImagePositionY(value as number)}
+                min={0}
+                max={100}
+                aria-label="Flytt bildet loddrett"
+              />
+            </Box>
             <Button component="label" variant="outlined">
               Bytt bilde
               <input

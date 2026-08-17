@@ -19,6 +19,9 @@ import {
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import OrderMessages, {
+  type OrderMessage,
+} from "../../../Components/OrderMessages";
 import PageShell from "../../../Components/PageShell";
 import { supabase } from "../../../lib/supabaseClient";
 
@@ -32,6 +35,7 @@ interface OrderDetails {
   customDimensions: string | null;
   customBudget: number | null;
   desiredDeliveryDate: string | null;
+  messages: OrderMessage[];
   attachments: Array<{
     id: string;
     fileName: string;
@@ -122,6 +126,7 @@ export default function AdminOrderDetailsPage() {
           return;
         }
         setOrder(result as OrderDetails);
+        window.dispatchEvent(new Event("attention-updated"));
       } catch {
         setError("Kunne ikke kontakte serveren.");
       } finally {
@@ -588,6 +593,22 @@ export default function AdminOrderDetailsPage() {
                 </Typography>
               )}
             </Box>
+
+            <Divider />
+
+            <OrderMessages
+              orderId={order.id}
+              currentRole="admin"
+              messages={order.messages}
+              endpoint={`/api/admin/place-card-orders/${order.id}/messages`}
+              onMessageSent={(message) =>
+                setOrder((current) =>
+                  current
+                    ? { ...current, messages: [...current.messages, message] }
+                    : current,
+                )
+              }
+            />
 
             {order.status === "new" ? (
               <Stack spacing={2} sx={{ maxWidth: 620 }}>

@@ -33,6 +33,9 @@ interface PlaceCardVariant {
   description: string;
   inquiryInputMode: string;
   imageUrl: string;
+  imagePositionX: number;
+  imagePositionY: number;
+  imageRotation: number;
 }
 
 export default function PlaceCardOrderForm({
@@ -194,6 +197,9 @@ export default function PlaceCardOrderForm({
                         <ProductImageViewer
                           src={variant.imageUrl}
                           alt={variant.name}
+                          positionX={variant.imagePositionX}
+                          positionY={variant.imagePositionY}
+                          rotation={variant.imageRotation}
                           compact
                         />
                       )}

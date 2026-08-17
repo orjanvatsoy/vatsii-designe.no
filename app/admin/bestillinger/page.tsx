@@ -41,6 +41,8 @@ interface AdminOrder {
   updatedAt: string;
   customerUpdatedAt: string | null;
   archivedAt: string | null;
+  latestMessageAt: string | null;
+  unreadCustomerMessageCount: number;
   productName: string;
 }
 
@@ -69,12 +71,14 @@ function getLatestActivity(order: AdminOrder) {
     new Date(order.updatedAt).getTime(),
     order.confirmedAt ? new Date(order.confirmedAt).getTime() : 0,
     order.customerUpdatedAt ? new Date(order.customerUpdatedAt).getTime() : 0,
+    order.latestMessageAt ? new Date(order.latestMessageAt).getTime() : 0,
   );
 }
 
 function needsAttention(order: AdminOrder) {
   return (
     order.status === "new" ||
+    order.unreadCustomerMessageCount > 0 ||
     (order.customerUpdatedAt !== null &&
       new Date(order.customerUpdatedAt).getTime() >
         (order.confirmedAt ? new Date(order.confirmedAt).getTime() : 0))
@@ -267,7 +271,9 @@ export default function AdminOrdersPage() {
                             size="small"
                             label={
                               attention
-                                ? "Need attention"
+                                ? order.unreadCustomerMessageCount > 0
+                                  ? `${order.unreadCustomerMessageCount} ny melding`
+                                  : "Trenger svar"
                                 : (statusLabels[order.status] ?? order.status)
                             }
                             color={attention ? "warning" : "default"}

@@ -71,7 +71,14 @@ export default async function ProductPage({
           }}
         >
           {imageUrl && (
-            <ProductImageViewer src={imageUrl} alt={product.name} priority />
+            <ProductImageViewer
+              src={imageUrl}
+              alt={product.name}
+              positionX={product.imagePositionX}
+              positionY={product.imagePositionY}
+              rotation={product.imageRotation}
+              priority
+            />
           )}
           <CardContent sx={{ p: { xs: 3, md: 4 } }}>
             {product.category && (

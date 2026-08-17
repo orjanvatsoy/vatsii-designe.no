@@ -21,6 +21,9 @@ interface ProductImageViewerProps {
   alt: string;
   priority?: boolean;
   compact?: boolean;
+  positionX?: number;
+  positionY?: number;
+  rotation?: number;
 }
 
 export default function ProductImageViewer({
@@ -28,9 +31,13 @@ export default function ProductImageViewer({
   alt,
   priority = false,
   compact = false,
+  positionX = 50,
+  positionY = 50,
+  rotation = 0,
 }: ProductImageViewerProps) {
   const [open, setOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const coverScale = rotation % 180 === 0 ? 1 : 1.7;
 
   const closeViewer = () => {
     setOpen(false);
@@ -62,7 +69,7 @@ export default function ProductImageViewer({
             outlineOffset: -3,
           },
           "&:hover .product-detail-image": {
-            transform: "scale(1.025)",
+            transform: `rotate(${rotation}deg) scale(${coverScale * 1.025})`,
           },
           "&:hover .zoom-hint, &:focus-visible .zoom-hint": {
             opacity: 1,
@@ -76,6 +83,8 @@ export default function ProductImageViewer({
           fill
           style={{
             objectFit: "cover",
+            objectPosition: `${positionX}% ${positionY}%`,
+            transform: `rotate(${rotation}deg) scale(${coverScale})`,
             transition: "transform 220ms ease",
           }}
           priority={priority}
@@ -226,7 +235,10 @@ export default function ProductImageViewer({
               alt={alt}
               fill
               sizes="100vw"
-              style={{ objectFit: "contain" }}
+              style={{
+                objectFit: "contain",
+                transform: `rotate(${rotation}deg) scale(${rotation % 180 === 0 ? 1 : 0.7})`,
+              }}
               priority
             />
           </Box>

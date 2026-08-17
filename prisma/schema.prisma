@@ -31,6 +31,9 @@ model Product {
   category        String
   inquiryInputMode String          @default("comment") @map("inquiry_input_mode")
   imageUrl        String?          @map("image_url")
+  imagePositionX  Int              @default(50) @map("image_position_x")
+  imagePositionY  Int              @default(50) @map("image_position_y")
+  imageRotation   Int              @default(0) @map("image_rotation")
   active          Boolean          @default(true)
   placeCardOrders PlaceCardOrder[]
 
@@ -60,6 +63,7 @@ model PlaceCardOrder {
   archivedAt        DateTime? @map("archived_at") @db.Timestamptz(6)
   product          Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
   attachments      InquiryAttachment[]
+  messages         OrderMessage[]
 
   @@index([userId])
   @@index([customerEmail])
@@ -79,6 +83,21 @@ model InquiryAttachment {
 
   @@index([orderId])
   @@map("inquiry_attachments")
+}
+
+model OrderMessage {
+  id             String    @id @default(uuid()) @db.Uuid
+  orderId        BigInt    @map("order_id")
+  senderRole     String    @map("sender_role")
+  senderUserId   String    @map("sender_user_id") @db.Uuid
+  body           String    @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  customerReadAt DateTime? @map("customer_read_at") @db.Timestamptz(6)
+  adminReadAt    DateTime? @map("admin_read_at") @db.Timestamptz(6)
+  order          PlaceCardOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@map("order_messages")
 }
 
 model TemperatureData {

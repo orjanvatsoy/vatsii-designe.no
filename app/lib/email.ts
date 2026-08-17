@@ -103,3 +103,35 @@ export async function sendOrderCancellationEmail(input: {
   if (error) throw new Error(error.message);
   return true;
 }
+
+export async function sendOrderMessageEmail(input: {
+  recipient: string;
+  inquiryId: string;
+  productName: string;
+  senderRole: "customer" | "admin";
+  message: string;
+  url: string;
+}) {
+  const resend = getResend();
+  if (!resend) {
+    console.warn("Message email skipped: RESEND_API_KEY is missing.");
+    return false;
+  }
+
+  const sender = input.senderRole === "admin" ? "Vatsii Designe" : "kunden";
+  const { error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: input.recipient,
+    subject: `Ny melding om forespørsel #${input.inquiryId}`,
+    text: [
+      `Du har fått en ny melding fra ${sender} om ${input.productName}.`,
+      "",
+      input.message,
+      "",
+      `Åpne samtalen: ${input.url}`,
+    ].join("\n"),
+  });
+
+  if (error) throw new Error(error.message);
+  return true;
+}
