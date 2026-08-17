@@ -3,6 +3,8 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
 import RotateRightIcon from "@mui/icons-material/RotateRight";
+import ZoomInIcon from "@mui/icons-material/ZoomIn";
+import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { getCurrentProfileRole } from "../lib/profileClient";
@@ -43,6 +45,7 @@ interface AdminProduct {
   imagePositionX: number;
   imagePositionY: number;
   imageRotation: number;
+  imageZoom: number;
   active: boolean;
   imageUrl: string;
 }
@@ -54,8 +57,8 @@ const inputModeLabels: Record<string, string> = {
   custom_order: "Spesialbestilling",
 };
 
-function imageScale(rotation: number) {
-  return rotation % 180 === 0 ? 1 : 1.7;
+function imageScale(rotation: number, zoom: number) {
+  return (rotation % 180 === 0 ? 1 : 1.7) * (zoom / 100);
 }
 
 export default function AdminProductPage() {
@@ -79,6 +82,7 @@ export default function AdminProductPage() {
   const [editImagePositionX, setEditImagePositionX] = useState(50);
   const [editImagePositionY, setEditImagePositionY] = useState(50);
   const [editImageRotation, setEditImageRotation] = useState(0);
+  const [editImageZoom, setEditImageZoom] = useState(100);
   const [editActive, setEditActive] = useState(true);
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState("");
@@ -128,6 +132,7 @@ export default function AdminProductPage() {
     setEditImagePositionX(product.imagePositionX);
     setEditImagePositionY(product.imagePositionY);
     setEditImageRotation(product.imageRotation);
+    setEditImageZoom(product.imageZoom);
     setEditActive(product.active);
     setEditImageFile(null);
     setEditImagePreview(product.imageUrl);
@@ -168,6 +173,7 @@ export default function AdminProductPage() {
     formData.append("imagePositionX", String(editImagePositionX));
     formData.append("imagePositionY", String(editImagePositionY));
     formData.append("imageRotation", String(editImageRotation));
+    formData.append("imageZoom", String(editImageZoom));
     formData.append("active", String(editActive));
     if (editImageFile) formData.append("image", editImageFile);
 
@@ -440,7 +446,7 @@ export default function AdminProductPage() {
                           height: 160,
                           objectFit: "cover",
                           objectPosition: `${product.imagePositionX}% ${product.imagePositionY}%`,
-                          transform: `rotate(${product.imageRotation}deg) scale(${imageScale(product.imageRotation)})`,
+                          transform: `rotate(${product.imageRotation}deg) scale(${imageScale(product.imageRotation, product.imageZoom)})`,
                         }}
                       />
                     )}
@@ -511,7 +517,7 @@ export default function AdminProductPage() {
                     height: "100%",
                     objectFit: "cover",
                     objectPosition: `${editImagePositionX}% ${editImagePositionY}%`,
-                    transform: `rotate(${editImageRotation}deg) scale(${imageScale(editImageRotation)})`,
+                    transform: `rotate(${editImageRotation}deg) scale(${imageScale(editImageRotation, editImageZoom)})`,
                     transition:
                       "transform 160ms ease, object-position 160ms ease",
                   }}
@@ -549,11 +555,58 @@ export default function AdminProductPage() {
                     setEditImagePositionX(50);
                     setEditImagePositionY(50);
                     setEditImageRotation(0);
+                    setEditImageZoom(100);
                   }}
                 >
                   <RestartAltIcon />
                 </IconButton>
               </Tooltip>
+            </Stack>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Tooltip title="Zoom ut">
+                <span>
+                  <IconButton
+                    aria-label="Zoom ut av produktbildet"
+                    disabled={editImageZoom <= 100}
+                    onClick={() =>
+                      setEditImageZoom((current) => Math.max(100, current - 10))
+                    }
+                  >
+                    <ZoomOutIcon />
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <Slider
+                value={editImageZoom}
+                onChange={(_, value) => setEditImageZoom(value as number)}
+                min={100}
+                max={250}
+                step={5}
+                valueLabelDisplay="auto"
+                valueLabelFormat={(value) => `${value}%`}
+                aria-label="Zoom produktbildet"
+                sx={{ flex: 1 }}
+              />
+              <Tooltip title="Zoom inn">
+                <span>
+                  <IconButton
+                    aria-label="Zoom inn på produktbildet"
+                    disabled={editImageZoom >= 250}
+                    onClick={() =>
+                      setEditImageZoom((current) => Math.min(250, current + 10))
+                    }
+                  >
+                    <ZoomInIcon />
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ width: 42, textAlign: "right" }}
+              >
+                {editImageZoom}%
+              </Typography>
             </Stack>
             <Box>
               <Typography variant="caption" color="text.secondary">

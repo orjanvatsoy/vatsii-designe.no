@@ -14,6 +14,7 @@ const mockVariants = [
     imagePositionX: 50,
     imagePositionY: 50,
     imageRotation: 0,
+    imageZoom: 100,
   },
   {
     id: "22222222-2222-4222-8222-222222222222",
@@ -24,6 +25,7 @@ const mockVariants = [
     imagePositionX: 50,
     imagePositionY: 50,
     imageRotation: 0,
+    imageZoom: 100,
   },
   {
     id: "33333333-3333-4333-8333-333333333333",
@@ -34,6 +36,7 @@ const mockVariants = [
     imagePositionX: 50,
     imagePositionY: 50,
     imageRotation: 0,
+    imageZoom: 100,
   },
 ];
 
@@ -65,6 +68,7 @@ async function getVariants() {
       imagePositionX: product.imagePositionX,
       imagePositionY: product.imagePositionY,
       imageRotation: product.imageRotation,
+      imageZoom: product.imageZoom,
       imageUrl: product.imageUrl
         ? await signImageUrl(product.imageUrl, "products")
         : "",

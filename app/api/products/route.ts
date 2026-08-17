@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
         imagePositionX: product.imagePositionX,
         imagePositionY: product.imagePositionY,
         imageRotation: product.imageRotation,
+        imageZoom: product.imageZoom,
         active: product.active,
         imageUrl: product.imageUrl
           ? await signImageUrl(product.imageUrl, "products")
@@ -67,6 +68,7 @@ export async function PATCH(req: NextRequest) {
   const imagePositionX = Number(formData.get("imagePositionX"));
   const imagePositionY = Number(formData.get("imagePositionY"));
   const imageRotation = Number(formData.get("imageRotation"));
+  const imageZoom = Number(formData.get("imageZoom"));
   const active = formData.get("active") === "true";
   const image = formData.get("image");
   const imageFile = image instanceof File && image.size > 0 ? image : null;
@@ -85,7 +87,10 @@ export async function PATCH(req: NextRequest) {
     !Number.isInteger(imagePositionY) ||
     imagePositionY < 0 ||
     imagePositionY > 100 ||
-    ![0, 90, 180, 270].includes(imageRotation)
+    ![0, 90, 180, 270].includes(imageRotation) ||
+    !Number.isInteger(imageZoom) ||
+    imageZoom < 100 ||
+    imageZoom > 250
   ) {
     return NextResponse.json(
       { error: "Produktdataene er ugyldige." },
@@ -140,6 +145,7 @@ export async function PATCH(req: NextRequest) {
         imagePositionX,
         imagePositionY,
         imageRotation,
+        imageZoom,
         active,
         ...(newObjectKey ? { imageUrl: newObjectKey } : {}),
       },
@@ -174,6 +180,7 @@ export async function PATCH(req: NextRequest) {
         imagePositionX: product.imagePositionX,
         imagePositionY: product.imagePositionY,
         imageRotation: product.imageRotation,
+        imageZoom: product.imageZoom,
         active: product.active,
         imageUrl: product.imageUrl
           ? await signImageUrl(product.imageUrl, "products")

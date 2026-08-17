@@ -77,6 +77,7 @@ export default async function ProductPage({
               positionX={product.imagePositionX}
               positionY={product.imagePositionY}
               rotation={product.imageRotation}
+              imageZoom={product.imageZoom}
               priority
             />
           )}

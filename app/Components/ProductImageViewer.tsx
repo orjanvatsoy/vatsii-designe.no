@@ -24,6 +24,7 @@ interface ProductImageViewerProps {
   positionX?: number;
   positionY?: number;
   rotation?: number;
+  imageZoom?: number;
 }
 
 export default function ProductImageViewer({
@@ -34,10 +35,11 @@ export default function ProductImageViewer({
   positionX = 50,
   positionY = 50,
   rotation = 0,
+  imageZoom = 100,
 }: ProductImageViewerProps) {
   const [open, setOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
-  const coverScale = rotation % 180 === 0 ? 1 : 1.7;
+  const coverScale = (rotation % 180 === 0 ? 1 : 1.7) * (imageZoom / 100);
 
   const closeViewer = () => {
     setOpen(false);

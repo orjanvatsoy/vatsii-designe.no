@@ -36,6 +36,7 @@ interface PlaceCardVariant {
   imagePositionX: number;
   imagePositionY: number;
   imageRotation: number;
+  imageZoom: number;
 }
 
 export default function PlaceCardOrderForm({
@@ -200,6 +201,7 @@ export default function PlaceCardOrderForm({
                           positionX={variant.imagePositionX}
                           positionY={variant.imagePositionY}
                           rotation={variant.imageRotation}
+                          imageZoom={variant.imageZoom}
                           compact
                         />
                       )}
