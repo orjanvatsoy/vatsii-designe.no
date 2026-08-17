@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { sendNewInquiryEmail } from "../../lib/email";
 import { prisma } from "../../lib/prisma";
 import { requireUser } from "../../lib/requireUser";
-import { signImageUrl } from "../../lib/storage";
+import { signDownloadUrl, signImageUrl } from "../../lib/storage";
 
 const MAX_NAMES = 200;
 const MAX_NAME_LENGTH = 100;
@@ -135,6 +135,11 @@ export async function GET(request: Request) {
                 attachment.objectKey,
                 "inquiry-attachments",
                 60 * 60,
+              ),
+              downloadUrl: await signDownloadUrl(
+                attachment.objectKey,
+                "inquiry-attachments",
+                attachment.fileName,
               ),
             })),
           ),

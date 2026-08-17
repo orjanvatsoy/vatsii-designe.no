@@ -25,6 +25,9 @@ import {
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useAuth } from "../Components/AuthProvider";
+import OrderAttachments, {
+  type OrderAttachment,
+} from "../Components/OrderAttachments";
 import OrderMessages, { type OrderMessage } from "../Components/OrderMessages";
 import PageShell from "../Components/PageShell";
 import { supabase } from "../lib/supabaseClient";
@@ -38,13 +41,7 @@ interface PlaceCardOrder {
   customDimensions?: string | null;
   customBudget?: number | null;
   desiredDeliveryDate?: string | null;
-  attachments?: Array<{
-    id: string;
-    fileName: string;
-    contentType: string;
-    sizeBytes: number;
-    url: string;
-  }>;
+  attachments?: OrderAttachment[];
   status: string;
   estimatedPrice: number | null;
   deliveryEstimate: string | null;
@@ -827,51 +824,6 @@ export default function OrdersPage() {
                                     : "Ikke oppgitt"}
                                 </strong>
                               </Typography>
-                              {(order.attachments ?? []).length > 0 && (
-                                <Stack
-                                  direction="row"
-                                  gap={1.5}
-                                  flexWrap="wrap"
-                                >
-                                  {(order.attachments ?? []).map(
-                                    (attachment) =>
-                                      attachment.contentType.startsWith(
-                                        "image/",
-                                      ) ? (
-                                        <Box
-                                          key={attachment.id}
-                                          component="a"
-                                          href={attachment.url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                        >
-                                          <Box
-                                            component="img"
-                                            src={attachment.url}
-                                            alt={attachment.fileName}
-                                            sx={{
-                                              width: 120,
-                                              height: 90,
-                                              objectFit: "cover",
-                                              borderRadius: 1,
-                                            }}
-                                          />
-                                        </Box>
-                                      ) : (
-                                        <Button
-                                          key={attachment.id}
-                                          variant="outlined"
-                                          component="a"
-                                          href={attachment.url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                        >
-                                          Åpne {attachment.fileName}
-                                        </Button>
-                                      ),
-                                  )}
-                                </Stack>
-                              )}
                             </Stack>
                           ) : editable ? (
                             <>
@@ -965,6 +917,23 @@ export default function OrdersPage() {
                             </Typography>
                           )}
                         </Box>
+
+                        {(order.attachments ?? []).length > 0 && (
+                          <Box
+                            sx={{
+                              width: "100%",
+                              boxSizing: "border-box",
+                              p: { xs: 2, md: 2.5 },
+                              border: "1px solid",
+                              borderColor: "divider",
+                              borderRadius: 1,
+                            }}
+                          >
+                            <OrderAttachments
+                              attachments={order.attachments ?? []}
+                            />
+                          </Box>
+                        )}
 
                         <Box
                           sx={{

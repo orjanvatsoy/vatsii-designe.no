@@ -5,6 +5,7 @@ import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DownloadIcon from "@mui/icons-material/Download";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 import {
   Alert,
   Box,
@@ -23,6 +24,9 @@ import { RequireRole, useAuth } from "../../../Components/AuthProvider";
 import OrderMessages, {
   type OrderMessage,
 } from "../../../Components/OrderMessages";
+import OrderAttachments, {
+  type OrderAttachment,
+} from "../../../Components/OrderAttachments";
 import PageShell from "../../../Components/PageShell";
 import { supabase } from "../../../lib/supabaseClient";
 
@@ -37,13 +41,7 @@ interface OrderDetails {
   customBudget: number | null;
   desiredDeliveryDate: string | null;
   messages: OrderMessage[];
-  attachments: Array<{
-    id: string;
-    fileName: string;
-    contentType: string;
-    sizeBytes: number;
-    url: string;
-  }>;
+  attachments: OrderAttachment[];
   status: string;
   estimatedPrice: number | null;
   deliveryEstimate: string | null;
@@ -96,6 +94,7 @@ export default function AdminOrderDetailsPage() {
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [estimatedPrice, setEstimatedPrice] = useState("");
   const [deliveryEstimate, setDeliveryEstimate] = useState("");
   const [cancellationReason, setCancellationReason] = useState("");
@@ -256,6 +255,51 @@ export default function AdminOrderDetailsPage() {
     link.download = `bordkort-${order.id}-${productName || "navn"}.csv`;
     link.click();
     URL.revokeObjectURL(blobUrl);
+  };
+
+  const handleAttachmentUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !order || !session?.access_token) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    setUploadingAttachment(true);
+    setError("");
+    setSuccess("");
+    try {
+      const response = await fetch(
+        `/api/admin/place-card-orders/${order.id}/attachments`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          body: formData,
+        },
+      );
+      const result = (await response.json()) as {
+        error?: string;
+        attachment?: OrderAttachment;
+      };
+      if (!response.ok || !result.attachment) {
+        setError(result.error ?? "Vedlegget kunne ikke lastes opp.");
+        return;
+      }
+      setOrder((current) =>
+        current
+          ? {
+              ...current,
+              attachments: [...current.attachments, result.attachment!],
+            }
+          : current,
+      );
+      setSuccess(`${result.attachment.fileName} er lagt til på ordren.`);
+    } catch {
+      setError("Kunne ikke kontakte serveren.");
+    } finally {
+      setUploadingAttachment(false);
+    }
   };
 
   const handleCancelOrder = async () => {
@@ -523,50 +567,6 @@ export default function AdminOrderDetailsPage() {
                       </Typography>
                     </Box>
                   </Box>
-                  {order.attachments.length > 0 && (
-                    <Box>
-                      <Typography variant="h6" fontWeight={700} mb={1.5}>
-                        Bilder og skisser
-                      </Typography>
-                      <Stack direction="row" gap={2} flexWrap="wrap">
-                        {order.attachments.map((attachment) =>
-                          attachment.contentType.startsWith("image/") ? (
-                            <Button
-                              key={attachment.id}
-                              component="a"
-                              href={attachment.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              sx={{ p: 0, display: "block" }}
-                            >
-                              <Box
-                                component="img"
-                                src={attachment.url}
-                                alt={attachment.fileName}
-                                sx={{
-                                  width: 160,
-                                  height: 120,
-                                  objectFit: "cover",
-                                  borderRadius: 1,
-                                }}
-                              />
-                            </Button>
-                          ) : (
-                            <Button
-                              key={attachment.id}
-                              variant="outlined"
-                              component="a"
-                              href={attachment.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              Åpne {attachment.fileName}
-                            </Button>
-                          ),
-                        )}
-                      </Stack>
-                    </Box>
-                  )}
                 </Stack>
               ) : order.inputMode === "name_list" ? (
                 <>
@@ -598,6 +598,44 @@ export default function AdminOrderDetailsPage() {
                   {order.names.join("\n")}
                 </Typography>
               )}
+            </Box>
+
+            <Box>
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                alignItems={{ xs: "stretch", sm: "center" }}
+                justifyContent="space-between"
+                gap={1.5}
+                mb={order.attachments.length > 0 ? 2 : 0}
+              >
+                <Box>
+                  <Typography variant="h6" fontWeight={700}>
+                    Filer og bilder
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Valgfritt: SVG til godkjenning, produksjonsfil eller bilde
+                    av ferdig produkt.
+                  </Typography>
+                </Box>
+                <Button
+                  component="label"
+                  variant="outlined"
+                  startIcon={<UploadFileIcon />}
+                  disabled={uploadingAttachment}
+                >
+                  {uploadingAttachment ? "Laster opp..." : "Legg til fil"}
+                  <input
+                    hidden
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp,.svg,.pdf,.lbrn,.lbrn2"
+                    onChange={handleAttachmentUpload}
+                  />
+                </Button>
+              </Stack>
+              <OrderAttachments
+                attachments={order.attachments}
+                showHeading={false}
+              />
             </Box>
 
             <Divider />

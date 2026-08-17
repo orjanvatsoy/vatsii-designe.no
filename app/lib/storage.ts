@@ -45,3 +45,15 @@ export async function signImageUrl(
     .createSignedUrl(objectKey, expiresInSeconds);
   return data?.signedUrl ?? "";
 }
+
+export async function signDownloadUrl(
+  objectKey: string,
+  bucket: string,
+  fileName: string,
+  expiresInSeconds = 60 * 60,
+): Promise<string> {
+  const { data } = await serverSupabase.storage
+    .from(bucket)
+    .createSignedUrl(objectKey, expiresInSeconds, { download: fileName });
+  return data?.signedUrl ?? "";
+}

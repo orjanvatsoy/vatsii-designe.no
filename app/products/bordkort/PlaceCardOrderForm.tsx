@@ -16,13 +16,13 @@ import {
   Typography,
 } from "@mui/material";
 import type { User } from "@supabase/supabase-js";
-import { Great_Vibes } from "next/font/google";
+import localFont from "next/font/local";
 import { useEffect, useState } from "react";
 import ProductImageViewer from "../../Components/ProductImageViewer";
 import { supabase } from "../../lib/supabaseClient";
 
-const previewFont = Great_Vibes({
-  subsets: ["latin"],
+const previewFont = localFont({
+  src: "../../fonts/Watermellon.otf",
   weight: "400",
   display: "swap",
 });
@@ -75,6 +75,8 @@ export default function PlaceCardOrderForm({
   }, []);
 
   const selectedVariant = variants.find((variant) => variant.id === productId);
+  const usesWatermellon =
+    selectedVariant?.name.trim().toLocaleLowerCase("nb-NO") === "navn";
   const inputMode = selectedVariant?.inquiryInputMode ?? "name_list";
   const names =
     inputMode === "name_list"
@@ -313,7 +315,9 @@ export default function PlaceCardOrderForm({
                       }}
                     >
                       <Typography
-                        className={previewFont.className}
+                        className={
+                          usesWatermellon ? previewFont.className : undefined
+                        }
                         component="span"
                         sx={{
                           maxWidth: "100%",

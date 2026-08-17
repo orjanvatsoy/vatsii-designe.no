@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { requireAdmin } from "../../../../lib/requireAdmin";
-import { signImageUrl } from "../../../../lib/storage";
+import { signDownloadUrl, signImageUrl } from "../../../../lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +102,11 @@ export async function GET(
           attachment.objectKey,
           "inquiry-attachments",
           60 * 60,
+        ),
+        downloadUrl: await signDownloadUrl(
+          attachment.objectKey,
+          "inquiry-attachments",
+          attachment.fileName,
         ),
       })),
     ),
