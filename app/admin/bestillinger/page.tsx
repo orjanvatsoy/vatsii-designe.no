@@ -110,10 +110,11 @@ export default function AdminOrdersPage() {
           | AdminOrder[]
           | { error?: string };
         if (!response.ok) {
+          const apiError = "error" in result ? result.error : undefined;
           setError(
-            "error" in result
-              ? (result.error ?? "Ingen tilgang.")
-              : "Ingen tilgang.",
+            response.status === 401 || response.status === 403
+              ? "Økten er utløpt. Oppdater siden og logg inn på nytt."
+              : (apiError ?? "Kunne ikke hente forespørslene."),
           );
           return;
         }

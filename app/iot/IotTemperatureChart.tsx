@@ -37,14 +37,10 @@ interface IotTemperatureChartProps {
     temperature: number;
     temperature_forcast?: number | null;
   }[];
-  loading: boolean;
-  authorized: boolean;
 }
 
 export default function IotTemperatureChart({
   data,
-  loading,
-  authorized,
 }: IotTemperatureChartProps) {
   const [hourRange, setHourRange] = useState(24);
   const [windowOffset, setWindowOffset] = useState(0);
@@ -65,19 +61,6 @@ export default function IotTemperatureChart({
       ignore = true;
     };
   }, []);
-
-  if (loading) {
-    return (
-      <Typography color="text.secondary">Laster temperaturdata …</Typography>
-    );
-  }
-  if (!authorized) {
-    return (
-      <Typography color="error">
-        Du har ikke tilgang til temperaturdata.
-      </Typography>
-    );
-  }
 
   const now = new Date();
   const windowEnd = new Date(now.getTime() + windowOffset * hourRange * HOUR);

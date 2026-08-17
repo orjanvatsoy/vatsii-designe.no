@@ -561,9 +561,9 @@ export default function AdminProductPage() {
                 <span>
                   <IconButton
                     aria-label="Zoom ut av produktbildet"
-                    disabled={editImageZoom <= 100}
+                    disabled={editImageZoom <= 50}
                     onClick={() =>
-                      setEditImageZoom((current) => Math.max(100, current - 10))
+                      setEditImageZoom((current) => Math.max(50, current - 10))
                     }
                   >
                     <ZoomOutIcon />
@@ -573,7 +573,7 @@ export default function AdminProductPage() {
               <Slider
                 value={editImageZoom}
                 onChange={(_, value) => setEditImageZoom(value as number)}
-                min={100}
+                min={50}
                 max={250}
                 step={5}
                 valueLabelDisplay="auto"

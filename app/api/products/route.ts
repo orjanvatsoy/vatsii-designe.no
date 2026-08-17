@@ -89,7 +89,7 @@ export async function PATCH(req: NextRequest) {
     imagePositionY > 100 ||
     ![0, 90, 180, 270].includes(imageRotation) ||
     !Number.isInteger(imageZoom) ||
-    imageZoom < 100 ||
+    imageZoom < 50 ||
     imageZoom > 250
   ) {
     return NextResponse.json(

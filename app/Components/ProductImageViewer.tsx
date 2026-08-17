@@ -40,6 +40,8 @@ export default function ProductImageViewer({
   const [open, setOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const coverScale = (rotation % 180 === 0 ? 1 : 1.7) * (imageZoom / 100);
+  const fullscreenRotationScale = rotation % 180 === 0 ? 1 : 0.7;
+  const fullscreenZoomOutScale = Math.min(1, zoom);
 
   const closeViewer = () => {
     setOpen(false);
@@ -155,8 +157,10 @@ export default function ProductImageViewer({
                 <IconButton
                   color="inherit"
                   aria-label="Zoom ut"
-                  disabled={zoom <= 1}
-                  onClick={() => setZoom((value) => Math.max(1, value - 0.5))}
+                  disabled={zoom <= 0.5}
+                  onClick={() =>
+                    setZoom((value) => Math.max(0.5, value - 0.25))
+                  }
                 >
                   <ZoomOutIcon />
                 </IconButton>
@@ -174,7 +178,7 @@ export default function ProductImageViewer({
                   color="inherit"
                   aria-label="Zoom inn"
                   disabled={zoom >= 4}
-                  onClick={() => setZoom((value) => Math.min(4, value + 0.5))}
+                  onClick={() => setZoom((value) => Math.min(4, value + 0.25))}
                 >
                   <ZoomInIcon />
                 </IconButton>
@@ -225,10 +229,8 @@ export default function ProductImageViewer({
           <Box
             sx={{
               position: "relative",
-              width: `${zoom * 100}%`,
-              height: `${zoom * 100}%`,
-              minWidth: "100%",
-              minHeight: "100%",
+              width: `${Math.max(1, zoom) * 100}%`,
+              height: `${Math.max(1, zoom) * 100}%`,
               transition: "width 160ms ease, height 160ms ease",
             }}
           >
@@ -239,7 +241,8 @@ export default function ProductImageViewer({
               sizes="100vw"
               style={{
                 objectFit: "contain",
-                transform: `rotate(${rotation}deg) scale(${rotation % 180 === 0 ? 1 : 0.7})`,
+                transform: `rotate(${rotation}deg) scale(${fullscreenRotationScale * fullscreenZoomOutScale})`,
+                transition: "transform 160ms ease",
               }}
               priority
             />

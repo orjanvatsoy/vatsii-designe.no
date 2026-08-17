@@ -23,8 +23,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import type { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
+import { useAuth } from "../Components/AuthProvider";
 import OrderMessages, { type OrderMessage } from "../Components/OrderMessages";
 import PageShell from "../Components/PageShell";
 import { supabase } from "../lib/supabaseClient";
@@ -134,7 +134,7 @@ async function readJsonResponse<T>(response: Response, fallback: string) {
 }
 
 export default function OrdersPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, session, loading: authLoading } = useAuth();
   const [orders, setOrders] = useState<PlaceCardOrder[]>(
     useMockData ? mockOrders : [],
   );
@@ -190,29 +190,26 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (useMockData) return;
+    if (authLoading) return;
 
-    supabase.auth.getSession().then(async ({ data }) => {
-      setUser(data.session?.user ?? null);
-      if (data.session?.access_token) {
-        try {
-          await loadOrders(data.session.access_token);
-        } catch (loadError) {
-          setError(
-            loadError instanceof Error
-              ? loadError.message
-              : "Kunne ikke hente forespørslene.",
-          );
-        }
-      }
+    const token = session?.access_token;
+    if (!token) {
+      setOrders([]);
       setLoading(false);
-    });
+      return;
+    }
 
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (!session) setOrders([]);
-    });
-    return () => data.subscription.unsubscribe();
-  }, []);
+    setLoading(true);
+    loadOrders(token)
+      .catch((loadError) => {
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Kunne ikke hente forespørslene.",
+        );
+      })
+      .finally(() => setLoading(false));
+  }, [authLoading, session?.access_token]);
 
   const handleLogin = async () => {
     setError("");
@@ -337,7 +334,7 @@ export default function OrdersPage() {
     }
 
     setSettingPassword(true);
-    const { data, error: passwordError } = await supabase.auth.updateUser({
+    const { error: passwordError } = await supabase.auth.updateUser({
       password,
       data: {
         ...user?.user_metadata,
@@ -350,7 +347,6 @@ export default function OrdersPage() {
       return;
     }
 
-    setUser(data.user);
     setPassword("");
     setConfirmPassword("");
     setSuccess(
@@ -454,7 +450,7 @@ export default function OrdersPage() {
       subtitle="Se forespørslene dine, oppdater innholdet før du får svar, og finn prisestimat og leveringstid."
       maxWidth="md"
     >
-      {loading ? (
+      {authLoading || loading ? (
         <Box display="flex" justifyContent="center" py={8}>
           <CircularProgress aria-label="Henter forespørsler" />
         </Box>
