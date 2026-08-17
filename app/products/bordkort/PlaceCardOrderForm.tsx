@@ -25,6 +25,7 @@ const previewFont = localFont({
   src: "../../fonts/Watermellon.otf",
   weight: "400",
   display: "swap",
+  variable: "--font-watermellon",
 });
 
 interface PlaceCardVariant {
@@ -316,11 +317,14 @@ export default function PlaceCardOrderForm({
                     >
                       <Typography
                         className={
-                          usesWatermellon ? previewFont.className : undefined
+                          usesWatermellon ? previewFont.variable : undefined
                         }
                         component="span"
                         sx={{
                           maxWidth: "100%",
+                          fontFamily: usesWatermellon
+                            ? "var(--font-watermellon)"
+                            : undefined,
                           fontSize: { xs: "2.35rem", sm: "3.15rem" },
                           fontWeight: 400,
                           lineHeight: 1.05,
