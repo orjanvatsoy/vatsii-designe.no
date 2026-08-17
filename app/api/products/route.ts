@@ -46,6 +46,9 @@ export async function GET(req: NextRequest) {
         imagePositionY: product.imagePositionY,
         imageRotation: product.imageRotation,
         imageZoom: product.imageZoom,
+        lightburnFileName: product.lightburnFileName,
+        lightburnSizeBytes: product.lightburnSizeBytes,
+        lightburnUpdatedAt: product.lightburnUpdatedAt?.toISOString() ?? null,
         active: product.active,
         imageUrl: product.imageUrl
           ? await signImageUrl(product.imageUrl, "products")
@@ -181,6 +184,9 @@ export async function PATCH(req: NextRequest) {
         imagePositionY: product.imagePositionY,
         imageRotation: product.imageRotation,
         imageZoom: product.imageZoom,
+        lightburnFileName: product.lightburnFileName,
+        lightburnSizeBytes: product.lightburnSizeBytes,
+        lightburnUpdatedAt: product.lightburnUpdatedAt?.toISOString() ?? null,
         active: product.active,
         imageUrl: product.imageUrl
           ? await signImageUrl(product.imageUrl, "products")

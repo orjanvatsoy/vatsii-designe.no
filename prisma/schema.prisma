@@ -35,6 +35,10 @@ model Product {
   imagePositionY  Int              @default(50) @map("image_position_y")
   imageRotation   Int              @default(0) @map("image_rotation")
   imageZoom       Int              @default(100) @map("image_zoom")
+  lightburnObjectKey String?        @map("lightburn_object_key")
+  lightburnFileName  String?        @map("lightburn_file_name")
+  lightburnSizeBytes Int?           @map("lightburn_size_bytes")
+  lightburnUpdatedAt DateTime?      @map("lightburn_updated_at") @db.Timestamptz(6)
   active          Boolean          @default(true)
   placeCardOrders PlaceCardOrder[]
 

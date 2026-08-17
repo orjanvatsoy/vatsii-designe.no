@@ -1,8 +1,11 @@
 "use client";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DownloadIcon from "@mui/icons-material/Download";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
 import RotateRightIcon from "@mui/icons-material/RotateRight";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import { useState, useEffect } from "react";
@@ -46,6 +49,9 @@ interface AdminProduct {
   imagePositionY: number;
   imageRotation: number;
   imageZoom: number;
+  lightburnFileName: string | null;
+  lightburnSizeBytes: number | null;
+  lightburnUpdatedAt: string | null;
   active: boolean;
   imageUrl: string;
 }
@@ -67,6 +73,12 @@ function isQuarterTurn(rotation: number) {
 
 function imageTransform(rotation: number, zoom: number) {
   return `translate(-50%, -50%) rotate(${rotation}deg) scale(${imageScale(zoom)})`;
+}
+
+function formatFileSize(sizeBytes: number) {
+  return sizeBytes < 1024 * 1024
+    ? `${Math.ceil(sizeBytes / 1024)} kB`
+    : `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export default function AdminProductPage() {
@@ -95,6 +107,8 @@ export default function AdminProductPage() {
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [lightburnBusy, setLightburnBusy] = useState(false);
+  const [confirmLightburnDelete, setConfirmLightburnDelete] = useState(false);
   const [editError, setEditError] = useState("");
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
@@ -140,6 +154,7 @@ export default function AdminProductPage() {
     setEditActive(product.active);
     setEditImageFile(null);
     setEditImagePreview(product.imageUrl);
+    setConfirmLightburnDelete(false);
     setEditError("");
   };
 
@@ -148,6 +163,119 @@ export default function AdminProductPage() {
     if (!file) return;
     setEditImageFile(file);
     setEditImagePreview(URL.createObjectURL(file));
+  };
+
+  const updateLightburnMetadata = (
+    product: AdminProduct,
+    metadata: {
+      name: string | null;
+      sizeBytes: number | null;
+      updatedAt: string | null;
+    },
+  ) => {
+    const updatedProduct = {
+      ...product,
+      lightburnFileName: metadata.name,
+      lightburnSizeBytes: metadata.sizeBytes,
+      lightburnUpdatedAt: metadata.updatedAt,
+    };
+    setEditingProduct(updatedProduct);
+    setProducts((current) =>
+      current.map((item) =>
+        item.id === updatedProduct.id ? updatedProduct : item,
+      ),
+    );
+  };
+
+  const handleLightburnUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !editingProduct || !session?.access_token) return;
+
+    const formData = new FormData();
+    formData.append("productId", editingProduct.id);
+    formData.append("file", file);
+    setLightburnBusy(true);
+    setEditError("");
+    try {
+      const response = await fetch("/api/products/lightburn", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: formData,
+      });
+      const result = (await response.json()) as {
+        error?: string;
+        file?: { name: string; sizeBytes: number; updatedAt: string };
+      };
+      if (!response.ok || !result.file) {
+        setEditError(result.error ?? "LightBurn-filen kunne ikke lastes opp.");
+        return;
+      }
+      updateLightburnMetadata(editingProduct, result.file);
+    } catch {
+      setEditError("Kunne ikke kontakte serveren.");
+    } finally {
+      setLightburnBusy(false);
+    }
+  };
+
+  const handleLightburnDownload = async () => {
+    if (!editingProduct?.lightburnFileName || !session?.access_token) return;
+    setLightburnBusy(true);
+    setEditError("");
+    try {
+      const response = await fetch(
+        `/api/products/lightburn?productId=${editingProduct.id}`,
+        { headers: { Authorization: `Bearer ${session.access_token}` } },
+      );
+      if (!response.ok) {
+        const result = (await response.json()) as { error?: string };
+        setEditError(result.error ?? "LightBurn-filen kunne ikke lastes ned.");
+        return;
+      }
+      const downloadUrl = URL.createObjectURL(await response.blob());
+      const anchor = document.createElement("a");
+      anchor.href = downloadUrl;
+      anchor.download = editingProduct.lightburnFileName;
+      anchor.click();
+      URL.revokeObjectURL(downloadUrl);
+    } catch {
+      setEditError("Kunne ikke kontakte serveren.");
+    } finally {
+      setLightburnBusy(false);
+    }
+  };
+
+  const handleLightburnDelete = async () => {
+    if (!editingProduct || !session?.access_token) return;
+    setLightburnBusy(true);
+    setEditError("");
+    try {
+      const response = await fetch(
+        `/api/products/lightburn?productId=${editingProduct.id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        },
+      );
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setEditError(result.error ?? "LightBurn-filen kunne ikke slettes.");
+        return;
+      }
+      updateLightburnMetadata(editingProduct, {
+        name: null,
+        sizeBytes: null,
+        updatedAt: null,
+      });
+      setConfirmLightburnDelete(false);
+    } catch {
+      setEditError("Kunne ikke kontakte serveren.");
+    } finally {
+      setLightburnBusy(false);
+    }
   };
 
   const handleUpdate = async () => {
@@ -673,6 +801,110 @@ export default function AdminProductPage() {
                 onChange={handleEditFileChange}
               />
             </Button>
+            <Box
+              sx={{
+                borderTop: "1px solid",
+                borderColor: "divider",
+                pt: 2,
+              }}
+            >
+              <Typography fontWeight={700}>LightBurn-fil</Typography>
+              {editingProduct?.lightburnFileName ? (
+                <>
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>
+                    {editingProduct.lightburnFileName}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {editingProduct.lightburnSizeBytes !== null &&
+                      formatFileSize(editingProduct.lightburnSizeBytes)}
+                    {editingProduct.lightburnUpdatedAt &&
+                      ` · Oppdatert ${new Date(
+                        editingProduct.lightburnUpdatedAt,
+                      ).toLocaleDateString("nb-NO")}`}
+                  </Typography>
+                  <Stack
+                    direction="row"
+                    gap={1}
+                    flexWrap="wrap"
+                    sx={{ mt: 1.5 }}
+                  >
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<DownloadIcon />}
+                      onClick={handleLightburnDownload}
+                      disabled={lightburnBusy}
+                    >
+                      Last ned
+                    </Button>
+                    <Button
+                      component="label"
+                      size="small"
+                      variant="outlined"
+                      startIcon={<UploadFileIcon />}
+                      disabled={lightburnBusy}
+                    >
+                      Erstatt
+                      <input
+                        hidden
+                        type="file"
+                        accept=".lbrn,.lbrn2"
+                        onChange={handleLightburnUpload}
+                      />
+                    </Button>
+                    {confirmLightburnDelete ? (
+                      <>
+                        <Button
+                          size="small"
+                          color="error"
+                          variant="contained"
+                          onClick={handleLightburnDelete}
+                          disabled={lightburnBusy}
+                        >
+                          Bekreft sletting
+                        </Button>
+                        <Button
+                          size="small"
+                          onClick={() => setConfirmLightburnDelete(false)}
+                          disabled={lightburnBusy}
+                        >
+                          Behold fil
+                        </Button>
+                      </>
+                    ) : (
+                      <Tooltip title="Slett LightBurn-filen">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          aria-label="Slett LightBurn-filen"
+                          onClick={() => setConfirmLightburnDelete(true)}
+                          disabled={lightburnBusy}
+                        >
+                          <DeleteOutlineIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </Stack>
+                </>
+              ) : (
+                <Button
+                  component="label"
+                  size="small"
+                  variant="outlined"
+                  startIcon={<UploadFileIcon />}
+                  disabled={lightburnBusy}
+                  sx={{ mt: 1 }}
+                >
+                  {lightburnBusy ? "Laster opp..." : "Last opp fil"}
+                  <input
+                    hidden
+                    type="file"
+                    accept=".lbrn,.lbrn2"
+                    onChange={handleLightburnUpload}
+                  />
+                </Button>
+              )}
+            </Box>
             <TextField
               label="Navn"
               value={editName}
