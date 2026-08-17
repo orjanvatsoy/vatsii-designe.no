@@ -57,8 +57,17 @@ const inputModeLabels: Record<string, string> = {
   custom_order: "Spesialbestilling",
 };
 
-function imageScale(rotation: number, zoom: number) {
-  return (rotation % 180 === 0 ? 1 : 1.7) * (zoom / 100);
+function imageScale(zoom: number) {
+  return zoom / 100;
+}
+
+function imageTransform(
+  positionX: number,
+  positionY: number,
+  rotation: number,
+  zoom: number,
+) {
+  return `translate(${positionX - 50}%, ${positionY - 50}%) rotate(${rotation}deg) scale(${imageScale(zoom)})`;
 }
 
 export default function AdminProductPage() {
@@ -439,8 +448,13 @@ export default function AdminProductPage() {
                         sx={{
                           height: 160,
                           objectFit: "cover",
-                          objectPosition: `${product.imagePositionX}% ${product.imagePositionY}%`,
-                          transform: `rotate(${product.imageRotation}deg) scale(${imageScale(product.imageRotation, product.imageZoom)})`,
+                          objectPosition: "center",
+                          transform: imageTransform(
+                            product.imagePositionX,
+                            product.imagePositionY,
+                            product.imageRotation,
+                            product.imageZoom,
+                          ),
                         }}
                       />
                     )}
@@ -510,10 +524,14 @@ export default function AdminProductPage() {
                     width: "100%",
                     height: "100%",
                     objectFit: "cover",
-                    objectPosition: `${editImagePositionX}% ${editImagePositionY}%`,
-                    transform: `rotate(${editImageRotation}deg) scale(${imageScale(editImageRotation, editImageZoom)})`,
-                    transition:
-                      "transform 160ms ease, object-position 160ms ease",
+                    objectPosition: "center",
+                    transform: imageTransform(
+                      editImagePositionX,
+                      editImagePositionY,
+                      editImageRotation,
+                      editImageZoom,
+                    ),
+                    transition: "transform 160ms ease",
                   }}
                 />
               </Box>
@@ -561,9 +579,9 @@ export default function AdminProductPage() {
                 <span>
                   <IconButton
                     aria-label="Zoom ut av produktbildet"
-                    disabled={editImageZoom <= 50}
+                    disabled={editImageZoom <= 10}
                     onClick={() =>
-                      setEditImageZoom((current) => Math.max(50, current - 10))
+                      setEditImageZoom((current) => Math.max(10, current - 10))
                     }
                   >
                     <ZoomOutIcon />
@@ -573,7 +591,7 @@ export default function AdminProductPage() {
               <Slider
                 value={editImageZoom}
                 onChange={(_, value) => setEditImageZoom(value as number)}
-                min={50}
+                min={10}
                 max={250}
                 step={5}
                 valueLabelDisplay="auto"

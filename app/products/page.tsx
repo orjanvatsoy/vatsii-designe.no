@@ -85,7 +85,7 @@ export default async function ProductsPage() {
                     borderColor: "primary.main",
                   },
                   "&:hover .product-img": {
-                    transform: `rotate(${product.imageRotation}deg) scale(${(product.imageRotation % 180 === 0 ? 1 : 1.7) * (product.imageZoom / 100) * 1.06})`,
+                    transform: `translate(${product.imagePositionX - 50}%, ${product.imagePositionY - 50}%) rotate(${product.imageRotation}deg) scale(${(product.imageZoom / 100) * 1.06})`,
                   },
                 }}
               >
@@ -106,8 +106,8 @@ export default async function ProductsPage() {
                       fill
                       style={{
                         objectFit: "cover",
-                        objectPosition: `${product.imagePositionX}% ${product.imagePositionY}%`,
-                        transform: `rotate(${product.imageRotation}deg) scale(${(product.imageRotation % 180 === 0 ? 1 : 1.7) * (product.imageZoom / 100)})`,
+                        objectPosition: "center",
+                        transform: `translate(${product.imagePositionX - 50}%, ${product.imagePositionY - 50}%) rotate(${product.imageRotation}deg) scale(${product.imageZoom / 100})`,
                         transition: "transform 0.5s ease",
                       }}
                       loading="lazy"

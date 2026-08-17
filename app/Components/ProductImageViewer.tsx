@@ -39,7 +39,8 @@ export default function ProductImageViewer({
 }: ProductImageViewerProps) {
   const [open, setOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
-  const coverScale = (rotation % 180 === 0 ? 1 : 1.7) * (imageZoom / 100);
+  const coverScale = imageZoom / 100;
+  const imageOffset = `translate(${positionX - 50}%, ${positionY - 50}%)`;
   const fullscreenRotationScale = rotation % 180 === 0 ? 1 : 0.7;
   const fullscreenZoomOutScale = Math.min(1, zoom);
 
@@ -73,7 +74,7 @@ export default function ProductImageViewer({
             outlineOffset: -3,
           },
           "&:hover .product-detail-image": {
-            transform: `rotate(${rotation}deg) scale(${coverScale * 1.025})`,
+            transform: `${imageOffset} rotate(${rotation}deg) scale(${coverScale * 1.025})`,
           },
           "&:hover .zoom-hint, &:focus-visible .zoom-hint": {
             opacity: 1,
@@ -87,8 +88,8 @@ export default function ProductImageViewer({
           fill
           style={{
             objectFit: "cover",
-            objectPosition: `${positionX}% ${positionY}%`,
-            transform: `rotate(${rotation}deg) scale(${coverScale})`,
+            objectPosition: "center",
+            transform: `${imageOffset} rotate(${rotation}deg) scale(${coverScale})`,
             transition: "transform 220ms ease",
           }}
           priority={priority}
