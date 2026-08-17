@@ -1,6 +1,7 @@
 "use client";
 
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DownloadIcon from "@mui/icons-material/Download";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
@@ -31,6 +32,7 @@ interface OrderDetails {
   estimatedPrice: number | null;
   deliveryEstimate: string | null;
   confirmedAt: string | null;
+  cancellationReason: string | null;
   createdAt: string;
   product: {
     name: string;
@@ -79,6 +81,7 @@ export default function AdminOrderDetailsPage() {
   const [confirming, setConfirming] = useState(false);
   const [estimatedPrice, setEstimatedPrice] = useState("");
   const [deliveryEstimate, setDeliveryEstimate] = useState("");
+  const [cancellationReason, setCancellationReason] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -239,6 +242,67 @@ export default function AdminOrderDetailsPage() {
     link.download = `bordkort-${order.id}-${productName || "navn"}.csv`;
     link.click();
     URL.revokeObjectURL(blobUrl);
+  };
+
+  const handleCancelOrder = async () => {
+    if (!order || cancellationReason.trim().length < 5) return;
+    setError("");
+    setSuccess("");
+
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      setError("Du må logge inn på nytt.");
+      return;
+    }
+
+    setConfirming(true);
+    try {
+      const response = await fetch("/api/admin/place-card-orders", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          orderId: order.id,
+          action: "cancel",
+          reason: cancellationReason.trim(),
+        }),
+      });
+      const result = (await response.json()) as {
+        error?: string;
+        cancellationReason?: string;
+        notificationSent?: boolean;
+      };
+      if (!response.ok) {
+        setError(result.error ?? "Ordren kunne ikke kanselleres.");
+        return;
+      }
+
+      setOrder((current) =>
+        current
+          ? {
+              ...current,
+              status: "cancelled",
+              cancellationReason:
+                result.cancellationReason ?? cancellationReason.trim(),
+            }
+          : current,
+      );
+      if (result.notificationSent) {
+        setSuccess("Ordren er kansellert, og kunden har fått beskjed.");
+      } else {
+        setError(
+          "Ordren er kansellert, men e-posten kunne ikke sendes. Begrunnelsen vises fortsatt på kundens kontoside.",
+        );
+      }
+      setCancellationReason("");
+    } catch {
+      setError("Kunne ikke kontakte serveren.");
+    } finally {
+      setConfirming(false);
+    }
   };
 
   return (
@@ -492,6 +556,42 @@ export default function AdminOrderDetailsPage() {
                 )}
               </Box>
             ) : null}
+
+            {order.status === "cancelled" && order.cancellationReason && (
+              <Alert severity="warning">
+                <Typography fontWeight={700}>Kanselleringsgrunn</Typography>
+                {order.cancellationReason}
+              </Alert>
+            )}
+
+            {!["completed", "cancelled"].includes(order.status) && (
+              <Stack spacing={2} sx={{ maxWidth: 620 }}>
+                <Divider />
+                <Typography variant="h5" fontWeight={700}>
+                  Kanseller ordre
+                </Typography>
+                <TextField
+                  label="Begrunnelse til kunden"
+                  value={cancellationReason}
+                  onChange={(event) => setCancellationReason(event.target.value)}
+                  multiline
+                  minRows={3}
+                  required
+                  helperText={`${cancellationReason.trim().length}/500 tegn · sendes til kunden på e-post`}
+                  slotProps={{ htmlInput: { minLength: 5, maxLength: 500 } }}
+                />
+                <Button
+                  color="error"
+                  variant="outlined"
+                  startIcon={<CancelOutlinedIcon />}
+                  disabled={confirming || cancellationReason.trim().length < 5}
+                  onClick={handleCancelOrder}
+                  sx={{ alignSelf: "flex-start", textTransform: "none" }}
+                >
+                  {confirming ? "Kansellerer..." : "Kanseller og send beskjed"}
+                </Button>
+              </Stack>
+            )}
           </Stack>
         ) : null}
       </Stack>

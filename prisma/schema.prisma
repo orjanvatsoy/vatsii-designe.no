@@ -48,6 +48,7 @@ model PlaceCardOrder {
   estimatedPrice   Int?      @map("estimated_price")
   deliveryEstimate String?   @map("delivery_estimate")
   confirmedAt      DateTime? @map("confirmed_at") @db.Timestamptz(6)
+  cancellationReason String? @map("cancellation_reason") @db.Text
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime  @updatedAt @default(now()) @map("updated_at") @db.Timestamptz(6)
   customerUpdatedAt DateTime? @map("customer_updated_at") @db.Timestamptz(6)

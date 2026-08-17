@@ -35,6 +35,7 @@ export async function GET(
       estimatedPrice: true,
       deliveryEstimate: true,
       confirmedAt: true,
+      cancellationReason: true,
       createdAt: true,
       product: {
         select: {
@@ -64,6 +65,7 @@ export async function GET(
     estimatedPrice: order.estimatedPrice,
     deliveryEstimate: order.deliveryEstimate,
     confirmedAt: order.confirmedAt?.toISOString() ?? null,
+    cancellationReason: order.cancellationReason,
     createdAt: order.createdAt.toISOString(),
     product: {
       name: order.product.name,

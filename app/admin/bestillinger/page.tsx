@@ -317,7 +317,10 @@ export default function AdminOrdersPage() {
                             >
                               {attention ? "Åpne og svar" : "Åpne"}
                             </Button>
-                            {(showArchived || order.status === "completed") && (
+                            {(showArchived ||
+                              ["completed", "cancelled"].includes(
+                                order.status,
+                              )) && (
                               <Button
                                 variant="outlined"
                                 startIcon={

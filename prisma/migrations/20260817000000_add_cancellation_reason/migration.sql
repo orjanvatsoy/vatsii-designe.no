@@ -1,0 +1,1 @@
+ALTER TABLE "place_card_orders" ADD COLUMN "cancellation_reason" TEXT;

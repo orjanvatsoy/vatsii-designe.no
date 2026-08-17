@@ -36,6 +36,7 @@ interface PlaceCardOrder {
   estimatedPrice: number | null;
   deliveryEstimate: string | null;
   confirmedAt: string | null;
+  cancellationReason: string | null;
   createdAt: string;
   productName: string;
 }
@@ -53,6 +54,7 @@ const mockOrders: PlaceCardOrder[] = [
     estimatedPrice: 480,
     deliveryEstimate: "7-10 virkedager",
     confirmedAt: null,
+    cancellationReason: null,
     createdAt: "2026-08-12T10:30:00.000Z",
     productName: "Bordkort i valnøtt",
   },
@@ -64,6 +66,7 @@ const mockOrders: PlaceCardOrder[] = [
     estimatedPrice: null,
     deliveryEstimate: null,
     confirmedAt: null,
+    cancellationReason: null,
     createdAt: "2026-08-11T14:15:00.000Z",
     productName: "Bordkort i lys eik",
   },
@@ -75,6 +78,7 @@ const mockOrders: PlaceCardOrder[] = [
     estimatedPrice: 600,
     deliveryEstimate: "Levert 2. august",
     confirmedAt: "2026-07-25T09:00:00.000Z",
+    cancellationReason: null,
     createdAt: "2026-07-20T08:45:00.000Z",
     productName: "Bordkort i valnøtt",
   },
@@ -815,7 +819,22 @@ export default function OrdersPage() {
                           <Typography variant="overline" color="text.secondary">
                             Vatsii Designe
                           </Typography>
-                          {order.estimatedPrice && order.deliveryEstimate ? (
+                          {cancelled ? (
+                            <Stack spacing={1} mt={0.5}>
+                              <Typography color="text.secondary">
+                                Forespørselen er kansellert og blir ikke
+                                behandlet videre.
+                              </Typography>
+                              {order.cancellationReason && (
+                                <Alert severity="warning">
+                                  <Typography fontWeight={700}>
+                                    Begrunnelse fra Vatsii Designe
+                                  </Typography>
+                                  {order.cancellationReason}
+                                </Alert>
+                              )}
+                            </Stack>
+                          ) : order.estimatedPrice && order.deliveryEstimate ? (
                             <>
                               <Box
                                 sx={{
@@ -891,11 +910,6 @@ export default function OrdersPage() {
                                 </Typography>
                               )}
                             </>
-                          ) : cancelled ? (
-                            <Typography color="text.secondary" mt={0.5}>
-                              Forespørselen er kansellert og blir ikke behandlet
-                              videre.
-                            </Typography>
                           ) : (
                             <Typography color="text.secondary" mt={0.5}>
                               Vi går gjennom forespørselen og kommer tilbake med

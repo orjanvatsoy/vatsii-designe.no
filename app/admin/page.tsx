@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabaseClient";
 import { getCurrentProfileRole } from "../lib/profileClient";
 
 import {
+  Autocomplete,
   Box,
   Button,
   Card,
@@ -21,6 +22,7 @@ export default function AdminProductPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [saving, setSaving] = useState(false);
@@ -28,10 +30,24 @@ export default function AdminProductPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const getRole = async () => {
-      setRole(await getCurrentProfileRole());
+    const loadAdminData = async () => {
+      const currentRole = await getCurrentProfileRole();
+      setRole(currentRole);
+      if (currentRole !== "King") return;
+
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return;
+
+      const response = await fetch("/api/products", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) return;
+
+      const result = (await response.json()) as { categories: string[] };
+      setCategories(result.categories);
     };
-    getRole();
+    loadAdminData();
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,6 +91,11 @@ export default function AdminProductPage() {
         return;
       }
       setSuccess("Product saved!");
+      setCategories((current) =>
+        [...new Set([...current, category.trim()])].sort((left, right) =>
+          left.localeCompare(right, "nb-NO"),
+        ),
+      );
       setName("");
       setDescription("");
       setCategory("");
@@ -121,12 +142,21 @@ export default function AdminProductPage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
-                <TextField
-                  label="Kategori"
-                  fullWidth
-                  margin="normal"
+                <Autocomplete
+                  freeSolo
+                  options={categories}
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  onChange={(_, value) => setCategory(value ?? "")}
+                  onInputChange={(_, value) => setCategory(value)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Kategori"
+                      fullWidth
+                      margin="normal"
+                      helperText="Velg en eksisterende kategori eller skriv inn en ny."
+                    />
+                  )}
                 />
                 <input
                   type="file"

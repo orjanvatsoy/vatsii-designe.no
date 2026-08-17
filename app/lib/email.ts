@@ -72,3 +72,31 @@ export async function sendInquiryEstimateEmail(input: {
 
   if (error) throw new Error(error.message);
 }
+
+export async function sendOrderCancellationEmail(input: {
+  inquiryId: string;
+  customerEmail: string;
+  productName: string;
+  reason: string;
+  accountUrl: string;
+}) {
+  const resend = getResend();
+  if (!resend) {
+    console.warn("Cancellation email skipped: RESEND_API_KEY is missing.");
+    return false;
+  }
+
+  const { error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: input.customerEmail,
+    subject: `Bordkortforespørsel #${input.inquiryId} er kansellert`,
+    text: [
+      `Vi har dessverre kansellert forespørselen din for ${input.productName}.`,
+      `Begrunnelse: ${input.reason}`,
+      `Se forespørselen: ${input.accountUrl}`,
+    ].join("\n"),
+  });
+
+  if (error) throw new Error(error.message);
+  return true;
+}

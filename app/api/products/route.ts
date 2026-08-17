@@ -16,6 +16,21 @@ const ALLOWED_MIME = new Set([
   "image/gif",
 ]);
 
+export async function GET(req: NextRequest) {
+  const adminResult = await requireAdmin(req);
+  if (adminResult instanceof NextResponse) return adminResult;
+
+  const products = await prisma.product.findMany({
+    select: { category: true },
+    distinct: ["category"],
+    orderBy: { category: "asc" },
+  });
+
+  return NextResponse.json({
+    categories: products.map((product) => product.category),
+  });
+}
+
 export async function POST(req: NextRequest) {
   const adminResult = await requireAdmin(req);
   if (adminResult instanceof NextResponse) return adminResult;
