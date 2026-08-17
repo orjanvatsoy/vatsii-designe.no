@@ -802,7 +802,7 @@ export default function OrdersPage() {
                                 Antall: <strong>{order.quantity}</strong>
                               </Typography>
                               <Typography variant="body2">
-                                Budsjett: {" "}
+                                Budsjett:{" "}
                                 <strong>
                                   {order.customBudget === null ||
                                   order.customBudget === undefined
@@ -811,7 +811,7 @@ export default function OrdersPage() {
                                 </strong>
                               </Typography>
                               <Typography variant="body2">
-                                Ønsket leveringsdato: {" "}
+                                Ønsket leveringsdato:{" "}
                                 <strong>
                                   {order.desiredDeliveryDate
                                     ? new Intl.DateTimeFormat("nb-NO", {
@@ -826,40 +826,47 @@ export default function OrdersPage() {
                                 </strong>
                               </Typography>
                               {(order.attachments ?? []).length > 0 && (
-                                <Stack direction="row" gap={1.5} flexWrap="wrap">
-                                  {(order.attachments ?? []).map((attachment) =>
-                                    attachment.contentType.startsWith("image/") ? (
-                                      <Box
-                                        key={attachment.id}
-                                        component="a"
-                                        href={attachment.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                      >
+                                <Stack
+                                  direction="row"
+                                  gap={1.5}
+                                  flexWrap="wrap"
+                                >
+                                  {(order.attachments ?? []).map(
+                                    (attachment) =>
+                                      attachment.contentType.startsWith(
+                                        "image/",
+                                      ) ? (
                                         <Box
-                                          component="img"
-                                          src={attachment.url}
-                                          alt={attachment.fileName}
-                                          sx={{
-                                            width: 120,
-                                            height: 90,
-                                            objectFit: "cover",
-                                            borderRadius: 1,
-                                          }}
-                                        />
-                                      </Box>
-                                    ) : (
-                                      <Button
-                                        key={attachment.id}
-                                        variant="outlined"
-                                        component="a"
-                                        href={attachment.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                      >
-                                        Åpne {attachment.fileName}
-                                      </Button>
-                                    ),
+                                          key={attachment.id}
+                                          component="a"
+                                          href={attachment.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                        >
+                                          <Box
+                                            component="img"
+                                            src={attachment.url}
+                                            alt={attachment.fileName}
+                                            sx={{
+                                              width: 120,
+                                              height: 90,
+                                              objectFit: "cover",
+                                              borderRadius: 1,
+                                            }}
+                                          />
+                                        </Box>
+                                      ) : (
+                                        <Button
+                                          key={attachment.id}
+                                          variant="outlined"
+                                          component="a"
+                                          href={attachment.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                        >
+                                          Åpne {attachment.fileName}
+                                        </Button>
+                                      ),
                                   )}
                                 </Stack>
                               )}

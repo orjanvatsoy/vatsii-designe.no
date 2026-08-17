@@ -40,7 +40,10 @@ export async function POST(request: Request) {
   try {
     formData = await request.formData();
   } catch {
-    return NextResponse.json({ error: "Ugyldig forespørsel." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Ugyldig forespørsel." },
+      { status: 400 },
+    );
   }
 
   if (readText(formData, "website")) {
@@ -83,7 +86,11 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  if (!Number.isInteger(quantityValue) || quantityValue < 1 || quantityValue > 10000) {
+  if (
+    !Number.isInteger(quantityValue) ||
+    quantityValue < 1 ||
+    quantityValue > 10000
+  ) {
     return NextResponse.json(
       { error: "Antall må være et heltall mellom 1 og 10 000." },
       { status: 400 },
@@ -102,14 +109,20 @@ export async function POST(request: Request) {
   let desiredDeliveryDate: Date | null = null;
   if (deliveryDateText) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(deliveryDateText)) {
-      return NextResponse.json({ error: "Ugyldig leveringsdato." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Ugyldig leveringsdato." },
+        { status: 400 },
+      );
     }
     desiredDeliveryDate = new Date(`${deliveryDateText}T00:00:00.000Z`);
     if (
       Number.isNaN(desiredDeliveryDate.getTime()) ||
       desiredDeliveryDate.toISOString().slice(0, 10) !== deliveryDateText
     ) {
-      return NextResponse.json({ error: "Ugyldig leveringsdato." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Ugyldig leveringsdato." },
+        { status: 400 },
+      );
     }
   }
 

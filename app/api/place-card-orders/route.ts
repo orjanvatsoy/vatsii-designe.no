@@ -89,38 +89,40 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json(
-      await Promise.all(orders.map(async (order) => ({
-        id: order.id.toString(),
-        inputMode: order.inputMode,
-        names: order.names.split("\n").filter(Boolean),
-        quantity: order.quantity,
-        customDimensions: order.customDimensions,
-        customBudget: order.customBudget,
-        desiredDeliveryDate:
-          order.desiredDeliveryDate?.toISOString().slice(0, 10) ?? null,
-        status: order.status,
-        estimatedPrice: order.estimatedPrice,
-        deliveryEstimate: order.deliveryEstimate,
-        confirmedAt: order.confirmedAt?.toISOString() ?? null,
-        cancellationReason: order.cancellationReason,
-        createdAt: order.createdAt.toISOString(),
-        updatedAt: order.updatedAt.toISOString(),
-        customerUpdatedAt: order.customerUpdatedAt?.toISOString() ?? null,
-        attachments: await Promise.all(
-          order.attachments.map(async (attachment) => ({
-            id: attachment.id,
-            fileName: attachment.fileName,
-            contentType: attachment.contentType,
-            sizeBytes: attachment.sizeBytes,
-            url: await signImageUrl(
-              attachment.objectKey,
-              "inquiry-attachments",
-              60 * 60,
-            ),
-          })),
-        ),
-        productName: order.product.name,
-      }))),
+      await Promise.all(
+        orders.map(async (order) => ({
+          id: order.id.toString(),
+          inputMode: order.inputMode,
+          names: order.names.split("\n").filter(Boolean),
+          quantity: order.quantity,
+          customDimensions: order.customDimensions,
+          customBudget: order.customBudget,
+          desiredDeliveryDate:
+            order.desiredDeliveryDate?.toISOString().slice(0, 10) ?? null,
+          status: order.status,
+          estimatedPrice: order.estimatedPrice,
+          deliveryEstimate: order.deliveryEstimate,
+          confirmedAt: order.confirmedAt?.toISOString() ?? null,
+          cancellationReason: order.cancellationReason,
+          createdAt: order.createdAt.toISOString(),
+          updatedAt: order.updatedAt.toISOString(),
+          customerUpdatedAt: order.customerUpdatedAt?.toISOString() ?? null,
+          attachments: await Promise.all(
+            order.attachments.map(async (attachment) => ({
+              id: attachment.id,
+              fileName: attachment.fileName,
+              contentType: attachment.contentType,
+              sizeBytes: attachment.sizeBytes,
+              url: await signImageUrl(
+                attachment.objectKey,
+                "inquiry-attachments",
+                60 * 60,
+              ),
+            })),
+          ),
+          productName: order.product.name,
+        })),
+      ),
     );
   } catch (error) {
     console.error("Failed to load place card inquiries:", error);

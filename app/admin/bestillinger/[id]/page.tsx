@@ -504,7 +504,9 @@ export default function AdminOrderDetailsPage() {
                               dateStyle: "long",
                               timeZone: "UTC",
                             }).format(
-                              new Date(`${order.desiredDeliveryDate}T00:00:00Z`),
+                              new Date(
+                                `${order.desiredDeliveryDate}T00:00:00Z`,
+                              ),
                             )
                           : "Ikke oppgitt"}
                       </Typography>

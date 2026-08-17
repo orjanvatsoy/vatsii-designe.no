@@ -54,8 +54,6 @@ export default function ProductInquiryForm({
   const [input, setInput] = useState("");
   const [dimensions, setDimensions] = useState("");
   const [quantity, setQuantity] = useState("1");
-  const [budget, setBudget] = useState("");
-  const [deliveryDate, setDeliveryDate] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -118,8 +116,6 @@ export default function ProductInquiryForm({
         formData.append("description", input.trim());
         formData.append("dimensions", dimensions.trim());
         formData.append("quantity", quantity);
-        formData.append("budget", budget);
-        formData.append("deliveryDate", deliveryDate);
         formData.append("customerName", customerName.trim());
         formData.append("customerEmail", customerEmail.trim());
         formData.append("website", website);
@@ -181,8 +177,6 @@ export default function ProductInquiryForm({
       setInput("");
       setDimensions("");
       setQuantity("1");
-      setBudget("");
-      setDeliveryDate("");
       setAttachments([]);
     } catch {
       setError("Kunne ikke kontakte serveren. Prøv igjen.");
@@ -252,24 +246,6 @@ export default function ProductInquiryForm({
               ? attachments.map((file) => file.name).join(", ")
               : "Valgfritt · inntil 5 bilder eller PDF-er, maks 5 MB per fil"}
           </Typography>
-          <TextField
-            label="Omtrentlig budsjett (kr)"
-            type="number"
-            value={budget}
-            onChange={(event) => setBudget(event.target.value)}
-            helperText="Valgfritt"
-            slotProps={{
-              htmlInput: { min: 0, max: 10000000, step: 1 },
-            }}
-          />
-          <TextField
-            label="Ønsket leveringsdato"
-            type="date"
-            value={deliveryDate}
-            onChange={(event) => setDeliveryDate(event.target.value)}
-            helperText="Valgfritt"
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
         </>
       )}
       <TextField
