@@ -61,13 +61,12 @@ function imageScale(zoom: number) {
   return zoom / 100;
 }
 
-function imageTransform(
-  positionX: number,
-  positionY: number,
-  rotation: number,
-  zoom: number,
-) {
-  return `translate(${positionX - 50}%, ${positionY - 50}%) rotate(${rotation}deg) scale(${imageScale(zoom)})`;
+function isQuarterTurn(rotation: number) {
+  return Math.abs(rotation) % 180 === 90;
+}
+
+function imageTransform(rotation: number, zoom: number) {
+  return `translate(-50%, -50%) rotate(${rotation}deg) scale(${imageScale(zoom)})`;
 }
 
 export default function AdminProductPage() {
@@ -441,22 +440,39 @@ export default function AdminProductPage() {
                     }}
                   >
                     {product.imageUrl && (
-                      <CardMedia
-                        component="img"
-                        image={product.imageUrl}
-                        alt={product.name}
+                      <Box
                         sx={{
+                          position: "relative",
                           height: 160,
-                          objectFit: "cover",
-                          objectPosition: "center",
-                          transform: imageTransform(
-                            product.imagePositionX,
-                            product.imagePositionY,
-                            product.imageRotation,
-                            product.imageZoom,
-                          ),
+                          overflow: "hidden",
+                          bgcolor: "#16150F",
+                          containerType: "size",
                         }}
-                      />
+                      >
+                        <CardMedia
+                          component="img"
+                          image={product.imageUrl}
+                          alt={product.name}
+                          sx={{
+                            position: "absolute",
+                            left: `${product.imagePositionX}%`,
+                            top: `${product.imagePositionY}%`,
+                            width: isQuarterTurn(product.imageRotation)
+                              ? "100cqh"
+                              : "100cqw",
+                            height: isQuarterTurn(product.imageRotation)
+                              ? "100cqw"
+                              : "100cqh",
+                            maxWidth: "none",
+                            objectFit: "contain",
+                            objectPosition: "center",
+                            transform: imageTransform(
+                              product.imageRotation,
+                              product.imageZoom,
+                            ),
+                          }}
+                        />
+                      </Box>
                     )}
                     <CardContent>
                       <Typography variant="h6" fontWeight={700}>
@@ -514,6 +530,7 @@ export default function AdminProductPage() {
                   height: 220,
                   overflow: "hidden",
                   bgcolor: "#16150F",
+                  containerType: "size",
                 }}
               >
                 <Box
@@ -521,16 +538,19 @@ export default function AdminProductPage() {
                   src={editImagePreview}
                   alt="Forhåndsvisning"
                   sx={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
+                    position: "absolute",
+                    left: `${editImagePositionX}%`,
+                    top: `${editImagePositionY}%`,
+                    width: isQuarterTurn(editImageRotation)
+                      ? "100cqh"
+                      : "100cqw",
+                    height: isQuarterTurn(editImageRotation)
+                      ? "100cqw"
+                      : "100cqh",
+                    maxWidth: "none",
+                    objectFit: "contain",
                     objectPosition: "center",
-                    transform: imageTransform(
-                      editImagePositionX,
-                      editImagePositionY,
-                      editImageRotation,
-                      editImageZoom,
-                    ),
+                    transform: imageTransform(editImageRotation, editImageZoom),
                     transition: "transform 160ms ease",
                   }}
                 />

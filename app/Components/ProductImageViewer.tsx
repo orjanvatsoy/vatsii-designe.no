@@ -40,7 +40,7 @@ export default function ProductImageViewer({
   const [open, setOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const coverScale = imageZoom / 100;
-  const imageOffset = `translate(${positionX - 50}%, ${positionY - 50}%)`;
+  const quarterTurn = Math.abs(rotation) % 180 === 90;
   const fullscreenRotationScale = rotation % 180 === 0 ? 1 : 0.7;
   const fullscreenZoomOutScale = Math.min(1, zoom);
 
@@ -68,13 +68,14 @@ export default function ProductImageViewer({
           bgcolor: "#16150F",
           cursor: "zoom-in",
           overflow: "hidden",
+          containerType: "size",
           "&:focus-visible": {
             outline: "3px solid",
             outlineColor: "primary.light",
             outlineOffset: -3,
           },
           "&:hover .product-detail-image": {
-            transform: `${imageOffset} rotate(${rotation}deg) scale(${coverScale * 1.025})`,
+            transform: `translate(-50%, -50%) rotate(${rotation}deg) scale(${coverScale * 1.025})`,
           },
           "&:hover .zoom-hint, &:focus-visible .zoom-hint": {
             opacity: 1,
@@ -87,9 +88,15 @@ export default function ProductImageViewer({
           alt={alt}
           fill
           style={{
-            objectFit: "cover",
+            inset: "auto",
+            left: `${positionX}%`,
+            top: `${positionY}%`,
+            width: quarterTurn ? "100cqh" : "100cqw",
+            height: quarterTurn ? "100cqw" : "100cqh",
+            maxWidth: "none",
+            objectFit: "contain",
             objectPosition: "center",
-            transform: `${imageOffset} rotate(${rotation}deg) scale(${coverScale})`,
+            transform: `translate(-50%, -50%) rotate(${rotation}deg) scale(${coverScale})`,
             transition: "transform 220ms ease",
           }}
           priority={priority}

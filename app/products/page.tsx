@@ -85,7 +85,7 @@ export default async function ProductsPage() {
                     borderColor: "primary.main",
                   },
                   "&:hover .product-img": {
-                    transform: `translate(${product.imagePositionX - 50}%, ${product.imagePositionY - 50}%) rotate(${product.imageRotation}deg) scale(${(product.imageZoom / 100) * 1.06})`,
+                    transform: `translate(-50%, -50%) rotate(${product.imageRotation}deg) scale(${(product.imageZoom / 100) * 1.06})`,
                   },
                 }}
               >
@@ -96,6 +96,7 @@ export default async function ProductsPage() {
                     position: "relative",
                     bgcolor: "#16150F",
                     overflow: "hidden",
+                    containerType: "size",
                   }}
                 >
                   {product.image_url ? (
@@ -105,9 +106,21 @@ export default async function ProductsPage() {
                       alt={product.name}
                       fill
                       style={{
-                        objectFit: "cover",
+                        inset: "auto",
+                        left: `${product.imagePositionX}%`,
+                        top: `${product.imagePositionY}%`,
+                        width:
+                          Math.abs(product.imageRotation) % 180 === 90
+                            ? "100cqh"
+                            : "100cqw",
+                        height:
+                          Math.abs(product.imageRotation) % 180 === 90
+                            ? "100cqw"
+                            : "100cqh",
+                        maxWidth: "none",
+                        objectFit: "contain",
                         objectPosition: "center",
-                        transform: `translate(${product.imagePositionX - 50}%, ${product.imagePositionY - 50}%) rotate(${product.imageRotation}deg) scale(${product.imageZoom / 100})`,
+                        transform: `translate(-50%, -50%) rotate(${product.imageRotation}deg) scale(${product.imageZoom / 100})`,
                         transition: "transform 0.5s ease",
                       }}
                       loading="lazy"
