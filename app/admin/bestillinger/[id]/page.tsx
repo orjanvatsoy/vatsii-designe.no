@@ -5,7 +5,9 @@ import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DownloadIcon from "@mui/icons-material/Download";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import {
   Alert,
@@ -19,8 +21,13 @@ import {
   DialogContentText,
   DialogTitle,
   Divider,
+  IconButton,
+  ListItemIcon,
+  Menu,
+  MenuItem,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import Image from "next/image";
@@ -105,6 +112,9 @@ export default function AdminOrderDetailsPage() {
   const [estimatedPrice, setEstimatedPrice] = useState("");
   const [deliveryEstimate, setDeliveryEstimate] = useState("");
   const [cancellationReason, setCancellationReason] = useState("");
+  const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(
+    null,
+  );
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
@@ -433,15 +443,35 @@ export default function AdminOrderDetailsPage() {
             Tilbake til forespørsler
           </Button>
           {order && (
-            <Button
-              color="error"
-              startIcon={<DeleteOutlineIcon />}
-              onClick={() => setDeleteDialogOpen(true)}
-            >
-              Slett
-            </Button>
+            <Tooltip title="Flere handlinger">
+              <IconButton
+                aria-label="Flere handlinger"
+                onClick={(event) => setActionMenuAnchor(event.currentTarget)}
+                sx={{ width: 44, height: 44 }}
+              >
+                <MoreVertIcon />
+              </IconButton>
+            </Tooltip>
           )}
         </Stack>
+        <Menu
+          anchorEl={actionMenuAnchor}
+          open={Boolean(actionMenuAnchor)}
+          onClose={() => setActionMenuAnchor(null)}
+        >
+          <MenuItem
+            onClick={() => {
+              setActionMenuAnchor(null);
+              setDeleteDialogOpen(true);
+            }}
+            sx={{ color: "error.main" }}
+          >
+            <ListItemIcon sx={{ color: "inherit" }}>
+              <DeleteOutlineIcon fontSize="small" />
+            </ListItemIcon>
+            Slett permanent
+          </MenuItem>
+        </Menu>
 
         {loading ? (
           <Box display="flex" justifyContent="center" py={8}>
@@ -459,6 +489,8 @@ export default function AdminOrderDetailsPage() {
                 direction="row"
                 spacing={{ xs: 2, md: 5 }}
                 alignItems="flex-start"
+                flexWrap={{ xs: "wrap", md: "nowrap" }}
+                useFlexGap
                 sx={{ order: { xs: 2, md: 0 } }}
               >
                 {order.product.imageUrl && (
@@ -524,9 +556,9 @@ export default function AdminOrderDetailsPage() {
                     />
                   </Stack>
 
-                  <Divider />
+                  <Divider sx={{ display: { xs: "none", md: "block" } }} />
 
-                  <Box>
+                  <Box sx={{ display: { xs: "none", md: "block" } }}>
                     <Typography variant="overline" color="text.secondary">
                       Kunde
                     </Typography>
@@ -541,7 +573,7 @@ export default function AdminOrderDetailsPage() {
                     </Typography>
                   </Box>
 
-                  <Box>
+                  <Box sx={{ display: { xs: "none", md: "block" } }}>
                     <Typography variant="overline" color="text.secondary">
                       Sendt inn
                     </Typography>
@@ -553,6 +585,44 @@ export default function AdminOrderDetailsPage() {
                     </Typography>
                   </Box>
                 </Stack>
+
+                <Box
+                  sx={{
+                    width: "100%",
+                    display: { xs: "grid", md: "none" },
+                    gridTemplateColumns: "minmax(0, 1fr) auto",
+                    gap: 2,
+                    pt: 1.5,
+                    borderTop: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Kunde
+                    </Typography>
+                    <Typography fontWeight={700} noWrap>
+                      {order.customerName || "Navn ikke oppgitt"}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ overflowWrap: "anywhere" }}
+                    >
+                      {order.customerEmail}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ textAlign: "right" }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Sendt inn
+                    </Typography>
+                    <Typography variant="body2" fontWeight={700}>
+                      {new Intl.DateTimeFormat("nb-NO", {
+                        dateStyle: "medium",
+                      }).format(new Date(order.createdAt))}
+                    </Typography>
+                  </Box>
+                </Box>
               </Stack>
 
               <Divider sx={{ order: 1 }} />
@@ -574,7 +644,7 @@ export default function AdminOrderDetailsPage() {
                           ? "Spesialbestilling"
                           : "Kommentar"}
                   </Typography>
-                  {["name_list", "single_name"].includes(order.inputMode) && (
+                  {order.inputMode === "name_list" && (
                     <Button
                       variant="outlined"
                       startIcon={<DownloadIcon />}
@@ -716,7 +786,7 @@ export default function AdminOrderDetailsPage() {
                     </Typography>
                   </Box>
                 )}
-                {["name_list", "single_name"].includes(order.inputMode) && (
+                {order.inputMode === "name_list" && (
                   <Button
                     variant="outlined"
                     startIcon={<DownloadIcon />}
@@ -745,60 +815,6 @@ export default function AdminOrderDetailsPage() {
                 )}
               </Box>
             </Stack>
-
-            <Box>
-              <Stack
-                direction={{ xs: "column", sm: "row" }}
-                alignItems={{ xs: "stretch", sm: "center" }}
-                justifyContent="space-between"
-                gap={1.5}
-                mb={order.attachments.length > 0 ? 2 : 0}
-              >
-                <Box>
-                  <Typography variant="h6" fontWeight={700}>
-                    Filer og bilder
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Valgfritt: SVG til godkjenning, produksjonsfil eller bilde
-                    av ferdig produkt.
-                  </Typography>
-                </Box>
-                <Button
-                  component="label"
-                  variant="outlined"
-                  startIcon={<UploadFileIcon />}
-                  disabled={uploadingAttachment}
-                >
-                  {uploadingAttachment ? "Laster opp..." : "Legg til fil"}
-                  <input
-                    hidden
-                    type="file"
-                    accept=".jpg,.jpeg,.png,.webp,.svg,.pdf,.lbrn,.lbrn2"
-                    onChange={handleAttachmentUpload}
-                  />
-                </Button>
-              </Stack>
-              <OrderAttachments
-                attachments={order.attachments}
-                showHeading={false}
-              />
-            </Box>
-
-            <Divider />
-
-            <OrderMessages
-              orderId={order.id}
-              currentRole="admin"
-              messages={order.messages}
-              endpoint={`/api/admin/place-card-orders/${order.id}/messages`}
-              onMessageSent={(message) =>
-                setOrder((current) =>
-                  current
-                    ? { ...current, messages: [...current.messages, message] }
-                    : current,
-                )
-              }
-            />
 
             {order.status === "new" ? (
               <Stack spacing={2} sx={{ maxWidth: 620 }}>
@@ -830,7 +846,7 @@ export default function AdminOrderDetailsPage() {
                     confirming || !estimatedPrice || !deliveryEstimate.trim()
                   }
                   onClick={handleConfirm}
-                  sx={{ alignSelf: "flex-start", textTransform: "none", px: 4 }}
+                  sx={{ alignSelf: "flex-start", px: 4 }}
                 >
                   {confirming ? "Sender svar..." : "Send estimat til kunden"}
                 </Button>
@@ -888,7 +904,7 @@ export default function AdminOrderDetailsPage() {
                     startIcon={<LocalShippingOutlinedIcon />}
                     onClick={handleMarkDelivered}
                     disabled={confirming}
-                    sx={{ mt: 2.5, textTransform: "none" }}
+                    sx={{ mt: 2.5 }}
                   >
                     {confirming ? "Oppdaterer..." : "Marker som levert"}
                   </Button>
@@ -900,6 +916,185 @@ export default function AdminOrderDetailsPage() {
                 )}
               </Box>
             ) : null}
+
+            {order.attachments.length === 0 ? (
+              <Box
+                component="details"
+                sx={{
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 1,
+                  "&[open] .secondary-expand-icon": {
+                    transform: "rotate(180deg)",
+                  },
+                }}
+              >
+                <Box
+                  component="summary"
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 2,
+                    px: 2,
+                    py: 1.5,
+                    cursor: "pointer",
+                    listStyle: "none",
+                    "&::-webkit-details-marker": { display: "none" },
+                  }}
+                >
+                  <Box>
+                    <Typography fontWeight={700}>Filer og bilder</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Ingen filer
+                    </Typography>
+                  </Box>
+                  <ExpandMoreIcon
+                    className="secondary-expand-icon"
+                    color="primary"
+                    sx={{
+                      flexShrink: 0,
+                      transition: "transform 160ms ease",
+                    }}
+                  />
+                </Box>
+                <Stack spacing={1.5} sx={{ px: 2, pb: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Legg til SVG til godkjenning, produksjonsfil eller bilde av
+                    ferdig produkt.
+                  </Typography>
+                  <Button
+                    component="label"
+                    variant="outlined"
+                    startIcon={<UploadFileIcon />}
+                    disabled={uploadingAttachment}
+                    sx={{ alignSelf: "flex-start" }}
+                  >
+                    {uploadingAttachment ? "Laster opp..." : "Legg til fil"}
+                    <input
+                      hidden
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.webp,.svg,.pdf,.lbrn,.lbrn2"
+                      onChange={handleAttachmentUpload}
+                    />
+                  </Button>
+                </Stack>
+              </Box>
+            ) : (
+              <Box>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  alignItems={{ xs: "stretch", sm: "center" }}
+                  justifyContent="space-between"
+                  gap={1.5}
+                  mb={2}
+                >
+                  <Box>
+                    <Typography variant="h6" fontWeight={700}>
+                      Filer og bilder
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {order.attachments.length} vedlegg
+                    </Typography>
+                  </Box>
+                  <Button
+                    component="label"
+                    variant="outlined"
+                    startIcon={<UploadFileIcon />}
+                    disabled={uploadingAttachment}
+                  >
+                    {uploadingAttachment ? "Laster opp..." : "Legg til fil"}
+                    <input
+                      hidden
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.webp,.svg,.pdf,.lbrn,.lbrn2"
+                      onChange={handleAttachmentUpload}
+                    />
+                  </Button>
+                </Stack>
+                <OrderAttachments
+                  attachments={order.attachments}
+                  showHeading={false}
+                />
+              </Box>
+            )}
+
+            {order.messages.length === 0 ? (
+              <Box
+                component="details"
+                sx={{
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 1,
+                  "&[open] .secondary-expand-icon": {
+                    transform: "rotate(180deg)",
+                  },
+                }}
+              >
+                <Box
+                  component="summary"
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 2,
+                    px: 2,
+                    py: 1.5,
+                    cursor: "pointer",
+                    listStyle: "none",
+                    "&::-webkit-details-marker": { display: "none" },
+                  }}
+                >
+                  <Box>
+                    <Typography fontWeight={700}>Samtale</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Ingen meldinger
+                    </Typography>
+                  </Box>
+                  <ExpandMoreIcon
+                    className="secondary-expand-icon"
+                    color="primary"
+                    sx={{
+                      flexShrink: 0,
+                      transition: "transform 160ms ease",
+                    }}
+                  />
+                </Box>
+                <Box sx={{ px: 2, pb: 2 }}>
+                  <OrderMessages
+                    orderId={order.id}
+                    currentRole="admin"
+                    messages={order.messages}
+                    endpoint={`/api/admin/place-card-orders/${order.id}/messages`}
+                    showHeader={false}
+                    onMessageSent={(message) =>
+                      setOrder((current) =>
+                        current
+                          ? {
+                              ...current,
+                              messages: [...current.messages, message],
+                            }
+                          : current,
+                      )
+                    }
+                  />
+                </Box>
+              </Box>
+            ) : (
+              <OrderMessages
+                orderId={order.id}
+                currentRole="admin"
+                messages={order.messages}
+                endpoint={`/api/admin/place-card-orders/${order.id}/messages`}
+                onMessageSent={(message) =>
+                  setOrder((current) =>
+                    current
+                      ? { ...current, messages: [...current.messages, message] }
+                      : current,
+                  )
+                }
+              />
+            )}
 
             {order.status === "cancelled" && order.cancellationReason && (
               <Alert severity="warning">

@@ -2,6 +2,7 @@
 
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import UnarchiveOutlinedIcon from "@mui/icons-material/UnarchiveOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
@@ -16,6 +17,9 @@ import {
   DialogContentText,
   DialogTitle,
   IconButton,
+  ListItemIcon,
+  Menu,
+  MenuItem,
   Paper,
   Stack,
   Tooltip,
@@ -90,6 +94,10 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [actionMenu, setActionMenu] = useState<{
+    anchor: HTMLElement;
+    order: AdminOrder;
+  } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminOrder | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -416,14 +424,18 @@ export default function AdminOrdersPage() {
                           </span>
                         </Tooltip>
                       )}
-                      <Tooltip title="Slett permanent">
+                      <Tooltip title="Flere handlinger">
                         <IconButton
-                          color="error"
-                          aria-label={`Slett forespørsel ${order.id}`}
-                          onClick={() => setDeleteTarget(order)}
+                          aria-label={`Flere handlinger for forespørsel ${order.id}`}
+                          onClick={(event) =>
+                            setActionMenu({
+                              anchor: event.currentTarget,
+                              order,
+                            })
+                          }
                           sx={{ width: 44, height: 44 }}
                         >
-                          <DeleteOutlineIcon />
+                          <MoreVertIcon />
                         </IconButton>
                       </Tooltip>
                     </Stack>
@@ -434,6 +446,24 @@ export default function AdminOrdersPage() {
           )}
         </Stack>
       )}
+      <Menu
+        anchorEl={actionMenu?.anchor}
+        open={Boolean(actionMenu)}
+        onClose={() => setActionMenu(null)}
+      >
+        <MenuItem
+          onClick={() => {
+            if (actionMenu) setDeleteTarget(actionMenu.order);
+            setActionMenu(null);
+          }}
+          sx={{ color: "error.main" }}
+        >
+          <ListItemIcon sx={{ color: "inherit" }}>
+            <DeleteOutlineIcon fontSize="small" />
+          </ListItemIcon>
+          Slett permanent
+        </MenuItem>
+      </Menu>
       <Dialog
         open={Boolean(deleteTarget)}
         onClose={() => {

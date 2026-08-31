@@ -10,6 +10,42 @@ function getResend() {
   return apiKey ? new Resend(apiKey) : null;
 }
 
+export async function sendContactEmail(input: {
+  name: string;
+  email: string;
+  topic: string;
+  message: string;
+}) {
+  const resend = getResend();
+  const recipient =
+    process.env.CONTACT_EMAIL_TO ?? process.env.ORDER_NOTIFICATION_EMAIL;
+  const from = process.env.CONTACT_EMAIL_FROM ?? FROM_EMAIL;
+
+  if (!resend || !recipient) {
+    console.warn(
+      "Contact email skipped: RESEND_API_KEY or contact recipient is missing.",
+    );
+    return false;
+  }
+
+  const { error } = await resend.emails.send({
+    from,
+    to: recipient,
+    replyTo: input.email,
+    subject: `Ny melding fra kontaktskjemaet: ${input.topic}`,
+    text: [
+      `Navn: ${input.name}`,
+      `E-post: ${input.email}`,
+      `Tema: ${input.topic}`,
+      "",
+      input.message,
+    ].join("\n"),
+  });
+  if (error) throw new Error(error.message);
+
+  return true;
+}
+
 export async function sendNewInquiryEmail(input: {
   inquiryId: string;
   customerName: string | null;

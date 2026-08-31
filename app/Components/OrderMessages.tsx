@@ -26,6 +26,7 @@ interface OrderMessagesProps {
   messages: OrderMessage[];
   endpoint: string;
   onMessageSent: (message: OrderMessage) => void;
+  showHeader?: boolean;
 }
 
 export default function OrderMessages({
@@ -34,6 +35,7 @@ export default function OrderMessages({
   messages,
   endpoint,
   onMessageSent,
+  showHeader = true,
 }: OrderMessagesProps) {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -90,22 +92,24 @@ export default function OrderMessages({
         bgcolor: "background.default",
       }}
     >
-      <Box
-        sx={{
-          px: { xs: 2, sm: 2.5 },
-          py: 1.5,
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          bgcolor: "background.paper",
-        }}
-      >
-        <Typography variant="h6" fontWeight={700}>
-          Samtale
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          Forespørsel #{orderId}
-        </Typography>
-      </Box>
+      {showHeader && (
+        <Box
+          sx={{
+            px: { xs: 2, sm: 2.5 },
+            py: 1.5,
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            bgcolor: "background.paper",
+          }}
+        >
+          <Typography variant="h6" fontWeight={700}>
+            Samtale
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Forespørsel #{orderId}
+          </Typography>
+        </Box>
+      )}
 
       <Box
         role="log"

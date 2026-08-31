@@ -56,6 +56,22 @@ ORDER_EMAIL_FROM=Vatsii Designe <foresporsel@ditt-verifiserte-domene.no>
 `ORDER_EMAIL_FROM` må bruke et domene som er verifisert i Resend. En
 forespørsel lagres selv om e-posttjenesten midlertidig er utilgjengelig.
 
+### Kontaktskjema
+
+Kontaktskjemaet på `/contact` bruker den samme Resend-integrasjonen som
+forespørsler og ordrevarsler. Eksisterende `RESEND_API_KEY`,
+`ORDER_NOTIFICATION_EMAIL` og `ORDER_EMAIL_FROM` er tilstrekkelig.
+Mottaker og avsender kan eventuelt overstyres bare for kontaktskjemaet:
+
+```env
+CONTACT_EMAIL_TO=din-epost@eksempel.no
+CONTACT_EMAIL_FROM=Vatsii Designe <kontakt@ditt-verifiserte-domene.no>
+```
+
+Den besøkendes e-postadresse settes som `Reply-To`, mens avsenderen alltid er
+adressen på det verifiserte domenet. Dette beskytter leveringen mot SPF- og
+DMARC-feil og gjør at Svar-knappen i e-postprogrammet svarer den besøkende.
+
 ## Passordfri innlogging
 
 Kunder kan sende forespørsel uten konto. Supabase sender deretter en sekssifret
