@@ -454,228 +454,297 @@ export default function AdminOrderDetailsPage() {
             {error && <Alert severity="error">{error}</Alert>}
             {success && <Alert severity="success">{success}</Alert>}
 
-            <Stack
-              direction={{ xs: "column", md: "row" }}
-              spacing={{ xs: 3, md: 5 }}
-              alignItems="stretch"
-            >
-              {order.product.imageUrl && (
-                <Box
-                  sx={{
-                    position: "relative",
-                    width: { xs: "100%", md: 360 },
-                    minHeight: { xs: 260, md: 320 },
-                    flexShrink: 0,
-                    overflow: "hidden",
-                    bgcolor: "#16150F",
-                    borderRadius: 1,
-                  }}
-                >
-                  <Image
-                    src={order.product.imageUrl}
-                    alt={order.product.name}
-                    fill
-                    sizes="(max-width: 900px) 100vw, 360px"
-                    style={{ objectFit: "cover" }}
-                    priority
-                  />
-                </Box>
-              )}
-
-              <Stack spacing={2.5} flex={1} justifyContent="center">
-                <Box>
-                  <Typography variant="overline" color="text.secondary">
-                    Produkt
-                  </Typography>
-                  <Typography variant="h4" fontWeight={800}>
-                    {order.product.name}
-                  </Typography>
-                  <Typography color="text.secondary" mt={1}>
-                    {order.product.description}
-                  </Typography>
-                </Box>
-
-                <Stack direction="row" gap={1} flexWrap="wrap">
-                  <Chip label={order.product.category} variant="outlined" />
-                  {["name_list", "custom_order"].includes(order.inputMode) && (
-                    <Chip label={`${order.quantity} stk.`} />
-                  )}
-                  <Chip
-                    label={statusLabels[order.status] ?? order.status}
-                    color={order.status === "new" ? "warning" : "success"}
-                  />
-                </Stack>
-
-                <Divider />
-
-                <Box>
-                  <Typography variant="overline" color="text.secondary">
-                    Kunde
-                  </Typography>
-                  <Typography fontWeight={700}>
-                    {order.customerName || "Navn ikke oppgitt"}
-                  </Typography>
-                  <Typography color="text.secondary">
-                    {order.customerEmail}
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Typography variant="overline" color="text.secondary">
-                    Sendt inn
-                  </Typography>
-                  <Typography>
-                    {new Intl.DateTimeFormat("nb-NO", {
-                      dateStyle: "long",
-                      timeStyle: "short",
-                    }).format(new Date(order.createdAt))}
-                  </Typography>
-                </Box>
-              </Stack>
-            </Stack>
-
-            <Divider />
-
-            <Box>
+            <Stack spacing={4}>
               <Stack
-                direction={{ xs: "column", sm: "row" }}
-                alignItems={{ xs: "flex-start", sm: "center" }}
-                justifyContent="space-between"
-                gap={1.5}
-                mb={0.5}
+                direction="row"
+                spacing={{ xs: 2, md: 5 }}
+                alignItems="flex-start"
+                sx={{ order: { xs: 2, md: 0 } }}
               >
-                <Typography variant="h5" fontWeight={700}>
-                  {order.inputMode === "name_list"
-                    ? "Navneliste"
-                    : order.inputMode === "single_name"
-                      ? "Navn"
-                      : order.inputMode === "custom_order"
-                        ? "Spesialbestilling"
-                        : "Kommentar"}
-                </Typography>
-                {["name_list", "single_name"].includes(order.inputMode) && (
-                  <Button
-                    variant="outlined"
-                    startIcon={<DownloadIcon />}
-                    onClick={handleDownloadCsv}
-                    sx={{ textTransform: "none" }}
+                {order.product.imageUrl && (
+                  <Box
+                    sx={{
+                      position: "relative",
+                      width: { xs: 96, sm: 160, md: 360 },
+                      height: { xs: 96, sm: 160, md: 320 },
+                      flexShrink: 0,
+                      overflow: "hidden",
+                      bgcolor: "#16150F",
+                      borderRadius: 1,
+                    }}
                   >
-                    Last ned CSV
-                  </Button>
+                    <Image
+                      src={order.product.imageUrl}
+                      alt={order.product.name}
+                      fill
+                      sizes="(max-width: 600px) 96px, (max-width: 900px) 160px, 360px"
+                      style={{ objectFit: "cover" }}
+                      priority
+                    />
+                  </Box>
                 )}
-              </Stack>
-              {order.inputMode === "custom_order" ? (
-                <Stack spacing={3} mt={2}>
+
+                <Stack
+                  spacing={{ xs: 1.5, md: 2.5 }}
+                  flex={1}
+                  justifyContent="center"
+                  sx={{ minWidth: 0 }}
+                >
                   <Box>
                     <Typography variant="overline" color="text.secondary">
-                      Hva ønsker kunden laget?
+                      Produkt
+                    </Typography>
+                    <Typography
+                      variant="h4"
+                      fontWeight={800}
+                      sx={{
+                        fontSize: { xs: "1.35rem", md: "2.125rem" },
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {order.product.name}
+                    </Typography>
+                    <Typography
+                      color="text.secondary"
+                      mt={1}
+                      sx={{ display: { xs: "none", md: "block" } }}
+                    >
+                      {order.product.description}
+                    </Typography>
+                  </Box>
+
+                  <Stack direction="row" gap={1} flexWrap="wrap">
+                    <Chip label={order.product.category} variant="outlined" />
+                    {["name_list", "custom_order"].includes(
+                      order.inputMode,
+                    ) && <Chip label={`${order.quantity} stk.`} />}
+                    <Chip
+                      label={statusLabels[order.status] ?? order.status}
+                      color={order.status === "new" ? "warning" : "success"}
+                    />
+                  </Stack>
+
+                  <Divider />
+
+                  <Box>
+                    <Typography variant="overline" color="text.secondary">
+                      Kunde
+                    </Typography>
+                    <Typography fontWeight={700}>
+                      {order.customerName || "Navn ikke oppgitt"}
+                    </Typography>
+                    <Typography
+                      color="text.secondary"
+                      sx={{ overflowWrap: "anywhere" }}
+                    >
+                      {order.customerEmail}
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="overline" color="text.secondary">
+                      Sendt inn
+                    </Typography>
+                    <Typography>
+                      {new Intl.DateTimeFormat("nb-NO", {
+                        dateStyle: "long",
+                        timeStyle: "short",
+                      }).format(new Date(order.createdAt))}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Stack>
+
+              <Divider sx={{ order: 1 }} />
+
+              <Box sx={{ order: { xs: 0, md: 2 } }}>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  alignItems={{ xs: "flex-start", sm: "center" }}
+                  justifyContent="space-between"
+                  gap={1.5}
+                  mb={0.5}
+                >
+                  <Typography variant="h5" fontWeight={700}>
+                    {order.inputMode === "name_list"
+                      ? "Navneliste"
+                      : order.inputMode === "single_name"
+                        ? `Tekst til ${order.product.name}`
+                        : order.inputMode === "custom_order"
+                          ? "Spesialbestilling"
+                          : "Kommentar"}
+                  </Typography>
+                  {["name_list", "single_name"].includes(order.inputMode) && (
+                    <Button
+                      variant="outlined"
+                      startIcon={<DownloadIcon />}
+                      onClick={handleDownloadCsv}
+                      sx={{ display: { xs: "none", sm: "inline-flex" } }}
+                    >
+                      Last ned CSV
+                    </Button>
+                  )}
+                </Stack>
+                {order.inputMode === "custom_order" ? (
+                  <Stack spacing={3} mt={2}>
+                    <Box>
+                      <Typography variant="overline" color="text.secondary">
+                        Hva ønsker kunden laget?
+                      </Typography>
+                      <Typography sx={{ whiteSpace: "pre-wrap" }}>
+                        {order.names.join("\n")}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                        gap: 2,
+                      }}
+                    >
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          Mål eller størrelse
+                        </Typography>
+                        <Typography fontWeight={700}>
+                          {order.customDimensions}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          Antall
+                        </Typography>
+                        <Typography fontWeight={700}>
+                          {order.quantity}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          Omtrentlig budsjett
+                        </Typography>
+                        <Typography fontWeight={700}>
+                          {order.customBudget === null
+                            ? "Ikke oppgitt"
+                            : `${new Intl.NumberFormat("nb-NO").format(order.customBudget)} kr`}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          Ønsket leveringsdato
+                        </Typography>
+                        <Typography fontWeight={700}>
+                          {order.desiredDeliveryDate
+                            ? new Intl.DateTimeFormat("nb-NO", {
+                                dateStyle: "long",
+                                timeZone: "UTC",
+                              }).format(
+                                new Date(
+                                  `${order.desiredDeliveryDate}T00:00:00Z`,
+                                ),
+                              )
+                            : "Ikke oppgitt"}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Stack>
+                ) : order.inputMode === "name_list" ? (
+                  <>
+                    <Typography color="text.secondary" mb={2.5}>
+                      {order.quantity} navn inngår i forespørselen.
+                    </Typography>
+                    <Box
+                      component="ol"
+                      sx={{
+                        m: 0,
+                        pl: 3,
+                        columns: { xs: 1, sm: 2, md: 3 },
+                        columnGap: 5,
+                      }}
+                    >
+                      {order.names.map((name, index) => (
+                        <Typography
+                          component="li"
+                          key={`${name}-${index}`}
+                          sx={{ py: 0.75, breakInside: "avoid" }}
+                        >
+                          {name}
+                        </Typography>
+                      ))}
+                    </Box>
+                  </>
+                ) : order.inputMode === "comment" ? (
+                  <Box
+                    sx={{
+                      p: 2.5,
+                      border: "2px solid",
+                      borderColor: "secondary.main",
+                      borderRadius: 1,
+                      bgcolor: "rgba(50,79,58,0.18)",
+                    }}
+                  >
+                    <Typography
+                      variant="overline"
+                      color="secondary.light"
+                      fontWeight={700}
+                    >
+                      Viktig informasjon fra kunden
                     </Typography>
                     <Typography sx={{ whiteSpace: "pre-wrap" }}>
                       {order.names.join("\n")}
                     </Typography>
                   </Box>
+                ) : (
                   <Box
                     sx={{
-                      display: "grid",
-                      gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                      gap: 2,
+                      mt: 2,
+                      p: { xs: 2, sm: 2.5 },
+                      border: "2px solid",
+                      borderColor: "primary.light",
+                      borderRadius: 1,
+                      bgcolor: "rgba(90,57,36,0.22)",
                     }}
                   >
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Mål eller størrelse
-                      </Typography>
-                      <Typography fontWeight={700}>
-                        {order.customDimensions}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Antall
-                      </Typography>
-                      <Typography fontWeight={700}>{order.quantity}</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Omtrentlig budsjett
-                      </Typography>
-                      <Typography fontWeight={700}>
-                        {order.customBudget === null
-                          ? "Ikke oppgitt"
-                          : `${new Intl.NumberFormat("nb-NO").format(order.customBudget)} kr`}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Ønsket leveringsdato
-                      </Typography>
-                      <Typography fontWeight={700}>
-                        {order.desiredDeliveryDate
-                          ? new Intl.DateTimeFormat("nb-NO", {
-                              dateStyle: "long",
-                              timeZone: "UTC",
-                            }).format(
-                              new Date(
-                                `${order.desiredDeliveryDate}T00:00:00Z`,
-                              ),
-                            )
-                          : "Ikke oppgitt"}
-                      </Typography>
-                    </Box>
+                    <Typography variant="overline" color="text.secondary">
+                      Bestilt tekst
+                    </Typography>
+                    <Typography
+                      variant="h4"
+                      fontWeight={800}
+                      sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}
+                    >
+                      {order.names.join("\n")}
+                    </Typography>
                   </Box>
-                </Stack>
-              ) : order.inputMode === "name_list" ? (
-                <>
-                  <Typography color="text.secondary" mb={2.5}>
-                    {order.quantity} navn inngår i forespørselen.
-                  </Typography>
-                  <Box
-                    component="ol"
-                    sx={{
-                      m: 0,
-                      pl: 3,
-                      columns: { xs: 1, sm: 2, md: 3 },
-                      columnGap: 5,
-                    }}
+                )}
+                {["name_list", "single_name"].includes(order.inputMode) && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    onClick={handleDownloadCsv}
+                    sx={{ display: { xs: "inline-flex", sm: "none" }, mt: 2 }}
                   >
-                    {order.names.map((name, index) => (
-                      <Typography
-                        component="li"
-                        key={`${name}-${index}`}
-                        sx={{ py: 0.75, breakInside: "avoid" }}
-                      >
-                        {name}
-                      </Typography>
-                    ))}
+                    Last ned CSV
+                  </Button>
+                )}
+                {order.inputMode !== "custom_order" && (
+                  <Box sx={{ mt: 2.5 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Ønsket leveringsdato
+                    </Typography>
+                    <Typography fontWeight={700}>
+                      {order.desiredDeliveryDate
+                        ? new Intl.DateTimeFormat("nb-NO", {
+                            dateStyle: "long",
+                            timeZone: "UTC",
+                          }).format(
+                            new Date(`${order.desiredDeliveryDate}T00:00:00Z`),
+                          )
+                        : "Ikke oppgitt"}
+                    </Typography>
                   </Box>
-                </>
-              ) : order.inputMode === "comment" ? (
-                <Box
-                  sx={{
-                    p: 2.5,
-                    border: "2px solid",
-                    borderColor: "secondary.main",
-                    borderRadius: 1,
-                    bgcolor: "rgba(50,79,58,0.18)",
-                  }}
-                >
-                  <Typography
-                    variant="overline"
-                    color="secondary.light"
-                    fontWeight={700}
-                  >
-                    Viktig informasjon fra kunden
-                  </Typography>
-                  <Typography sx={{ whiteSpace: "pre-wrap" }}>
-                    {order.names.join("\n")}
-                  </Typography>
-                </Box>
-              ) : (
-                <Typography sx={{ whiteSpace: "pre-wrap" }}>
-                  {order.names.join("\n")}
-                </Typography>
-              )}
-            </Box>
+                )}
+              </Box>
+            </Stack>
 
             <Box>
               <Stack
