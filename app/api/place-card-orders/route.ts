@@ -164,6 +164,7 @@ export async function POST(request: Request) {
   let body: {
     productId?: unknown;
     names?: unknown;
+    desiredDeliveryDate?: unknown;
     customerEmail?: unknown;
     customerName?: unknown;
     website?: unknown;
@@ -224,6 +225,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error }, { status: 400 });
   }
 
+  const deliveryDateText =
+    typeof body.desiredDeliveryDate === "string"
+      ? body.desiredDeliveryDate.trim()
+      : "";
+  let desiredDeliveryDate: Date | null = null;
+  if (deliveryDateText) {
+    desiredDeliveryDate = new Date(`${deliveryDateText}T00:00:00.000Z`);
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(deliveryDateText) ||
+      Number.isNaN(desiredDeliveryDate.getTime()) ||
+      desiredDeliveryDate.toISOString().slice(0, 10) !== deliveryDateText
+    ) {
+      return NextResponse.json(
+        { error: "Ugyldig leveringsdato." },
+        { status: 400 },
+      );
+    }
+  }
+
   const customerEmail = (
     authResult?.user.email ??
     (typeof body.customerEmail === "string" ? body.customerEmail : "")
@@ -273,6 +293,7 @@ export async function POST(request: Request) {
       names: submission.join("\n"),
       quantity:
         product.inquiryInputMode === "name_list" ? submission.length : 1,
+      desiredDeliveryDate,
     },
     select: { id: true },
   });

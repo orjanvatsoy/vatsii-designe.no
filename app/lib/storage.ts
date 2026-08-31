@@ -57,3 +57,15 @@ export async function signDownloadUrl(
     .createSignedUrl(objectKey, expiresInSeconds, { download: fileName });
   return data?.signedUrl ?? "";
 }
+
+export async function removeStorageObjects(
+  objectKeys: string[],
+  bucket: string,
+): Promise<void> {
+  if (objectKeys.length === 0) return;
+
+  const { error } = await serverSupabase.storage
+    .from(bucket)
+    .remove(objectKeys);
+  if (error) throw error;
+}

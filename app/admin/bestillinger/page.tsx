@@ -1,6 +1,7 @@
 "use client";
 
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import UnarchiveOutlinedIcon from "@mui/icons-material/UnarchiveOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
@@ -9,17 +10,15 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  IconButton,
   Paper,
   Stack,
-  Step,
-  StepLabel,
-  Stepper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -91,6 +90,8 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminOrder | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -182,6 +183,45 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+
+    setError("");
+    setSuccess("");
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      setError("Du må være logget inn som administrator.");
+      return;
+    }
+
+    setDeletingId(deleteTarget.id);
+    try {
+      const response = await fetch(
+        `/api/admin/place-card-orders/${deleteTarget.id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setError(result.error ?? "Forespørselen kunne ikke slettes.");
+        return;
+      }
+
+      setOrders((current) =>
+        current.filter((order) => order.id !== deleteTarget.id),
+      );
+      setSuccess(`Forespørsel #${deleteTarget.id} er slettet permanent.`);
+      setDeleteTarget(null);
+    } catch {
+      setError("Kunne ikke kontakte serveren. Prøv igjen.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   if (role !== "King") {
     return (
       <RequireRole roles={["King"]}>
@@ -239,138 +279,194 @@ export default function AdminOrdersPage() {
           )}
 
           {!error && orders.length > 0 && (
-            <TableContainer
-              component={Paper}
-              sx={{ border: "1px solid", borderColor: "divider" }}
-            >
-              <Table sx={{ minWidth: 900 }} aria-label="Innkomne forespørsler">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Ordre</TableCell>
-                    <TableCell>Kunde</TableCell>
-                    <TableCell>Fremdrift</TableCell>
-                    <TableCell>Sist aktivitet</TableCell>
-                    <TableCell align="right">Handling</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {orders.map((order) => {
-                    const attention = needsAttention(order);
-                    return (
-                      <TableRow
-                        key={order.id}
-                        hover
-                        sx={{ verticalAlign: "top" }}
+            <Stack spacing={1.25} aria-label="Innkomne forespørsler">
+              {orders.map((order) => {
+                const attention = needsAttention(order);
+                const terminal = ["completed", "cancelled"].includes(
+                  order.status,
+                );
+                const currentStep = getFlowStep(order.status);
+                return (
+                  <Paper
+                    key={order.id}
+                    component="article"
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: {
+                        xs: "minmax(0, 1fr)",
+                        md: "minmax(0, 1.4fr) minmax(220px, 0.8fr) auto",
+                      },
+                      alignItems: "center",
+                      gap: { xs: 1.5, md: 3 },
+                      p: { xs: 2, sm: 2.5 },
+                      border: "1px solid",
+                      borderColor: attention ? "warning.main" : "divider",
+                      borderLeftWidth: attention ? 3 : 1,
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Box sx={{ minWidth: 0 }}>
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        alignItems="center"
+                        flexWrap="wrap"
+                        useFlexGap
                       >
-                        <TableCell>
-                          <Typography fontWeight={700}>
-                            {order.productName}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            #{order.id}
-                            {["name_list", "custom_order"].includes(
-                              order.inputMode,
-                            )
-                              ? ` · ${order.quantity} stk.`
-                              : ""}
-                          </Typography>
-                          <Chip
-                            size="small"
-                            label={
-                              attention
-                                ? order.unreadCustomerMessageCount > 0
-                                  ? `${order.unreadCustomerMessageCount} ny melding`
-                                  : "Trenger svar"
-                                : (statusLabels[order.status] ?? order.status)
-                            }
-                            color={attention ? "warning" : "default"}
-                            sx={{ mt: 1 }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography fontWeight={700}>
-                            {order.customerName || "Navn ikke oppgitt"}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {order.customerEmail}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ minWidth: 280 }}>
-                          <Stepper
-                            activeStep={getFlowStep(order.status)}
-                            alternativeLabel
+                        <Typography fontWeight={700}>
+                          {order.productName}
+                        </Typography>
+                        <Chip
+                          size="small"
+                          label={
+                            attention
+                              ? order.unreadCustomerMessageCount > 0
+                                ? `${order.unreadCustomerMessageCount} ny melding`
+                                : "Trenger svar"
+                              : (statusLabels[order.status] ?? order.status)
+                          }
+                          color={attention ? "warning" : "default"}
+                        />
+                      </Stack>
+                      <Typography variant="body2" color="text.secondary">
+                        #{order.id}
+                        {["name_list", "custom_order"].includes(order.inputMode)
+                          ? ` · ${order.quantity} stk.`
+                          : ""}
+                        {` · ${order.customerName || order.customerEmail}`}
+                      </Typography>
+                      {!terminal && !showArchived && (
+                        <Box sx={{ mt: 1.5, maxWidth: 420 }}>
+                          <Box
+                            sx={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(4, 1fr)",
+                              gap: 0.75,
+                            }}
                           >
-                            {flowSteps.map((step) => (
-                              <Step key={step}>
-                                <StepLabel>{step}</StepLabel>
-                              </Step>
+                            {flowSteps.map((step, index) => (
+                              <Box
+                                key={step}
+                                title={step}
+                                sx={{
+                                  height: 3,
+                                  bgcolor:
+                                    index <= currentStep
+                                      ? "primary.light"
+                                      : "divider",
+                                }}
+                              />
                             ))}
-                          </Stepper>
-                        </TableCell>
-                        <TableCell sx={{ whiteSpace: "nowrap" }}>
-                          <Typography variant="body2">
-                            {new Intl.DateTimeFormat("nb-NO", {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            }).format(new Date(getLatestActivity(order)))}
-                          </Typography>
+                          </Box>
                           <Typography variant="caption" color="text.secondary">
-                            {order.status === "new"
-                              ? "Ny forespørsel"
-                              : needsAttention(order)
-                                ? "Kunden oppdaterte"
-                                : "Sist behandlet"}
+                            {flowSteps[currentStep]}
                           </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Stack
-                            direction="row"
-                            spacing={1}
-                            justifyContent="flex-end"
-                          >
-                            <Button
-                              variant={attention ? "contained" : "outlined"}
-                              startIcon={<VisibilityIcon />}
-                              href={`/admin/bestillinger/${order.id}`}
-                              sx={{ whiteSpace: "nowrap" }}
+                        </Box>
+                      )}
+                    </Box>
+
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="body2">
+                        {new Intl.DateTimeFormat("nb-NO", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        }).format(new Date(getLatestActivity(order)))}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {order.status === "new"
+                          ? "Ny forespørsel"
+                          : attention
+                            ? "Kunden oppdaterte"
+                            : "Sist aktivitet"}
+                      </Typography>
+                    </Box>
+
+                    <Stack
+                      direction="row"
+                      spacing={0.75}
+                      justifyContent={{ xs: "flex-start", md: "flex-end" }}
+                    >
+                      <Button
+                        variant={attention ? "contained" : "outlined"}
+                        startIcon={<VisibilityIcon />}
+                        href={`/admin/bestillinger/${order.id}`}
+                      >
+                        {attention ? "Åpne og svar" : "Åpne"}
+                      </Button>
+                      {(showArchived || terminal) && (
+                        <Tooltip
+                          title={showArchived ? "Gjenopprett" : "Arkiver"}
+                        >
+                          <span>
+                            <IconButton
+                              color="primary"
+                              aria-label={
+                                showArchived ? "Gjenopprett" : "Arkiver"
+                              }
+                              onClick={() => handleArchiveChange(order)}
+                              disabled={updatingId === order.id}
+                              sx={{ width: 44, height: 44 }}
                             >
-                              {attention ? "Åpne og svar" : "Åpne"}
-                            </Button>
-                            {(showArchived ||
-                              ["completed", "cancelled"].includes(
-                                order.status,
-                              )) && (
-                              <Button
-                                variant="outlined"
-                                startIcon={
-                                  showArchived ? (
-                                    <UnarchiveOutlinedIcon />
-                                  ) : (
-                                    <ArchiveOutlinedIcon />
-                                  )
-                                }
-                                onClick={() => handleArchiveChange(order)}
-                                disabled={updatingId === order.id}
-                                sx={{ whiteSpace: "nowrap" }}
-                              >
-                                {updatingId === order.id
-                                  ? "Oppdaterer..."
-                                  : showArchived
-                                    ? "Gjenopprett"
-                                    : "Arkiver"}
-                              </Button>
-                            )}
-                          </Stack>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                              {showArchived ? (
+                                <UnarchiveOutlinedIcon />
+                              ) : (
+                                <ArchiveOutlinedIcon />
+                              )}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      )}
+                      <Tooltip title="Slett permanent">
+                        <IconButton
+                          color="error"
+                          aria-label={`Slett forespørsel ${order.id}`}
+                          onClick={() => setDeleteTarget(order)}
+                          sx={{ width: 44, height: 44 }}
+                        >
+                          <DeleteOutlineIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
+                  </Paper>
+                );
+              })}
+            </Stack>
           )}
         </Stack>
       )}
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onClose={() => {
+          if (!deletingId) setDeleteTarget(null);
+        }}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Slett forespørselen permanent?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Forespørsel #{deleteTarget?.id}, alle meldinger og alle vedlegg
+            slettes. Dette kan ikke angres.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button
+            color="inherit"
+            onClick={() => setDeleteTarget(null)}
+            disabled={Boolean(deletingId)}
+          >
+            Behold
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => void handleDelete()}
+            disabled={Boolean(deletingId)}
+          >
+            {deletingId ? "Sletter..." : "Slett permanent"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageShell>
   );
 }

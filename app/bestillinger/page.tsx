@@ -61,7 +61,20 @@ const mockOrders: PlaceCardOrder[] = [
     inputMode: "name_list",
     names: ["Ingrid", "Marius", "Sofie", "Henrik"],
     quantity: 4,
-    messages: [],
+    messages: [
+      {
+        id: "mock-message-1",
+        senderRole: "admin",
+        body: "Hei! Vi kan lage disse i valnøtt. Passer en høyde på 45 mm?",
+        createdAt: "2026-08-12T11:05:00.000Z",
+      },
+      {
+        id: "mock-message-2",
+        senderRole: "customer",
+        body: "Ja, 45 mm passer fint.",
+        createdAt: "2026-08-12T11:18:00.000Z",
+      },
+    ],
     status: "estimated",
     estimatedPrice: 480,
     deliveryEstimate: "7-10 virkedager",
@@ -97,6 +110,20 @@ const mockOrders: PlaceCardOrder[] = [
     cancellationReason: null,
     createdAt: "2026-07-20T08:45:00.000Z",
     productName: "Bordkort i valnøtt",
+  },
+  {
+    id: "1017",
+    inputMode: "comment",
+    names: ["Skilt med avrundede hjørner og hull til oppheng."],
+    quantity: 1,
+    messages: [],
+    status: "cancelled",
+    estimatedPrice: null,
+    deliveryEstimate: null,
+    confirmedAt: null,
+    cancellationReason: "Oppdraget ble avsluttet etter avtale.",
+    createdAt: "2026-07-18T13:20:00.000Z",
+    productName: "Tilpasset treskilt",
   },
 ];
 
@@ -611,6 +638,7 @@ export default function OrdersPage() {
                 order.status === "new" && order.inputMode !== "custom_order";
               const delivered = order.status === "completed";
               const cancelled = order.status === "cancelled";
+              const archived = delivered || cancelled;
               const cancellable = ["new", "estimated", "confirmed"].includes(
                 order.status,
               );
@@ -629,16 +657,16 @@ export default function OrdersPage() {
               return (
                 <Card
                   key={order.id}
-                  component={delivered ? "details" : "div"}
+                  component={archived ? "details" : "div"}
                   sx={{
                     border: "1px solid",
                     borderColor: "divider",
-                    "&[open] .delivered-expand-icon": {
+                    "&[open] .archived-expand-icon": {
                       transform: "rotate(180deg)",
                     },
                   }}
                 >
-                  {delivered && (
+                  {archived && (
                     <Box
                       component="summary"
                       sx={{
@@ -656,13 +684,17 @@ export default function OrdersPage() {
                         <Typography fontWeight={700} noWrap>
                           {order.productName}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Forespørsel #{order.id} · Levert
+                        <Typography
+                          variant="body2"
+                          color={cancelled ? "error.light" : "text.secondary"}
+                        >
+                          Forespørsel #{order.id} ·{" "}
+                          {cancelled ? "Kansellert" : "Levert"}
                         </Typography>
                       </Box>
                       <ExpandMoreIcon
-                        className="delivered-expand-icon"
-                        color="primary"
+                        className="archived-expand-icon"
+                        color={cancelled ? "error" : "primary"}
                         sx={{
                           flexShrink: 0,
                           transition: "transform 160ms ease",
@@ -672,7 +704,7 @@ export default function OrdersPage() {
                   )}
                   <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 4 } }}>
                     <Stack spacing={{ xs: 3, sm: 4 }}>
-                      {!delivered && (
+                      {!archived && (
                         <Stack
                           direction={{ xs: "column", sm: "row" }}
                           justifyContent="space-between"
@@ -701,54 +733,63 @@ export default function OrdersPage() {
                         </Stack>
                       )}
 
-                      <Box
-                        sx={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                          gap: 1,
-                        }}
-                      >
-                        {flowSteps.map((step, index) => (
-                          <Box key={step}>
-                            <Box
-                              sx={{
-                                height: 3,
-                                mb: { xs: 0, sm: 1 },
-                                bgcolor:
-                                  index <= currentStep
-                                    ? "primary.light"
-                                    : "divider",
-                              }}
-                            />
-                            <Typography
-                              variant="caption"
-                              color={
-                                index <= currentStep
-                                  ? "text.primary"
-                                  : "text.secondary"
-                              }
-                              fontWeight={index === currentStep ? 700 : 400}
-                              sx={{ display: { xs: "none", sm: "block" } }}
-                            >
-                              {step}
-                            </Typography>
+                      {!archived && (
+                        <>
+                          <Box
+                            sx={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                              gap: 1,
+                            }}
+                          >
+                            {flowSteps.map((step, index) => (
+                              <Box key={step}>
+                                <Box
+                                  sx={{
+                                    height: 3,
+                                    mb: { xs: 0, sm: 1 },
+                                    bgcolor:
+                                      index <= currentStep
+                                        ? "primary.light"
+                                        : "divider",
+                                  }}
+                                />
+                                <Typography
+                                  variant="caption"
+                                  color={
+                                    index <= currentStep
+                                      ? "text.primary"
+                                      : "text.secondary"
+                                  }
+                                  fontWeight={index === currentStep ? 700 : 400}
+                                  sx={{
+                                    display: { xs: "none", sm: "block" },
+                                  }}
+                                >
+                                  {step}
+                                </Typography>
+                              </Box>
+                            ))}
                           </Box>
-                        ))}
-                      </Box>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ display: { xs: "block", sm: "none" }, mt: -2 }}
-                      >
-                        Steg {currentStep + 1} av {flowSteps.length} ·{" "}
-                        <Box
-                          component="span"
-                          color="text.primary"
-                          fontWeight={700}
-                        >
-                          {flowSteps[currentStep]}
-                        </Box>
-                      </Typography>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{
+                              display: { xs: "block", sm: "none" },
+                              mt: -2,
+                            }}
+                          >
+                            Steg {currentStep + 1} av {flowSteps.length} ·{" "}
+                            <Box
+                              component="span"
+                              color="text.primary"
+                              fontWeight={700}
+                            >
+                              {flowSteps[currentStep]}
+                            </Box>
+                          </Typography>
+                        </>
+                      )}
 
                       <Stack spacing={2.5}>
                         <Box
@@ -833,7 +874,7 @@ export default function OrdersPage() {
                                     ? "Ett navn per linje"
                                     : order.inputMode === "single_name"
                                       ? "Navn"
-                                      : "Kommentar"
+                                      : "Viktig informasjon / kommentar"
                                 }
                                 value={drafts[order.id] ?? ""}
                                 onChange={(event) =>
@@ -847,6 +888,19 @@ export default function OrdersPage() {
                                   order.inputMode === "single_name" ? 1 : 5
                                 }
                                 fullWidth
+                                sx={
+                                  order.inputMode === "comment"
+                                    ? {
+                                        "& .MuiOutlinedInput-root": {
+                                          bgcolor: "rgba(255,255,255,0.06)",
+                                        },
+                                        "& .MuiOutlinedInput-notchedOutline": {
+                                          borderColor: "secondary.main",
+                                          borderWidth: 2,
+                                        },
+                                      }
+                                    : undefined
+                                }
                                 helperText={
                                   order.inputMode === "name_list"
                                     ? `${draftValues.length} navn · kan endres frem til tilbudet sendes`
@@ -879,7 +933,11 @@ export default function OrdersPage() {
                               >
                                 {savingId === order.id
                                   ? "Lagrer..."
-                                  : "Lagre navneliste"}
+                                  : order.inputMode === "name_list"
+                                    ? "Lagre navneliste"
+                                    : order.inputMode === "single_name"
+                                      ? "Lagre navn"
+                                      : "Lagre kommentar"}
                               </Button>
                             </>
                           ) : order.inputMode === "name_list" ? (
@@ -908,6 +966,27 @@ export default function OrdersPage() {
                                 {order.names.join("\n")}
                               </Typography>
                             </Box>
+                          ) : order.inputMode === "comment" ? (
+                            <Box
+                              sx={{
+                                p: 2,
+                                border: "2px solid",
+                                borderColor: "secondary.main",
+                                borderRadius: 1,
+                                bgcolor: "rgba(255,255,255,0.06)",
+                              }}
+                            >
+                              <Typography
+                                variant="overline"
+                                color="secondary.light"
+                                fontWeight={700}
+                              >
+                                Viktig informasjon
+                              </Typography>
+                              <Typography sx={{ whiteSpace: "pre-wrap" }}>
+                                {order.names.join("\n")}
+                              </Typography>
+                            </Box>
                           ) : (
                             <Typography
                               color="text.secondary"
@@ -931,6 +1010,7 @@ export default function OrdersPage() {
                           >
                             <OrderAttachments
                               attachments={order.attachments ?? []}
+                              showFileName={false}
                             />
                           </Box>
                         )}

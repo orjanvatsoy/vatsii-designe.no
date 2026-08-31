@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { requireAdmin } from "../../../../lib/requireAdmin";
-import { signDownloadUrl, signImageUrl } from "../../../../lib/storage";
+import {
+  removeStorageObjects,
+  signDownloadUrl,
+  signImageUrl,
+} from "../../../../lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -119,4 +123,52 @@ export async function GET(
         : "",
     },
   });
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const adminResult = await requireAdmin(request);
+  if (adminResult instanceof NextResponse) return adminResult;
+
+  const { id } = await params;
+  let orderId: bigint;
+  try {
+    orderId = BigInt(id);
+  } catch {
+    return NextResponse.json(
+      { error: "Ugyldig forespørsel." },
+      { status: 400 },
+    );
+  }
+
+  const order = await prisma.placeCardOrder.findUnique({
+    where: { id: orderId },
+    select: {
+      attachments: { select: { objectKey: true } },
+    },
+  });
+  if (!order) {
+    return NextResponse.json(
+      { error: "Forespørselen finnes ikke." },
+      { status: 404 },
+    );
+  }
+
+  try {
+    await removeStorageObjects(
+      order.attachments.map((attachment) => attachment.objectKey),
+      "inquiry-attachments",
+    );
+    await prisma.placeCardOrder.delete({ where: { id: orderId } });
+  } catch (error) {
+    console.error("Failed to delete inquiry:", error);
+    return NextResponse.json(
+      { error: "Forespørselen kunne ikke slettes." },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({ success: true });
 }

@@ -3,6 +3,7 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DownloadIcon from "@mui/icons-material/Download";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
@@ -12,13 +13,18 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
 import Image from "next/image";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { RequireRole, useAuth } from "../../../Components/AuthProvider";
 import OrderMessages, {
@@ -90,6 +96,7 @@ function escapeCsvValue(value: string) {
 
 export default function AdminOrderDetailsPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { role, session } = useAuth();
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,6 +105,8 @@ export default function AdminOrderDetailsPage() {
   const [estimatedPrice, setEstimatedPrice] = useState("");
   const [deliveryEstimate, setDeliveryEstimate] = useState("");
   const [cancellationReason, setCancellationReason] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -363,6 +372,41 @@ export default function AdminOrderDetailsPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!order) return;
+
+    setError("");
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      setError("Du må logge inn på nytt.");
+      setDeleteDialogOpen(false);
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/admin/place-card-orders/${order.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setError(result.error ?? "Forespørselen kunne ikke slettes.");
+        setDeleteDialogOpen(false);
+        return;
+      }
+
+      router.push("/admin/bestillinger");
+      router.refresh();
+    } catch {
+      setError("Kunne ikke kontakte serveren.");
+      setDeleteDialogOpen(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (role !== "King") {
     return (
       <RequireRole roles={["King"]}>
@@ -379,13 +423,25 @@ export default function AdminOrderDetailsPage() {
       maxWidth="lg"
     >
       <Stack spacing={3}>
-        <Button
-          href="/admin/bestillinger"
-          startIcon={<ArrowBackIcon />}
-          sx={{ alignSelf: "flex-start", textTransform: "none" }}
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          gap={2}
         >
-          Tilbake til forespørsler
-        </Button>
+          <Button href="/admin/bestillinger" startIcon={<ArrowBackIcon />}>
+            Tilbake til forespørsler
+          </Button>
+          {order && (
+            <Button
+              color="error"
+              startIcon={<DeleteOutlineIcon />}
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              Slett
+            </Button>
+          )}
+        </Stack>
 
         {loading ? (
           <Box display="flex" justifyContent="center" py={8}>
@@ -593,6 +649,27 @@ export default function AdminOrderDetailsPage() {
                     ))}
                   </Box>
                 </>
+              ) : order.inputMode === "comment" ? (
+                <Box
+                  sx={{
+                    p: 2.5,
+                    border: "2px solid",
+                    borderColor: "secondary.main",
+                    borderRadius: 1,
+                    bgcolor: "rgba(50,79,58,0.18)",
+                  }}
+                >
+                  <Typography
+                    variant="overline"
+                    color="secondary.light"
+                    fontWeight={700}
+                  >
+                    Viktig informasjon fra kunden
+                  </Typography>
+                  <Typography sx={{ whiteSpace: "pre-wrap" }}>
+                    {order.names.join("\n")}
+                  </Typography>
+                </Box>
               ) : (
                 <Typography sx={{ whiteSpace: "pre-wrap" }}>
                   {order.names.join("\n")}
@@ -795,6 +872,39 @@ export default function AdminOrderDetailsPage() {
           </Stack>
         ) : null}
       </Stack>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => {
+          if (!deleting) setDeleteDialogOpen(false);
+        }}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Slett forespørselen permanent?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Forespørsel #{order?.id}, alle meldinger og alle vedlegg slettes.
+            Dette kan ikke angres.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button
+            color="inherit"
+            onClick={() => setDeleteDialogOpen(false)}
+            disabled={deleting}
+          >
+            Behold
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => void handleDelete()}
+            disabled={deleting}
+          >
+            {deleting ? "Sletter..." : "Slett permanent"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageShell>
   );
 }

@@ -54,6 +54,7 @@ export default function ProductInquiryForm({
   const [input, setInput] = useState("");
   const [dimensions, setDimensions] = useState("");
   const [quantity, setQuantity] = useState("1");
+  const [desiredDeliveryDate, setDesiredDeliveryDate] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -116,6 +117,7 @@ export default function ProductInquiryForm({
         formData.append("description", input.trim());
         formData.append("dimensions", dimensions.trim());
         formData.append("quantity", quantity);
+        formData.append("deliveryDate", desiredDeliveryDate);
         formData.append("customerName", customerName.trim());
         formData.append("customerEmail", customerEmail.trim());
         formData.append("website", website);
@@ -135,6 +137,7 @@ export default function ProductInquiryForm({
           body: JSON.stringify({
             productId,
             names: values,
+            desiredDeliveryDate,
             customerName,
             customerEmail,
             website,
@@ -177,6 +180,7 @@ export default function ProductInquiryForm({
       setInput("");
       setDimensions("");
       setQuantity("1");
+      setDesiredDeliveryDate("");
       setAttachments([]);
     } catch {
       setError("Kunne ikke kontakte serveren. Prøv igjen.");
@@ -248,6 +252,14 @@ export default function ProductInquiryForm({
           </Typography>
         </>
       )}
+      <TextField
+        label="Ønsket leveringsdato"
+        type="date"
+        value={desiredDeliveryDate}
+        onChange={(event) => setDesiredDeliveryDate(event.target.value)}
+        helperText="Valgfritt"
+        slotProps={{ inputLabel: { shrink: true } }}
+      />
       <TextField
         label="Ditt navn"
         value={customerName}
