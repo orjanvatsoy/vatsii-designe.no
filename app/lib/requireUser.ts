@@ -2,6 +2,11 @@ import { createClient } from "@supabase/supabase-js";
 import type { User } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
+const authClient = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+);
+
 export async function requireUser(
   request: Request,
 ): Promise<{ user: User } | NextResponse> {
@@ -17,10 +22,6 @@ export async function requireUser(
     );
   }
 
-  const authClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
   const { data, error } = await authClient.auth.getUser(token);
 
   if (error || !data.user) {

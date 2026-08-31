@@ -7,49 +7,63 @@ import { prisma } from "../../../lib/prisma";
 import { requireAdmin } from "../../../lib/requireAdmin";
 
 export const dynamic = "force-dynamic";
+const PAGE_SIZE = 25;
 
 export async function GET(request: Request) {
   const adminResult = await requireAdmin(request);
   if (adminResult instanceof NextResponse) return adminResult;
 
-  const archived = new URL(request.url).searchParams.get("archived") === "true";
+  const searchParams = new URL(request.url).searchParams;
+  const archived = searchParams.get("archived") === "true";
+  const requestedPage = Number(searchParams.get("page"));
+  const page =
+    Number.isSafeInteger(requestedPage) && requestedPage > 0
+      ? Math.min(requestedPage, 10_000)
+      : 1;
 
-  const orders = await prisma.placeCardOrder.findMany({
-    where: { archivedAt: archived ? { not: null } : null },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      customerName: true,
-      customerEmail: true,
-      inputMode: true,
-      names: true,
-      quantity: true,
-      status: true,
-      estimatedPrice: true,
-      deliveryEstimate: true,
-      confirmedAt: true,
-      createdAt: true,
-      updatedAt: true,
-      customerUpdatedAt: true,
-      archivedAt: true,
-      messages: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: { createdAt: true },
-      },
-      _count: {
-        select: {
-          messages: {
-            where: { senderRole: "customer", adminReadAt: null },
+  const [orders, totalCount] = await Promise.all([
+    prisma.placeCardOrder.findMany({
+      where: { archivedAt: archived ? { not: null } : null },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      select: {
+        id: true,
+        customerName: true,
+        customerEmail: true,
+        inputMode: true,
+        names: true,
+        quantity: true,
+        status: true,
+        estimatedPrice: true,
+        deliveryEstimate: true,
+        confirmedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        customerUpdatedAt: true,
+        archivedAt: true,
+        messages: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { createdAt: true },
+        },
+        _count: {
+          select: {
+            messages: {
+              where: { senderRole: "customer", adminReadAt: null },
+            },
           },
         },
+        product: { select: { name: true } },
       },
-      product: { select: { name: true } },
-    },
-  });
+    }),
+    prisma.placeCardOrder.count({
+      where: { archivedAt: archived ? { not: null } : null },
+    }),
+  ]);
 
-  return NextResponse.json(
-    orders.map((order) => ({
+  return NextResponse.json({
+    orders: orders.map((order) => ({
       id: order.id.toString(),
       customerName: order.customerName,
       customerEmail: order.customerEmail,
@@ -68,7 +82,13 @@ export async function GET(request: Request) {
       unreadCustomerMessageCount: order._count.messages,
       productName: order.product.name,
     })),
-  );
+    pagination: {
+      page,
+      pageSize: PAGE_SIZE,
+      totalCount,
+      totalPages: Math.max(1, Math.ceil(totalCount / PAGE_SIZE)),
+    },
+  });
 }
 
 export async function PATCH(request: Request) {

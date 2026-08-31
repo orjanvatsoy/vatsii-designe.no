@@ -5,6 +5,7 @@ import TodayIcon from "@mui/icons-material/Today";
 import {
   Box,
   Button,
+  CircularProgress,
   IconButton,
   Stack,
   ToggleButton,
@@ -12,7 +13,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { LineChart } from "@mui/x-charts/LineChart";
 
 async function fetchYrForecast() {
@@ -37,13 +38,21 @@ interface IotTemperatureChartProps {
     temperature: number;
     temperature_forcast?: number | null;
   }[];
+  hourRange: number;
+  windowOffset: number;
+  loading: boolean;
+  onHourRangeChange: (hours: number) => void;
+  onWindowOffsetChange: (offset: number) => void;
 }
 
 export default function IotTemperatureChart({
   data,
+  hourRange,
+  windowOffset,
+  loading,
+  onHourRangeChange,
+  onWindowOffsetChange,
 }: IotTemperatureChartProps) {
-  const [hourRange, setHourRange] = useState(24);
-  const [windowOffset, setWindowOffset] = useState(0);
   const [forecast, setForecast] = useState<
     { time: string; temperature: number }[]
   >([]);
@@ -139,8 +148,7 @@ export default function IotTemperatureChart({
           value={hourRange}
           onChange={(_, value: number | null) => {
             if (value === null) return;
-            setHourRange(value);
-            setWindowOffset(0);
+            onHourRangeChange(value);
           }}
           aria-label="Velg tidsperiode"
         >
@@ -159,7 +167,7 @@ export default function IotTemperatureChart({
           <Tooltip title="Forrige periode">
             <IconButton
               aria-label="Vis forrige periode"
-              onClick={() => setWindowOffset((offset) => offset - 1)}
+              onClick={() => onWindowOffsetChange(windowOffset - 1)}
             >
               <ChevronLeftIcon />
             </IconButton>
@@ -167,7 +175,7 @@ export default function IotTemperatureChart({
           <Button
             variant={windowOffset === 0 ? "contained" : "outlined"}
             startIcon={<TodayIcon />}
-            onClick={() => setWindowOffset(0)}
+            onClick={() => onWindowOffsetChange(0)}
           >
             Nå
           </Button>
@@ -177,7 +185,7 @@ export default function IotTemperatureChart({
                 aria-label="Vis neste periode"
                 disabled={windowOffset === 0}
                 onClick={() =>
-                  setWindowOffset((offset) => Math.min(0, offset + 1))
+                  onWindowOffsetChange(Math.min(0, windowOffset + 1))
                 }
               >
                 <ChevronRightIcon />
@@ -194,7 +202,11 @@ export default function IotTemperatureChart({
           : ""}
       </Typography>
 
-      {xData.length > 0 ? (
+      {loading ? (
+        <Box sx={{ minHeight: 360, display: "grid", placeItems: "center" }}>
+          <CircularProgress aria-label="Henter temperaturdata" />
+        </Box>
+      ) : xData.length > 0 ? (
         <LineChart
           xAxis={[
             {

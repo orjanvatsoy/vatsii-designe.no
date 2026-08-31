@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { sendNewInquiryEmail } from "../../lib/email";
 import { prisma } from "../../lib/prisma";
 import { requireUser } from "../../lib/requireUser";
-import { signDownloadUrl, signImageUrl } from "../../lib/storage";
+import { signDownloadUrl, signImageUrls } from "../../lib/storage";
 
 const MAX_NAMES = 200;
 const MAX_NAME_LENGTH = 100;
@@ -56,19 +56,20 @@ export async function GET(request: Request) {
       );
     }
 
-    await prisma.placeCardOrder.updateMany({
-      where: {
-        userId: null,
-        customerEmail: { equals: customerEmail, mode: "insensitive" },
-      },
-      data: { userId: authResult.user.id },
-    });
-
     const orders = await prisma.placeCardOrder.findMany({
-      where: { userId: authResult.user.id },
+      where: {
+        OR: [
+          { userId: authResult.user.id },
+          {
+            userId: null,
+            customerEmail: { equals: customerEmail, mode: "insensitive" },
+          },
+        ],
+      },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
+        userId: true,
         inputMode: true,
         names: true,
         quantity: true,
@@ -83,22 +84,66 @@ export async function GET(request: Request) {
         createdAt: true,
         updatedAt: true,
         customerUpdatedAt: true,
-        attachments: true,
-        messages: { orderBy: { createdAt: "asc" } },
+        attachments: {
+          select: {
+            id: true,
+            fileName: true,
+            contentType: true,
+            sizeBytes: true,
+            objectKey: true,
+          },
+        },
+        messages: {
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true,
+            senderRole: true,
+            body: true,
+            createdAt: true,
+            customerReadAt: true,
+          },
+        },
         product: { select: { name: true } },
       },
     });
 
-    if (orders.length > 0) {
+    const unclaimedOrderIds = orders
+      .filter((order) => order.userId === null)
+      .map((order) => order.id);
+    if (unclaimedOrderIds.length > 0) {
+      await prisma.placeCardOrder.updateMany({
+        where: { id: { in: unclaimedOrderIds }, userId: null },
+        data: { userId: authResult.user.id },
+      });
+    }
+
+    const unreadMessageIds = orders.flatMap((order) =>
+      order.messages
+        .filter(
+          (message) =>
+            message.senderRole === "admin" && message.customerReadAt === null,
+        )
+        .map((message) => message.id),
+    );
+    if (unreadMessageIds.length > 0) {
       await prisma.orderMessage.updateMany({
-        where: {
-          orderId: { in: orders.map((order) => order.id) },
-          senderRole: "admin",
-          customerReadAt: null,
-        },
+        where: { id: { in: unreadMessageIds }, customerReadAt: null },
         data: { customerReadAt: new Date() },
       });
     }
+
+    const attachments = orders.flatMap((order) => order.attachments);
+    const attachmentUrls = await signImageUrls(
+      attachments.map((attachment) => attachment.objectKey),
+      "inquiry-attachments",
+      60 * 60,
+    );
+    const attachmentUrlById = new Map(
+      attachments.map((attachment, index) => [
+        attachment.id,
+        attachmentUrls[index],
+      ]),
+    );
 
     return NextResponse.json(
       await Promise.all(
@@ -131,11 +176,7 @@ export async function GET(request: Request) {
               fileName: attachment.fileName,
               contentType: attachment.contentType,
               sizeBytes: attachment.sizeBytes,
-              url: await signImageUrl(
-                attachment.objectKey,
-                "inquiry-attachments",
-                60 * 60,
-              ),
+              url: attachmentUrlById.get(attachment.id) ?? "",
               downloadUrl: await signDownloadUrl(
                 attachment.objectKey,
                 "inquiry-attachments",

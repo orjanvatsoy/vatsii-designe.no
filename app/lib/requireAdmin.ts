@@ -8,6 +8,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 // Admin role required to mutate carousel/products.
 const ADMIN_ROLE = "King";
+const authClient = createClient(supabaseUrl, supabaseAnonKey);
 
 /**
  * Verify that the incoming request is from a logged-in admin.
@@ -28,8 +29,6 @@ export async function requireAdmin(
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  // Validate the JWT using the anon client.
-  const authClient = createClient(supabaseUrl, supabaseAnonKey);
   const { data: userData, error: userError } =
     await authClient.auth.getUser(token);
 

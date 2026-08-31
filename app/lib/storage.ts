@@ -6,6 +6,7 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 // Server-side client for generating signed Storage URLs.
 const serverSupabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+const PUBLIC_IMAGE_BUCKETS = new Set(["carousel", "products"]);
 
 export const IMAGE_URL_TTL_SECONDS = 7 * 24 * 60 * 60;
 
@@ -37,13 +38,49 @@ export async function signImageUrl(
   bucket: string,
   expiresInSeconds = IMAGE_URL_TTL_SECONDS,
 ): Promise<string> {
-  if (!imageUrl) return "";
-  const objectKey = objectKeyFromImageUrl(imageUrl, bucket);
-  if (!objectKey) return imageUrl;
+  const [signedUrl = ""] = await signImageUrls(
+    [imageUrl],
+    bucket,
+    expiresInSeconds,
+  );
+  return signedUrl;
+}
+
+export async function signImageUrls(
+  imageUrls: (string | null | undefined)[],
+  bucket: string,
+  expiresInSeconds = IMAGE_URL_TTL_SECONDS,
+): Promise<string[]> {
+  const objectKeys = imageUrls.map((imageUrl) =>
+    imageUrl ? objectKeyFromImageUrl(imageUrl, bucket) : null,
+  );
+  if (PUBLIC_IMAGE_BUCKETS.has(bucket)) {
+    return imageUrls.map((imageUrl, index) => {
+      const objectKey = objectKeys[index];
+      if (!imageUrl || !objectKey) return imageUrl ?? "";
+      return serverSupabase.storage.from(bucket).getPublicUrl(objectKey).data
+        .publicUrl;
+    });
+  }
+
+  const signableKeys = objectKeys.filter(
+    (objectKey): objectKey is string => objectKey !== null,
+  );
+  if (signableKeys.length === 0) {
+    return imageUrls.map((imageUrl) => imageUrl ?? "");
+  }
   const { data } = await serverSupabase.storage
     .from(bucket)
-    .createSignedUrl(objectKey, expiresInSeconds);
-  return data?.signedUrl ?? "";
+    .createSignedUrls(signableKeys, expiresInSeconds);
+  const signedUrlsByKey = new Map(
+    data?.map((result) => [result.path, result.signedUrl]) ?? [],
+  );
+
+  return imageUrls.map((imageUrl, index) => {
+    const objectKey = objectKeys[index];
+    if (!imageUrl || !objectKey) return imageUrl ?? "";
+    return signedUrlsByKey.get(objectKey) ?? "";
+  });
 }
 
 export async function signDownloadUrl(

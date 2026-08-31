@@ -2,7 +2,7 @@
 const LAT = 60.4;
 const LON = 5.18333;
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${LAT}&lon=${LON}`;
     const response = await fetch(url, {
@@ -10,6 +10,7 @@ export async function GET(request: Request) {
         "User-Agent": "vatsii-designe.no/1.0 github.com/orjanvatsoy",
         Accept: "application/json",
       },
+      next: { revalidate: 3600 },
     });
     if (!response.ok) {
       return new Response(
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
         {
           status: response.status,
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
     }
     const data = await response.json();
@@ -42,9 +43,12 @@ export async function GET(request: Request) {
     });
     return new Response(JSON.stringify({ forecast }), {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+      },
     });
-  } catch (error) {
+  } catch {
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

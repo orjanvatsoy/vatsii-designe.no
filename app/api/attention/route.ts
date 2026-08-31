@@ -9,18 +9,19 @@ export async function GET(request: Request) {
   if (authResult instanceof NextResponse) return authResult;
 
   const userId = authResult.user.id;
-  const profile = await prisma.profile.findUnique({
-    where: { id: userId },
-    select: { role: true },
-  });
-
-  const customerAttentionCount = await prisma.orderMessage.count({
-    where: {
-      senderRole: "admin",
-      customerReadAt: null,
-      order: { userId },
-    },
-  });
+  const [profile, customerAttentionCount] = await Promise.all([
+    prisma.profile.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    }),
+    prisma.orderMessage.count({
+      where: {
+        senderRole: "admin",
+        customerReadAt: null,
+        order: { userId },
+      },
+    }),
+  ]);
 
   const adminAttentionCount =
     profile?.role === "King"

@@ -106,13 +106,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     const refreshAccessState = () => {
+      if (document.hidden) return;
       void supabase.auth.getSession().then(({ data }) => {
         if (active && data.session) void applySession(data.session, true);
       });
     };
-    const intervalId = window.setInterval(refreshAccessState, 60_000);
+    const intervalId = window.setInterval(refreshAccessState, 5 * 60_000);
     window.addEventListener("focus", refreshAccessState);
     window.addEventListener("attention-updated", refreshAccessState);
+    document.addEventListener("visibilitychange", refreshAccessState);
 
     return () => {
       active = false;
@@ -120,6 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.clearInterval(intervalId);
       window.removeEventListener("focus", refreshAccessState);
       window.removeEventListener("attention-updated", refreshAccessState);
+      document.removeEventListener("visibilitychange", refreshAccessState);
     };
   }, []);
 

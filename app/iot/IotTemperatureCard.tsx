@@ -20,6 +20,11 @@ import { RequireRole, useAuth } from "../Components/AuthProvider";
 
 interface IotTemperatureChartProps {
   data: TemperatureData[];
+  hourRange: number;
+  windowOffset: number;
+  loading: boolean;
+  onHourRangeChange: (hours: number) => void;
+  onWindowOffsetChange: (offset: number) => void;
 }
 
 interface TemperatureData {
@@ -27,6 +32,8 @@ interface TemperatureData {
   temperature: number;
   temperature_forcast?: number | null;
 }
+
+const HOUR = 60 * 60 * 1000;
 
 const IotTemperatureChart = dynamic<IotTemperatureChartProps>(
   () => import("./IotTemperatureChart"),
@@ -36,6 +43,11 @@ const IotTemperatureChart = dynamic<IotTemperatureChartProps>(
 export default function IotTemperatureCard() {
   const { role, session } = useAuth();
   const [data, setData] = useState<TemperatureData[]>([]);
+  const [latestReading, setLatestReading] = useState<TemperatureData | null>(
+    null,
+  );
+  const [hourRange, setHourRange] = useState(24);
+  const [windowOffset, setWindowOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const isKing = role === "King" || role === "User";
@@ -45,18 +57,31 @@ export default function IotTemperatureCard() {
     if (!isKing || !token) return;
 
     let active = true;
+    const controller = new AbortController();
+    const windowEnd = new Date(Date.now() + windowOffset * hourRange * HOUR);
+    const windowStart = new Date(windowEnd.getTime() - hourRange * HOUR);
+    const searchParams = new URLSearchParams({
+      start: windowStart.toISOString(),
+      end: windowEnd.toISOString(),
+    });
     setLoading(true);
     setError("");
-    fetch("/api/iot/temperature", {
+    fetch(`/api/iot/temperature?${searchParams}`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
+      signal: controller.signal,
     })
       .then(async (response) => {
         if (!response.ok) throw new Error("Temperature request failed");
         return (await response.json()) as TemperatureData[];
       })
       .then((temperatureData) => {
-        if (active) setData(temperatureData);
+        if (active) {
+          setData(temperatureData);
+          if (windowOffset === 0) {
+            setLatestReading(temperatureData.at(-1) ?? null);
+          }
+        }
       })
       .catch(() => {
         if (active) setError("Kunne ikke hente temperaturdata.");
@@ -67,14 +92,9 @@ export default function IotTemperatureCard() {
 
     return () => {
       active = false;
+      controller.abort();
     };
-  }, [isKing, session?.access_token]);
-  const latestReading = data.reduce<TemperatureData | null>((latest, entry) => {
-    if (!latest) return entry;
-    return new Date(entry.created_at) > new Date(latest.created_at)
-      ? entry
-      : latest;
-  }, null);
+  }, [hourRange, isKing, session?.access_token, windowOffset]);
   const forecastDifference =
     latestReading?.temperature_forcast === undefined ||
     latestReading.temperature_forcast === null
@@ -104,7 +124,7 @@ export default function IotTemperatureCard() {
       subtitle="Målinger fra IoT-sensoren sammenlignet med Yr-varselet."
       maxWidth="lg"
     >
-      {loading ? (
+      {loading && data.length === 0 ? (
         <Box sx={{ minHeight: 320, display: "grid", placeItems: "center" }}>
           <CircularProgress aria-label="Henter temperaturdata" />
         </Box>
@@ -185,7 +205,17 @@ export default function IotTemperatureCard() {
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
               Historikk og værvarsel
             </Typography>
-            <IotTemperatureChart data={data} />
+            <IotTemperatureChart
+              data={data}
+              hourRange={hourRange}
+              windowOffset={windowOffset}
+              loading={loading}
+              onHourRangeChange={(hours) => {
+                setHourRange(hours);
+                setWindowOffset(0);
+              }}
+              onWindowOffsetChange={setWindowOffset}
+            />
           </CardContent>
         </Card>
       )}

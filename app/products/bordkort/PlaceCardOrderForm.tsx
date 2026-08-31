@@ -48,6 +48,7 @@ export default function PlaceCardOrderForm({
   const [user, setUser] = useState<User | null>(null);
   const [productId, setProductId] = useState(variants[0]?.id ?? "");
   const [namesInput, setNamesInput] = useState("");
+  const [desiredDeliveryDate, setDesiredDeliveryDate] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [website, setWebsite] = useState("");
@@ -116,6 +117,7 @@ export default function PlaceCardOrderForm({
         body: JSON.stringify({
           productId,
           names,
+          desiredDeliveryDate,
           customerName,
           customerEmail,
           website,
@@ -158,6 +160,7 @@ export default function PlaceCardOrderForm({
         setSuccess(`Forespørsel på bordkort #${result.orderId} er mottatt.`);
       }
       setNamesInput("");
+      setDesiredDeliveryDate("");
     } catch {
       setError("Kunne ikke kontakte serveren. Prøv igjen.");
     } finally {
@@ -229,6 +232,26 @@ export default function PlaceCardOrderForm({
               </Grid>
             </RadioGroup>
           </FormControl>
+        </Box>
+
+        <Box sx={{ maxWidth: 720 }}>
+          <Typography
+            variant="h5"
+            fontWeight={700}
+            fontSize={{ xs: "1.25rem", sm: "1.5rem" }}
+            mb={2}
+          >
+            3. Ønsket leveringsdato
+          </Typography>
+          <TextField
+            label="Når ønsker du bordkortene levert?"
+            type="date"
+            value={desiredDeliveryDate}
+            onChange={(event) => setDesiredDeliveryDate(event.target.value)}
+            helperText="Valgfritt. Jeg bekrefter om datoen er mulig når du får tilbudet."
+            fullWidth
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
         </Box>
 
         <Box sx={{ maxWidth: 720 }}>
@@ -367,7 +390,7 @@ export default function PlaceCardOrderForm({
             fontSize={{ xs: "1.25rem", sm: "1.5rem" }}
             mb={2}
           >
-            3. Kontaktinformasjon
+            4. Kontaktinformasjon
           </Typography>
           <Stack spacing={2}>
             <TextField

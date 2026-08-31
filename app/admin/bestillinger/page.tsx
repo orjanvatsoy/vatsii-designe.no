@@ -20,6 +20,7 @@ import {
   ListItemIcon,
   Menu,
   MenuItem,
+  Pagination,
   Paper,
   Stack,
   Tooltip,
@@ -48,6 +49,16 @@ interface AdminOrder {
   latestMessageAt: string | null;
   unreadCustomerMessageCount: number;
   productName: string;
+}
+
+interface AdminOrdersResponse {
+  orders: AdminOrder[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+  };
 }
 
 const statusLabels: Record<string, string> = {
@@ -93,6 +104,10 @@ export default function AdminOrdersPage() {
   const { role, session } = useAuth();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [showArchived, setShowArchived] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [actionMenu, setActionMenu] = useState<{
     anchor: HTMLElement;
@@ -105,47 +120,81 @@ export default function AdminOrdersPage() {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+
     const loadOrders = async () => {
       if (role !== "King") return;
       const token = session?.access_token;
       if (!token) return;
 
+      setLoading(true);
+      setError("");
       try {
         const response = await fetch(
-          `/api/admin/place-card-orders?archived=${showArchived}`,
-          { headers: { Authorization: `Bearer ${token}` } },
+          `/api/admin/place-card-orders?archived=${showArchived}&page=${page}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal,
+          },
         );
         const result = (await response.json()) as
-          | AdminOrder[]
+          | AdminOrdersResponse
           | { error?: string };
         if (!response.ok) {
           const apiError = "error" in result ? result.error : undefined;
-          setError(
-            response.status === 401 || response.status === 403
-              ? "Økten er utløpt. Oppdater siden og logg inn på nytt."
-              : (apiError ?? "Kunne ikke hente forespørslene."),
-          );
+          if (active) {
+            setError(
+              response.status === 401 || response.status === 403
+                ? "Økten er utløpt. Oppdater siden og logg inn på nytt."
+                : (apiError ?? "Kunne ikke hente forespørslene."),
+            );
+          }
           return;
         }
-        setOrders(
-          (result as AdminOrder[]).sort((left, right) => {
-            const attentionDifference =
-              Number(needsAttention(right)) - Number(needsAttention(left));
-            return (
-              attentionDifference ||
-              getLatestActivity(right) - getLatestActivity(left)
-            );
-          }),
-        );
+        const responseData = result as AdminOrdersResponse;
+        if (active) {
+          setOrders(
+            responseData.orders.sort((left, right) => {
+              const attentionDifference =
+                Number(needsAttention(right)) - Number(needsAttention(left));
+              return (
+                attentionDifference ||
+                getLatestActivity(right) - getLatestActivity(left)
+              );
+            }),
+          );
+          setPageSize(responseData.pagination.pageSize);
+          setTotalCount(responseData.pagination.totalCount);
+          setTotalPages(responseData.pagination.totalPages);
+          if (page > responseData.pagination.totalPages) {
+            setPage(responseData.pagination.totalPages);
+          }
+        }
       } catch {
-        setError("Kunne ikke hente forespørslene.");
+        if (active) setError("Kunne ikke hente forespørslene.");
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
     void loadOrders();
-  }, [role, session?.access_token, showArchived]);
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [page, role, session?.access_token, showArchived]);
+
+  const removeOrderFromCurrentView = (orderId: string) => {
+    const nextTotalCount = Math.max(0, totalCount - 1);
+    const nextTotalPages = Math.max(1, Math.ceil(nextTotalCount / pageSize));
+    setOrders((current) =>
+      current.filter((currentOrder) => currentOrder.id !== orderId),
+    );
+    setTotalCount(nextTotalCount);
+    setTotalPages(nextTotalPages);
+    if (page > nextTotalPages) setPage(nextTotalPages);
+  };
 
   const handleArchiveChange = async (order: AdminOrder) => {
     setError("");
@@ -176,9 +225,7 @@ export default function AdminOrdersPage() {
         return;
       }
 
-      setOrders((current) =>
-        current.filter((currentOrder) => currentOrder.id !== order.id),
-      );
+      removeOrderFromCurrentView(order.id);
       setSuccess(
         showArchived
           ? `Bestilling #${order.id} er flyttet tilbake til aktive.`
@@ -218,9 +265,7 @@ export default function AdminOrdersPage() {
         return;
       }
 
-      setOrders((current) =>
-        current.filter((order) => order.id !== deleteTarget.id),
-      );
+      removeOrderFromCurrentView(deleteTarget.id);
       setSuccess(`Forespørsel #${deleteTarget.id} er slettet permanent.`);
       setDeleteTarget(null);
     } catch {
@@ -259,6 +304,7 @@ export default function AdminOrdersPage() {
               onClick={() => {
                 setSuccess("");
                 setLoading(true);
+                setPage(1);
                 setShowArchived(false);
               }}
               disabled={loading || !showArchived}
@@ -271,6 +317,7 @@ export default function AdminOrdersPage() {
               onClick={() => {
                 setSuccess("");
                 setLoading(true);
+                setPage(1);
                 setShowArchived(true);
               }}
               disabled={loading || showArchived}
@@ -442,6 +489,20 @@ export default function AdminOrdersPage() {
                   </Paper>
                 );
               })}
+            </Stack>
+          )}
+          {!error && totalPages > 1 && (
+            <Stack alignItems="center" spacing={1} pt={1}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                color="primary"
+                onChange={(_, nextPage) => setPage(nextPage)}
+                siblingCount={0}
+              />
+              <Typography variant="caption" color="text.secondary">
+                {totalCount} forespørsler
+              </Typography>
             </Stack>
           )}
         </Stack>

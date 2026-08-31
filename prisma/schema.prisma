@@ -73,6 +73,7 @@ model PlaceCardOrder {
   @@index([userId])
   @@index([customerEmail])
   @@index([productId])
+  @@index([archivedAt, createdAt])
   @@map("place_card_orders")
 }
 
@@ -111,5 +112,6 @@ model TemperatureData {
   temperature         Float
   temperatureForecast Float?   @map("temperature_forcast")
 
+  @@index([createdAt])
   @@map("temperature_data")
 }
