@@ -6,6 +6,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import SaveIcon from "@mui/icons-material/Save";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 import {
   Alert,
   Box,
@@ -182,6 +183,9 @@ export default function OrdersPage() {
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
+  const [uploadingAttachmentId, setUploadingAttachmentId] = useState<
+    string | null
+  >(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -464,6 +468,62 @@ export default function OrdersPage() {
       setError("Kunne ikke kontakte serveren. Prøv igjen.");
     } finally {
       setCancellingId(null);
+    }
+  };
+
+  const handleAttachmentUpload = async (
+    orderId: string,
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setError("");
+    setSuccess("");
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      setError("Du må logge inn på nytt.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    setUploadingAttachmentId(orderId);
+    try {
+      const response = await fetch(
+        `/api/place-card-orders/${orderId}/attachments`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        },
+      );
+      const result = await readJsonResponse<{
+        error?: string;
+        attachment?: OrderAttachment;
+      }>(response, "Vedlegget kunne ikke lastes opp.");
+      if (!response.ok || !result.attachment) {
+        setError(result.error ?? "Vedlegget kunne ikke lastes opp.");
+        return;
+      }
+
+      setOrders((current) =>
+        current.map((order) =>
+          order.id === orderId
+            ? {
+                ...order,
+                attachments: [...(order.attachments ?? []), result.attachment!],
+              }
+            : order,
+        ),
+      );
+      setSuccess(`${result.attachment.fileName} er lagt til på forespørsel #${orderId}.`);
+    } catch {
+      setError("Kunne ikke kontakte serveren. Prøv igjen.");
+    } finally {
+      setUploadingAttachmentId(null);
     }
   };
 
@@ -997,7 +1057,8 @@ export default function OrdersPage() {
                           )}
                         </Box>
 
-                        {(order.attachments ?? []).length > 0 && (
+                        {((order.attachments ?? []).length > 0 ||
+                          !archived) && (
                           <Box
                             sx={{
                               width: "100%",
@@ -1008,10 +1069,55 @@ export default function OrdersPage() {
                               borderRadius: 1,
                             }}
                           >
-                            <OrderAttachments
-                              attachments={order.attachments ?? []}
-                              showFileName={false}
-                            />
+                            <Stack
+                              direction={{ xs: "column", sm: "row" }}
+                              alignItems={{ xs: "stretch", sm: "center" }}
+                              justifyContent="space-between"
+                              gap={1.5}
+                              mb={
+                                (order.attachments ?? []).length > 0 ? 1.5 : 0
+                              }
+                            >
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                {(order.attachments ?? []).length > 0
+                                  ? "Filer og bilder"
+                                  : "Ser du feil i en fil? Legg til en oppdatert versjon her."}
+                              </Typography>
+                              {!archived && (
+                                <Button
+                                  component="label"
+                                  variant="outlined"
+                                  size="small"
+                                  startIcon={<UploadFileIcon />}
+                                  disabled={
+                                    uploadingAttachmentId === order.id
+                                  }
+                                  sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
+                                >
+                                  {uploadingAttachmentId === order.id
+                                    ? "Laster opp..."
+                                    : "Legg til fil"}
+                                  <input
+                                    hidden
+                                    type="file"
+                                    accept=".jpg,.jpeg,.png,.webp,.svg,.pdf,.lbrn,.lbrn2"
+                                    onChange={(event) =>
+                                      handleAttachmentUpload(order.id, event)
+                                    }
+                                  />
+                                </Button>
+                              )}
+                            </Stack>
+                            {(order.attachments ?? []).length > 0 && (
+                              <OrderAttachments
+                                attachments={order.attachments ?? []}
+                                showFileName={false}
+                                showHeading={false}
+                              />
+                            )}
                           </Box>
                         )}
 
