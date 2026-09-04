@@ -1,6 +1,7 @@
 "use client";
 
 import CloseIcon from "@mui/icons-material/Close";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DownloadIcon from "@mui/icons-material/Download";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -29,12 +30,19 @@ export interface OrderAttachment {
   url: string;
   downloadUrl: string;
   uploadedBy?: string;
+  rotation?: number;
 }
 
 interface OrderAttachmentsProps {
   attachments: OrderAttachment[];
   showHeading?: boolean;
   showFileName?: boolean;
+  onDelete?: (attachment: OrderAttachment) => Promise<void> | void;
+  canDelete?: (attachment: OrderAttachment) => boolean;
+  onRotate?: (
+    attachment: OrderAttachment,
+    rotation: number,
+  ) => Promise<void> | void;
 }
 
 function formatFileSize(sizeBytes: number) {
@@ -59,9 +67,66 @@ function isSvgAttachment(attachment: OrderAttachment) {
 // Light oak accent from the app theme (theme.ts palette.primary.light) — reads clearly against the dark UI.
 const SVG_CONTRAST_COLOR = "#D9A066";
 
+const SHAPE_SELECTOR =
+  "path, rect, circle, ellipse, polygon, polyline, line, text, tspan, use";
+
+// Walks up to find the nearest fill/stroke value (own attribute, inline style,
+// or an inherited ancestor's), matching how the SVG actually renders it.
+function getInheritedPresentationValue(
+  element: Element,
+  prop: "fill" | "stroke",
+): string | null {
+  let current: Element | null = element;
+  const pattern = new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*([^;]+)`, "i");
+  while (current) {
+    const attr = current.getAttribute(prop);
+    if (attr) return attr.trim();
+    const style = current.getAttribute("style");
+    const match = style ? pattern.exec(style) : null;
+    if (match) return match[1].trim();
+    current = current.parentElement;
+  }
+  return null;
+}
+
 // SVG design files often use dark strokes/fills meant for a white canvas, which
 // disappear against this app's dark theme. Recolor them to a theme contrast
-// color so they stay visible without altering the original file.
+// color so they stay visible without altering the original file. Elements
+// explicitly set to `fill: none` (fine line-art details, holes, counters) are
+// left untouched so they don't get filled in and merge into solid blobs.
+function recolorSvgMarkup(source: string): string | null {
+  if (typeof DOMParser === "undefined" || typeof XMLSerializer === "undefined")
+    return null;
+  const doc = new DOMParser().parseFromString(source, "image/svg+xml");
+  if (doc.getElementsByTagName("parsererror").length > 0) return null;
+  const svg = doc.documentElement;
+  if (svg.nodeName.toLowerCase() !== "svg") return null;
+
+  svg.querySelectorAll(SHAPE_SELECTOR).forEach((element) => {
+    const fillValue = getInheritedPresentationValue(element, "fill");
+    const strokeValue = getInheritedPresentationValue(element, "stroke");
+    const fillIsNone = fillValue?.toLowerCase() === "none";
+    const strokeIsSet = Boolean(
+      strokeValue && strokeValue.toLowerCase() !== "none",
+    );
+
+    const overrides: string[] = [];
+    if (!fillIsNone) overrides.push(`fill:${SVG_CONTRAST_COLOR} !important`);
+    if (strokeIsSet) overrides.push(`stroke:${SVG_CONTRAST_COLOR} !important`);
+    if (overrides.length === 0) return;
+
+    const existingStyle = element.getAttribute("style");
+    element.setAttribute(
+      "style",
+      existingStyle
+        ? `${existingStyle};${overrides.join(";")}`
+        : overrides.join(";"),
+    );
+  });
+
+  return new XMLSerializer().serializeToString(doc);
+}
+
 const recoloredSvgCache = new Map<string, Promise<string | null>>();
 
 function getContrastSvgSrc(url: string): Promise<string | null> {
@@ -71,11 +136,10 @@ function getContrastSvgSrc(url: string): Promise<string | null> {
       .then((response) => (response.ok ? response.text() : null))
       .then((source) => {
         if (!source || !/<svg(?:\s|>)/i.test(source)) return null;
-        const recolored = source.replace(
-          /<svg([^>]*)>/i,
-          `<svg$1><style>*{fill:${SVG_CONTRAST_COLOR} !important;stroke:${SVG_CONTRAST_COLOR} !important;}</style>`,
-        );
-        return `data:image/svg+xml,${encodeURIComponent(recolored)}`;
+        const recolored = recolorSvgMarkup(source);
+        return recolored
+          ? `data:image/svg+xml,${encodeURIComponent(recolored)}`
+          : null;
       })
       .catch(() => null);
     recoloredSvgCache.set(url, cached);
@@ -144,6 +208,9 @@ function AttachmentPreview({
           width: "100%",
           height: "100%",
           objectFit: isSvgAttachment(attachment) ? "contain" : "cover",
+          transform: attachment.rotation
+            ? `rotate(${attachment.rotation}deg)`
+            : undefined,
         }}
       />
       <Box
@@ -173,20 +240,32 @@ function AttachmentPreview({
 function AttachmentViewerDialog({
   attachment,
   onClose,
+  onRotate,
 }: {
   attachment: OrderAttachment | null;
   onClose: () => void;
+  onRotate?: (
+    attachment: OrderAttachment,
+    rotation: number,
+  ) => Promise<void> | void;
 }) {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const contrastSrc = useContrastSvgSrc(attachment);
 
+  useEffect(() => {
+    setZoom(1);
+    setRotation(attachment?.rotation ?? 0);
+  }, [attachment]);
+
   if (!attachment) return null;
 
   const handleClose = () => {
+    const normalized = ((Math.round(rotation) % 360) + 360) % 360;
+    if (onRotate && normalized !== (attachment.rotation ?? 0)) {
+      Promise.resolve(onRotate(attachment, normalized)).catch(() => {});
+    }
     onClose();
-    setZoom(1);
-    setRotation(0);
   };
 
   return (
@@ -337,10 +416,31 @@ export default function OrderAttachments({
   attachments,
   showHeading = true,
   showFileName = true,
+  onDelete,
+  canDelete,
+  onRotate,
 }: OrderAttachmentsProps) {
   const [selected, setSelected] = useState<OrderAttachment | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   if (attachments.length === 0) return null;
+
+  const handleDelete = async (attachment: OrderAttachment) => {
+    if (!onDelete) return;
+    if (
+      !window.confirm(
+        `Vil du slette «${attachment.fileName}»? Dette kan ikke angres.`,
+      )
+    ) {
+      return;
+    }
+    setDeletingId(attachment.id);
+    try {
+      await onDelete(attachment);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <Box>
@@ -357,6 +457,8 @@ export default function OrderAttachments({
         }}
       >
         {attachments.map((attachment) => {
+          const deletable =
+            Boolean(onDelete) && (canDelete ? canDelete(attachment) : true);
           return (
             <Box
               key={attachment.id}
@@ -394,15 +496,28 @@ export default function OrderAttachments({
                 <Typography variant="caption" color="text.secondary">
                   {formatFileSize(attachment.sizeBytes)}
                 </Typography>
-                <Button
-                  component="a"
-                  href={attachment.downloadUrl}
-                  size="small"
-                  startIcon={<DownloadIcon />}
-                  download={attachment.fileName}
-                >
-                  Last ned
-                </Button>
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Button
+                    component="a"
+                    href={attachment.downloadUrl}
+                    size="small"
+                    startIcon={<DownloadIcon />}
+                    download={attachment.fileName}
+                  >
+                    Last ned
+                  </Button>
+                  {deletable && (
+                    <Button
+                      size="small"
+                      color="error"
+                      startIcon={<DeleteOutlineIcon />}
+                      disabled={deletingId === attachment.id}
+                      onClick={() => handleDelete(attachment)}
+                    >
+                      {deletingId === attachment.id ? "Sletter..." : "Slett"}
+                    </Button>
+                  )}
+                </Stack>
               </Stack>
             </Box>
           );
@@ -411,6 +526,7 @@ export default function OrderAttachments({
       <AttachmentViewerDialog
         attachment={selected}
         onClose={() => setSelected(null)}
+        onRotate={onRotate}
       />
     </Box>
   );

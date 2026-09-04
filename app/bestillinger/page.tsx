@@ -534,6 +534,91 @@ export default function OrdersPage() {
     }
   };
 
+  const handleAttachmentDelete = async (
+    orderId: string,
+    attachment: OrderAttachment,
+  ) => {
+    setError("");
+    setSuccess("");
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      setError("Du må logge inn på nytt.");
+      return;
+    }
+    try {
+      const response = await fetch(
+        `/api/place-card-orders/${orderId}/attachments?attachmentId=${attachment.id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      const result = await readJsonResponse<{ error?: string }>(
+        response,
+        "Vedlegget kunne ikke slettes.",
+      );
+      if (!response.ok) {
+        setError(result.error ?? "Vedlegget kunne ikke slettes.");
+        return;
+      }
+      setOrders((current) =>
+        current.map((order) =>
+          order.id === orderId
+            ? {
+                ...order,
+                attachments: (order.attachments ?? []).filter(
+                  (item) => item.id !== attachment.id,
+                ),
+              }
+            : order,
+        ),
+      );
+    } catch {
+      setError("Kunne ikke kontakte serveren. Prøv igjen.");
+    }
+  };
+
+  const handleAttachmentRotate = async (
+    orderId: string,
+    attachment: OrderAttachment,
+    rotation: number,
+  ) => {
+    // Customers may only rotate their own uploads, not admin-provided files.
+    if (attachment.uploadedBy !== "customer") return;
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return;
+    try {
+      const response = await fetch(
+        `/api/place-card-orders/${orderId}/attachments`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ attachmentId: attachment.id, rotation }),
+        },
+      );
+      if (!response.ok) return;
+      setOrders((current) =>
+        current.map((order) =>
+          order.id === orderId
+            ? {
+                ...order,
+                attachments: (order.attachments ?? []).map((item) =>
+                  item.id === attachment.id ? { ...item, rotation } : item,
+                ),
+              }
+            : order,
+        ),
+      );
+    } catch {
+      // Rotation is a minor convenience; ignore failures silently.
+    }
+  };
+
   return (
     <PageShell
       eyebrow="DIN KONTO"
@@ -1137,6 +1222,20 @@ export default function OrdersPage() {
                                 attachments={order.attachments ?? []}
                                 showFileName={false}
                                 showHeading={false}
+                                onDelete={(attachment) =>
+                                  handleAttachmentDelete(order.id, attachment)
+                                }
+                                canDelete={(attachment) =>
+                                  canUploadAttachment &&
+                                  attachment.uploadedBy === "customer"
+                                }
+                                onRotate={(attachment, rotation) =>
+                                  handleAttachmentRotate(
+                                    order.id,
+                                    attachment,
+                                    rotation,
+                                  )
+                                }
                               />
                             )}
                           </Box>

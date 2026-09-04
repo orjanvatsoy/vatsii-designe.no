@@ -185,6 +185,7 @@ export async function POST(
         contentType: attachment.contentType,
         sizeBytes: attachment.sizeBytes,
         uploadedBy: attachment.uploadedBy,
+        rotation: attachment.rotation,
         url: await signImageUrl(objectKey, BUCKET, 60 * 60),
         downloadUrl: await signDownloadUrl(
           objectKey,
@@ -201,4 +202,108 @@ export async function POST(
       { status: 500 },
     );
   }
+}
+
+async function resolveOwnedOrderId(request: Request, orderId: bigint) {
+  const authResult = await requireUser(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const order = await prisma.placeCardOrder.findFirst({
+    where: { id: orderId, userId: authResult.user.id },
+    select: { id: true },
+  });
+  if (!order) {
+    return NextResponse.json({ error: "Ordren finnes ikke." }, { status: 404 });
+  }
+  return order;
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  let orderId: bigint;
+  try {
+    orderId = BigInt(id);
+  } catch {
+    return NextResponse.json({ error: "Ugyldig ordre." }, { status: 400 });
+  }
+
+  const owned = await resolveOwnedOrderId(request, orderId);
+  if (owned instanceof NextResponse) return owned;
+
+  const body = (await request.json().catch(() => null)) as {
+    attachmentId?: string;
+    rotation?: number;
+  } | null;
+  if (
+    !body?.attachmentId ||
+    typeof body.rotation !== "number" ||
+    !Number.isFinite(body.rotation)
+  ) {
+    return NextResponse.json(
+      { error: "Ugyldig forespørsel." },
+      { status: 400 },
+    );
+  }
+  const rotation = ((Math.round(body.rotation) % 360) + 360) % 360;
+
+  // Customers may only rotate their own uploads, not admin-provided files.
+  const attachment = await prisma.inquiryAttachment.findFirst({
+    where: { id: body.attachmentId, orderId, uploadedBy: "customer" },
+    select: { id: true },
+  });
+  if (!attachment) {
+    return NextResponse.json(
+      { error: "Vedlegget finnes ikke." },
+      { status: 404 },
+    );
+  }
+
+  const updated = await prisma.inquiryAttachment.update({
+    where: { id: attachment.id },
+    data: { rotation },
+  });
+  return NextResponse.json({ rotation: updated.rotation });
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  let orderId: bigint;
+  try {
+    orderId = BigInt(id);
+  } catch {
+    return NextResponse.json({ error: "Ugyldig ordre." }, { status: 400 });
+  }
+
+  const owned = await resolveOwnedOrderId(request, orderId);
+  if (owned instanceof NextResponse) return owned;
+
+  const attachmentId = new URL(request.url).searchParams.get("attachmentId");
+  if (!attachmentId) {
+    return NextResponse.json(
+      { error: "Ugyldig forespørsel." },
+      { status: 400 },
+    );
+  }
+
+  // Customers may only delete their own uploads, not admin-provided files.
+  const attachment = await prisma.inquiryAttachment.findFirst({
+    where: { id: attachmentId, orderId, uploadedBy: "customer" },
+    select: { id: true, objectKey: true },
+  });
+  if (!attachment) {
+    return NextResponse.json(
+      { error: "Vedlegget finnes ikke." },
+      { status: 404 },
+    );
+  }
+
+  await prisma.inquiryAttachment.delete({ where: { id: attachment.id } });
+  await serverSupabase.storage.from(BUCKET).remove([attachment.objectKey]);
+  return NextResponse.json({ success: true });
 }

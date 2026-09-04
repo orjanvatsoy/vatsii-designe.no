@@ -118,6 +118,7 @@ export async function POST(
         contentType: attachment.contentType,
         sizeBytes: attachment.sizeBytes,
         uploadedBy: attachment.uploadedBy,
+        rotation: attachment.rotation,
         url: await signImageUrl(objectKey, BUCKET, 60 * 60),
         downloadUrl: await signDownloadUrl(
           objectKey,
@@ -134,4 +135,92 @@ export async function POST(
       { status: 500 },
     );
   }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const adminResult = await requireAdmin(request);
+  if (adminResult instanceof NextResponse) return adminResult;
+
+  const { id } = await params;
+  let orderId: bigint;
+  try {
+    orderId = BigInt(id);
+  } catch {
+    return NextResponse.json({ error: "Ugyldig ordre." }, { status: 400 });
+  }
+
+  const body = (await request.json().catch(() => null)) as {
+    attachmentId?: string;
+    rotation?: number;
+  } | null;
+  if (
+    !body?.attachmentId ||
+    typeof body.rotation !== "number" ||
+    !Number.isFinite(body.rotation)
+  ) {
+    return NextResponse.json(
+      { error: "Ugyldig forespørsel." },
+      { status: 400 },
+    );
+  }
+  const rotation = ((Math.round(body.rotation) % 360) + 360) % 360;
+
+  const attachment = await prisma.inquiryAttachment.findFirst({
+    where: { id: body.attachmentId, orderId },
+    select: { id: true },
+  });
+  if (!attachment) {
+    return NextResponse.json(
+      { error: "Vedlegget finnes ikke." },
+      { status: 404 },
+    );
+  }
+
+  const updated = await prisma.inquiryAttachment.update({
+    where: { id: attachment.id },
+    data: { rotation },
+  });
+  return NextResponse.json({ rotation: updated.rotation });
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const adminResult = await requireAdmin(request);
+  if (adminResult instanceof NextResponse) return adminResult;
+
+  const { id } = await params;
+  let orderId: bigint;
+  try {
+    orderId = BigInt(id);
+  } catch {
+    return NextResponse.json({ error: "Ugyldig ordre." }, { status: 400 });
+  }
+
+  const attachmentId = new URL(request.url).searchParams.get("attachmentId");
+  if (!attachmentId) {
+    return NextResponse.json(
+      { error: "Ugyldig forespørsel." },
+      { status: 400 },
+    );
+  }
+
+  const attachment = await prisma.inquiryAttachment.findFirst({
+    where: { id: attachmentId, orderId },
+    select: { id: true, objectKey: true },
+  });
+  if (!attachment) {
+    return NextResponse.json(
+      { error: "Vedlegget finnes ikke." },
+      { status: 404 },
+    );
+  }
+
+  await prisma.inquiryAttachment.delete({ where: { id: attachment.id } });
+  await serverSupabase.storage.from(BUCKET).remove([attachment.objectKey]);
+  return NextResponse.json({ success: true });
 }

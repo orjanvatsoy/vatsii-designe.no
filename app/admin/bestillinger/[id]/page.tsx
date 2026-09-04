@@ -321,6 +321,71 @@ export default function AdminOrderDetailsPage() {
     }
   };
 
+  const handleAttachmentDelete = async (attachment: OrderAttachment) => {
+    if (!order || !session?.access_token) return;
+    setError("");
+    setSuccess("");
+    try {
+      const response = await fetch(
+        `/api/admin/place-card-orders/${order.id}/attachments?attachmentId=${attachment.id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        },
+      );
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setError(result.error ?? "Vedlegget kunne ikke slettes.");
+        return;
+      }
+      setOrder((current) =>
+        current
+          ? {
+              ...current,
+              attachments: current.attachments.filter(
+                (item) => item.id !== attachment.id,
+              ),
+            }
+          : current,
+      );
+    } catch {
+      setError("Kunne ikke kontakte serveren.");
+    }
+  };
+
+  const handleAttachmentRotate = async (
+    attachment: OrderAttachment,
+    rotation: number,
+  ) => {
+    if (!order || !session?.access_token) return;
+    try {
+      const response = await fetch(
+        `/api/admin/place-card-orders/${order.id}/attachments`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ attachmentId: attachment.id, rotation }),
+        },
+      );
+      if (!response.ok) return;
+      setOrder((current) =>
+        current
+          ? {
+              ...current,
+              attachments: current.attachments.map((item) =>
+                item.id === attachment.id ? { ...item, rotation } : item,
+              ),
+            }
+          : current,
+      );
+    } catch {
+      // Rotation is a minor convenience; ignore failures silently.
+    }
+  };
+
   const handleCancelOrder = async () => {
     if (!order || cancellationReason.trim().length < 5) return;
     setError("");
@@ -1015,6 +1080,8 @@ export default function AdminOrderDetailsPage() {
                 <OrderAttachments
                   attachments={order.attachments}
                   showHeading={false}
+                  onDelete={handleAttachmentDelete}
+                  onRotate={handleAttachmentRotate}
                 />
               </Box>
             )}

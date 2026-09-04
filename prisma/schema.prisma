@@ -85,6 +85,7 @@ model InquiryAttachment {
   contentType String   @map("content_type")
   sizeBytes   Int      @map("size_bytes")
   uploadedBy  String   @default("admin") @map("uploaded_by")
+  rotation    Int      @default(0) @map("rotation")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   order       PlaceCardOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
