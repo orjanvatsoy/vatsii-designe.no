@@ -108,6 +108,7 @@ export async function POST(
         fileName: file.name.slice(0, 255),
         contentType: fileType.contentType,
         sizeBytes: file.size,
+        uploadedBy: "admin",
       },
     });
     return NextResponse.json({
@@ -116,6 +117,7 @@ export async function POST(
         fileName: attachment.fileName,
         contentType: attachment.contentType,
         sizeBytes: attachment.sizeBytes,
+        uploadedBy: attachment.uploadedBy,
         url: await signImageUrl(objectKey, BUCKET, 60 * 60),
         downloadUrl: await signDownloadUrl(
           objectKey,

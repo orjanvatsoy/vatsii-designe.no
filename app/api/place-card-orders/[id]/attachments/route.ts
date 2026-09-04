@@ -69,7 +69,15 @@ export async function POST(
 
   const order = await prisma.placeCardOrder.findFirst({
     where: { id: orderId, userId: authResult.user.id },
-    select: { id: true, status: true, _count: { select: { attachments: true } } },
+    select: {
+      id: true,
+      status: true,
+      attachments: {
+        where: { uploadedBy: "customer" },
+        select: { id: true, objectKey: true },
+      },
+      _count: { select: { attachments: true } },
+    },
   });
   if (!order) {
     return NextResponse.json({ error: "Ordren finnes ikke." }, { status: 404 });
@@ -80,7 +88,11 @@ export async function POST(
       { status: 400 },
     );
   }
-  if (order._count.attachments >= MAX_ATTACHMENTS_PER_ORDER) {
+  // Uploading a new file replaces the customer's previous file(s) rather than piling up duplicates.
+  const previousAttachments = order.attachments;
+  const attachmentCountAfterReplace =
+    order._count.attachments - previousAttachments.length + 1;
+  if (attachmentCountAfterReplace > MAX_ATTACHMENTS_PER_ORDER) {
     return NextResponse.json(
       { error: "Ordren kan ha maksimalt 20 vedlegg." },
       { status: 400 },
@@ -126,21 +138,35 @@ export async function POST(
   }
 
   try {
-    const attachment = await prisma.inquiryAttachment.create({
-      data: {
-        orderId,
-        objectKey,
-        fileName: file.name.slice(0, 255),
-        contentType: fileType.contentType,
-        sizeBytes: file.size,
-      },
+    const attachment = await prisma.$transaction(async (tx) => {
+      if (previousAttachments.length > 0) {
+        await tx.inquiryAttachment.deleteMany({
+          where: { id: { in: previousAttachments.map((item) => item.id) } },
+        });
+      }
+      return tx.inquiryAttachment.create({
+        data: {
+          orderId,
+          objectKey,
+          fileName: file.name.slice(0, 255),
+          contentType: fileType.contentType,
+          sizeBytes: file.size,
+          uploadedBy: "customer",
+        },
+      });
     });
+    if (previousAttachments.length > 0) {
+      await serverSupabase.storage
+        .from(BUCKET)
+        .remove(previousAttachments.map((item) => item.objectKey));
+    }
     return NextResponse.json({
       attachment: {
         id: attachment.id,
         fileName: attachment.fileName,
         contentType: attachment.contentType,
         sizeBytes: attachment.sizeBytes,
+        uploadedBy: attachment.uploadedBy,
         url: await signImageUrl(objectKey, BUCKET, 60 * 60),
         downloadUrl: await signDownloadUrl(
           objectKey,

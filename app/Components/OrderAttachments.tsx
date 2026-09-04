@@ -28,6 +28,7 @@ export interface OrderAttachment {
   sizeBytes: number;
   url: string;
   downloadUrl: string;
+  uploadedBy?: string;
 }
 
 interface OrderAttachmentsProps {

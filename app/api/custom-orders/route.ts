@@ -213,6 +213,7 @@ export async function POST(request: Request) {
           fileName: file.name.slice(0, 255),
           contentType: file.type,
           sizeBytes: file.size,
+          uploadedBy: "customer",
         },
       });
     }

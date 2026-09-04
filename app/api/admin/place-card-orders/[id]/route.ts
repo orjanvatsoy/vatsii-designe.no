@@ -102,6 +102,7 @@ export async function GET(
         fileName: attachment.fileName,
         contentType: attachment.contentType,
         sizeBytes: attachment.sizeBytes,
+        uploadedBy: attachment.uploadedBy,
         url: await signImageUrl(
           attachment.objectKey,
           "inquiry-attachments",

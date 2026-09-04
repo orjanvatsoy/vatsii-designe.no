@@ -91,6 +91,7 @@ export async function GET(request: Request) {
             contentType: true,
             sizeBytes: true,
             objectKey: true,
+            uploadedBy: true,
           },
         },
         messages: {
@@ -176,6 +177,7 @@ export async function GET(request: Request) {
               fileName: attachment.fileName,
               contentType: attachment.contentType,
               sizeBytes: attachment.sizeBytes,
+              uploadedBy: attachment.uploadedBy,
               url: attachmentUrlById.get(attachment.id) ?? "",
               downloadUrl: await signDownloadUrl(
                 attachment.objectKey,

@@ -514,12 +514,19 @@ export default function OrdersPage() {
           order.id === orderId
             ? {
                 ...order,
-                attachments: [...(order.attachments ?? []), result.attachment!],
+                attachments: [
+                  ...(order.attachments ?? []).filter(
+                    (attachment) => attachment.uploadedBy !== "customer",
+                  ),
+                  result.attachment!,
+                ],
               }
             : order,
         ),
       );
-      setSuccess(`${result.attachment.fileName} er lagt til på forespørsel #${orderId}.`);
+      setSuccess(
+        `${result.attachment.fileName} er lagt til på forespørsel #${orderId}.`,
+      );
     } catch {
       setError("Kunne ikke kontakte serveren. Prøv igjen.");
     } finally {
@@ -1083,8 +1090,8 @@ export default function OrdersPage() {
                                 color="text.secondary"
                               >
                                 {(order.attachments ?? []).length > 0
-                                  ? "Filer og bilder"
-                                  : "Ser du feil i en fil? Legg til en oppdatert versjon her."}
+                                  ? "Ser du feil i en fil? Last opp en oppdatert versjon, så erstattes den forrige."
+                                  : "Legg til en fil, f.eks. en SVG til godkjenning."}
                               </Typography>
                               {!archived && (
                                 <Button
@@ -1092,14 +1099,19 @@ export default function OrdersPage() {
                                   variant="outlined"
                                   size="small"
                                   startIcon={<UploadFileIcon />}
-                                  disabled={
-                                    uploadingAttachmentId === order.id
-                                  }
-                                  sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
+                                  disabled={uploadingAttachmentId === order.id}
+                                  sx={{
+                                    alignSelf: {
+                                      xs: "flex-start",
+                                      sm: "center",
+                                    },
+                                  }}
                                 >
                                   {uploadingAttachmentId === order.id
                                     ? "Laster opp..."
-                                    : "Legg til fil"}
+                                    : (order.attachments ?? []).length > 0
+                                      ? "Oppdater fil"
+                                      : "Legg til fil"}
                                   <input
                                     hidden
                                     type="file"
