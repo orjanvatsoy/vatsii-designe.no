@@ -113,6 +113,7 @@ model TemperatureData {
   deviceId            String?   @map("device_id")
   temperatureForecast Decimal?  @map("temperature_forcast") @db.Decimal
   humidity            Decimal?  @db.Decimal
+  humidityForecast    Decimal?  @map("humidity_forcast") @db.Decimal
   outdoorTemperature  Decimal?  @map("outdoor_temperature") @db.Decimal
 
   @@index([createdAt])

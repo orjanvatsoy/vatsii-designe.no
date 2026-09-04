@@ -44,6 +44,7 @@ export async function GET(request: Request) {
       temperature: true,
       temperatureForecast: true,
       humidity: true,
+      humidityForecast: true,
       outdoorTemperature: true,
     },
   });
@@ -59,6 +60,7 @@ export async function GET(request: Request) {
               temperature_forcast:
                 entry.temperatureForecast?.toNumber() ?? null,
               humidity: entry.humidity?.toNumber() ?? null,
+              humidity_forcast: entry.humidityForecast?.toNumber() ?? null,
               outdoor_temperature: entry.outdoorTemperature?.toNumber() ?? null,
             },
           ],

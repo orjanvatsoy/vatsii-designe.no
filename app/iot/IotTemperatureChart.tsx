@@ -15,6 +15,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { useEffect, useState } from "react";
+import { ChartsReferenceLine } from "@mui/x-charts/ChartsReferenceLine";
 import { LineChart } from "@mui/x-charts/LineChart";
 
 async function fetchYrForecast() {
@@ -32,6 +33,22 @@ const rangeOptions = [
   { hours: 168, label: "7 døgn" },
   { hours: 336, label: "14 døgn" },
 ];
+
+function summarizeDeviation(values: Iterable<number>) {
+  const absoluteValues = [...values].map(Math.abs);
+  if (absoluteValues.length === 0) return null;
+
+  return {
+    average:
+      absoluteValues.reduce((total, value) => total + value, 0) /
+      absoluteValues.length,
+    maximum: Math.max(...absoluteValues),
+  };
+}
+
+function formatDeviation(value: number) {
+  return value.toLocaleString("nb-NO", { maximumFractionDigits: 1 });
+}
 
 interface IotTemperatureChartProps {
   data: {
@@ -56,6 +73,9 @@ export default function IotTemperatureChart({
   onWindowOffsetChange,
 }: IotTemperatureChartProps) {
   const theme = useTheme();
+  const [chartMode, setChartMode] = useState<"temperature" | "deviation">(
+    "temperature",
+  );
   const [forecast, setForecast] = useState<
     { time: string; temperature: number }[]
   >([]);
@@ -99,6 +119,8 @@ export default function IotTemperatureChart({
   const measuredByTime = new Map<number, number>();
   const outdoorByTime = new Map<number, number>();
   const forecastByTime = new Map<number, number>();
+  const indoorOutdoorDeviationByTime = new Map<number, number>();
+  const outdoorForecastDeviationByTime = new Map<number, number>();
   measuredInWindow.forEach((entry) => {
     const timestamp = new Date(entry.created_at).getTime();
     if (entry.temperature !== null) {
@@ -116,18 +138,47 @@ export default function IotTemperatureChart({
     ) {
       forecastByTime.set(timestamp, entry.temperature_forcast);
     }
+    if (
+      entry.temperature !== null &&
+      entry.outdoor_temperature !== undefined &&
+      entry.outdoor_temperature !== null
+    ) {
+      indoorOutdoorDeviationByTime.set(
+        timestamp,
+        entry.temperature - entry.outdoor_temperature,
+      );
+    }
+    if (
+      entry.outdoor_temperature !== undefined &&
+      entry.outdoor_temperature !== null &&
+      entry.temperature_forcast !== undefined &&
+      entry.temperature_forcast !== null
+    ) {
+      outdoorForecastDeviationByTime.set(
+        timestamp,
+        entry.outdoor_temperature - entry.temperature_forcast,
+      );
+    }
   });
   futureForecast.forEach((entry) => {
     forecastByTime.set(new Date(entry.time).getTime(), entry.temperature);
   });
 
-  const timestamps = [
+  const temperatureTimestamps = [
     ...new Set([
       ...measuredByTime.keys(),
       ...outdoorByTime.keys(),
       ...forecastByTime.keys(),
     ]),
   ].sort((left, right) => left - right);
+  const deviationTimestamps = [
+    ...new Set([
+      ...indoorOutdoorDeviationByTime.keys(),
+      ...outdoorForecastDeviationByTime.keys(),
+    ]),
+  ].sort((left, right) => left - right);
+  const timestamps =
+    chartMode === "temperature" ? temperatureTimestamps : deviationTimestamps;
   const xData = timestamps.map((timestamp) => new Date(timestamp));
   const measuredData = timestamps.map(
     (timestamp) => measuredByTime.get(timestamp) ?? null,
@@ -137,6 +188,26 @@ export default function IotTemperatureChart({
   );
   const forecastData = timestamps.map(
     (timestamp) => forecastByTime.get(timestamp) ?? null,
+  );
+  const indoorOutdoorDeviationData = timestamps.map(
+    (timestamp) => indoorOutdoorDeviationByTime.get(timestamp) ?? null,
+  );
+  const outdoorForecastDeviationData = timestamps.map(
+    (timestamp) => outdoorForecastDeviationByTime.get(timestamp) ?? null,
+  );
+  const deviations = [
+    ...indoorOutdoorDeviationByTime.values(),
+    ...outdoorForecastDeviationByTime.values(),
+  ];
+  const deviationLimit = Math.max(
+    1,
+    Math.ceil(Math.max(0, ...deviations.map(Math.abs)) * 2) / 2,
+  );
+  const indoorOutdoorSummary = summarizeDeviation(
+    indoorOutdoorDeviationByTime.values(),
+  );
+  const outdoorForecastSummary = summarizeDeviation(
+    outdoorForecastDeviationByTime.values(),
   );
   const dateFormatter = new Intl.DateTimeFormat("nb-NO", {
     day: "2-digit",
@@ -148,6 +219,20 @@ export default function IotTemperatureChart({
 
   return (
     <Box sx={{ width: "100%" }}>
+      <ToggleButtonGroup
+        exclusive
+        size="small"
+        value={chartMode}
+        onChange={(_, value: "temperature" | "deviation" | null) => {
+          if (value !== null) setChartMode(value);
+        }}
+        aria-label="Velg grafvisning"
+        sx={{ mb: 2 }}
+      >
+        <ToggleButton value="temperature">Temperatur</ToggleButton>
+        <ToggleButton value="deviation">Avvik</ToggleButton>
+      </ToggleButtonGroup>
+
       <Stack
         direction={{ xs: "column", md: "row" }}
         alignItems={{ xs: "stretch", md: "center" }}
@@ -210,10 +295,56 @@ export default function IotTemperatureChart({
 
       <Typography variant="body2" color="text.secondary" mb={1}>
         {rangeLabel}
-        {windowOffset === 0 && futureForecast.length > 0
+        {chartMode === "temperature" &&
+        windowOffset === 0 &&
+        futureForecast.length > 0
           ? " · Yr-varsel neste 24 timer"
           : ""}
       </Typography>
+
+      {chartMode === "deviation" &&
+        (indoorOutdoorSummary || outdoorForecastSummary) && (
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            gap={{ xs: 1.5, sm: 4 }}
+            mb={1.5}
+          >
+            {indoorOutdoorSummary && (
+              <Box
+                sx={{
+                  borderLeft: "3px solid",
+                  borderColor: "primary.light",
+                  pl: 1.5,
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  Garasje mot ute
+                </Typography>
+                <Typography sx={{ fontWeight: 700 }}>
+                  Snitt {formatDeviation(indoorOutdoorSummary.average)} °C ·
+                  størst {formatDeviation(indoorOutdoorSummary.maximum)} °C
+                </Typography>
+              </Box>
+            )}
+            {outdoorForecastSummary && (
+              <Box
+                sx={{
+                  borderLeft: "3px solid",
+                  borderColor: "secondary.main",
+                  pl: 1.5,
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  Ute mot met.no
+                </Typography>
+                <Typography sx={{ fontWeight: 700 }}>
+                  Snitt {formatDeviation(outdoorForecastSummary.average)} °C ·
+                  størst {formatDeviation(outdoorForecastSummary.maximum)} °C
+                </Typography>
+              </Box>
+            )}
+          </Stack>
+        )}
 
       {loading ? (
         <Box sx={{ minHeight: 360, display: "grid", placeItems: "center" }}>
@@ -226,46 +357,85 @@ export default function IotTemperatureChart({
               data: xData,
               scaleType: "time",
               min: windowStart,
-              max: displayEnd,
+              max: chartMode === "temperature" ? displayEnd : windowEnd,
               tickNumber: 7,
               valueFormatter: (value: Date) => dateFormatter.format(value),
             },
           ]}
-          yAxis={[{ label: "Temperatur (°C)" }]}
-          series={[
-            {
-              id: "measured",
-              data: measuredData,
-              label: "Garasje",
-              showMark: false,
-              connectNulls: false,
-              color: theme.palette.primary.main,
-            },
-            {
-              id: "outdoor",
-              data: outdoorData,
-              label: "Utetemperatur",
-              showMark: false,
-              connectNulls: false,
-              color: theme.palette.secondary.main,
-            },
-            {
-              id: "forecast",
-              data: forecastData,
-              label: "met.no-varsel",
-              showMark: false,
-              connectNulls: false,
-              color: theme.palette.primary.light,
-            },
+          yAxis={[
+            chartMode === "temperature"
+              ? { label: "Temperatur (°C)" }
+              : {
+                  label: "Avvik (°C)",
+                  min: -deviationLimit,
+                  max: deviationLimit,
+                },
           ]}
+          series={
+            chartMode === "temperature"
+              ? [
+                  {
+                    id: "measured",
+                    data: measuredData,
+                    label: "Garasje",
+                    showMark: false,
+                    connectNulls: false,
+                    color: theme.palette.primary.main,
+                  },
+                  {
+                    id: "outdoor",
+                    data: outdoorData,
+                    label: "Utetemperatur",
+                    showMark: false,
+                    connectNulls: false,
+                    color: theme.palette.secondary.main,
+                  },
+                  {
+                    id: "forecast",
+                    data: forecastData,
+                    label: "met.no-varsel",
+                    showMark: false,
+                    connectNulls: false,
+                    color: theme.palette.primary.light,
+                  },
+                ]
+              : [
+                  {
+                    id: "indoor-outdoor-deviation",
+                    data: indoorOutdoorDeviationData,
+                    label: "Garasje − ute",
+                    showMark: false,
+                    connectNulls: false,
+                    color: theme.palette.primary.light,
+                  },
+                  {
+                    id: "outdoor-forecast-deviation",
+                    data: outdoorForecastDeviationData,
+                    label: "Ute − met.no",
+                    showMark: false,
+                    connectNulls: false,
+                    color: theme.palette.secondary.main,
+                  },
+                ]
+          }
           height={430}
           margin={{ left: 16, right: 16, bottom: 12 }}
           slotProps={{
             line: ({ id }) => ({
-              strokeDasharray: id === "forecast" ? "5 5" : "0",
+              strokeDasharray:
+                id === "forecast" || id === "outdoor-forecast-deviation"
+                  ? "5 5"
+                  : "0",
             }),
           }}
-        />
+        >
+          {chartMode === "deviation" && (
+            <ChartsReferenceLine
+              y={0}
+              lineStyle={{ stroke: theme.palette.text.secondary }}
+            />
+          )}
+        </LineChart>
       ) : (
         <Box
           sx={{

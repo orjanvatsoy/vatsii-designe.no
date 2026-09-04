@@ -34,6 +34,7 @@ interface TemperatureData {
   temperature: number | null;
   temperature_forcast?: number | null;
   humidity?: number | null;
+  humidity_forcast?: number | null;
   outdoor_temperature?: number | null;
 }
 
@@ -117,6 +118,20 @@ export default function IotTemperatureCard() {
     latestReading.temperature_forcast === null
       ? null
       : latestReading.outdoor_temperature - latestReading.temperature_forcast;
+  const indoorOutdoorDifference =
+    latestReading?.temperature === undefined ||
+    latestReading.temperature === null ||
+    latestReading.outdoor_temperature === undefined ||
+    latestReading.outdoor_temperature === null
+      ? null
+      : latestReading.temperature - latestReading.outdoor_temperature;
+  const humidityForecastDifference =
+    latestReading?.humidity === undefined ||
+    latestReading.humidity === null ||
+    latestReading.humidity_forcast === undefined ||
+    latestReading.humidity_forcast === null
+      ? null
+      : latestReading.humidity - latestReading.humidity_forcast;
   const latestTimestamp = latestReading
     ? new Intl.DateTimeFormat("nb-NO", {
         day: "2-digit",
@@ -226,6 +241,16 @@ export default function IotTemperatureCard() {
                     Målt {latestTimestamp}
                   </Typography>
                 </Stack>
+                {indoorOutdoorDifference !== null && (
+                  <Typography variant="body2" color="text.secondary">
+                    {Math.abs(indoorOutdoorDifference) < 0.05
+                      ? "Samme temperatur i garasjen som ute"
+                      : `${Math.abs(indoorOutdoorDifference).toLocaleString(
+                          "nb-NO",
+                          { maximumFractionDigits: 1 },
+                        )} °C ${indoorOutdoorDifference > 0 ? "varmere" : "kaldere"} i garasjen enn ute`}
+                  </Typography>
+                )}
                 {forecastDifference !== null && (
                   <Typography variant="body2" color="text.secondary">
                     {Math.abs(forecastDifference) < 0.05
@@ -236,6 +261,16 @@ export default function IotTemperatureCard() {
                             maximumFractionDigits: 1,
                           },
                         )} °C ${forecastDifference > 0 ? "varmere" : "kaldere"} ute enn met.no varslet`}
+                  </Typography>
+                )}
+                {humidityForecastDifference !== null && (
+                  <Typography variant="body2" color="text.secondary">
+                    {Math.abs(humidityForecastDifference) < 0.05
+                      ? "Samme luftfuktighet i garasjen som met.no varslet ute"
+                      : `${Math.abs(humidityForecastDifference).toLocaleString(
+                          "nb-NO",
+                          { maximumFractionDigits: 1 },
+                        )} prosentpoeng ${humidityForecastDifference > 0 ? "høyere" : "lavere"} luftfuktighet i garasjen enn met.no varslet ute`}
                   </Typography>
                 )}
               </Stack>
@@ -260,7 +295,7 @@ export default function IotTemperatureCard() {
             />
             <Divider sx={{ my: 3 }} />
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-              Luftfuktighet
+              Luftfuktighet og værvarsel
             </Typography>
             <IotHumidityChart
               data={data}

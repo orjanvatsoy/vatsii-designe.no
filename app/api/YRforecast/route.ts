@@ -24,13 +24,14 @@ export async function GET() {
     const data = await response.json();
     // Only return the timeseries array (hourly forecast)
     const timeseries = data.properties?.timeseries || [];
-    // Map to { time, temperature }
+    // Map to the values used by the IoT charts.
     type YrTimeseriesItem = {
       time: string;
       data: {
         instant: {
           details: {
             air_temperature: number;
+            relative_humidity: number;
           };
         };
       };
@@ -39,6 +40,7 @@ export async function GET() {
       return {
         time: item.time,
         temperature: item.data.instant.details.air_temperature,
+        humidity: item.data.instant.details.relative_humidity,
       };
     });
     return new Response(JSON.stringify({ forecast }), {
