@@ -9,12 +9,14 @@ export async function GET(request: Request) {
   const authResult = await requireUser(request);
   if (authResult instanceof NextResponse) return authResult;
 
-  const profile = await prisma.profile.findUnique({
-    where: { id: authResult.user.id },
-    select: { role: true },
-  });
-  if (profile?.role !== "King" && profile?.role !== "User") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!authResult.localBypass) {
+    const profile = await prisma.profile.findUnique({
+      where: { id: authResult.user.id },
+      select: { role: true },
+    });
+    if (profile?.role !== "King" && profile?.role !== "User") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   const searchParams = new URL(request.url).searchParams;
@@ -41,14 +43,25 @@ export async function GET(request: Request) {
       createdAt: true,
       temperature: true,
       temperatureForecast: true,
+      humidity: true,
+      outdoorTemperature: true,
     },
   });
 
   return NextResponse.json(
-    temperatureData.map((entry) => ({
-      created_at: entry.createdAt.toISOString(),
-      temperature: entry.temperature,
-      temperature_forcast: entry.temperatureForecast,
-    })),
+    temperatureData.flatMap((entry) =>
+      entry.createdAt === null
+        ? []
+        : [
+            {
+              created_at: entry.createdAt.toISOString(),
+              temperature: entry.temperature?.toNumber() ?? null,
+              temperature_forcast:
+                entry.temperatureForecast?.toNumber() ?? null,
+              humidity: entry.humidity?.toNumber() ?? null,
+              outdoor_temperature: entry.outdoorTemperature?.toNumber() ?? null,
+            },
+          ],
+    ),
   );
 }

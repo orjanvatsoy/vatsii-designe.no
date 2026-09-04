@@ -107,10 +107,13 @@ model OrderMessage {
 }
 
 model TemperatureData {
-  id                  BigInt   @id @default(autoincrement())
-  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  temperature         Float
-  temperatureForecast Float?   @map("temperature_forcast")
+  id                  BigInt    @id @default(autoincrement())
+  createdAt           DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  temperature         Decimal?  @db.Decimal
+  deviceId            String?   @map("device_id")
+  temperatureForecast Decimal?  @map("temperature_forcast") @db.Decimal
+  humidity            Decimal?  @db.Decimal
+  outdoorTemperature  Decimal?  @map("outdoor_temperature") @db.Decimal
 
   @@index([createdAt])
   @@map("temperature_data")

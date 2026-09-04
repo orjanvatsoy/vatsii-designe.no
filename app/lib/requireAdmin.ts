@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { User } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { prisma } from "./prisma";
+import { createLocalAuthUser, isLocalAuthBypassRequest } from "./localAuth";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -20,6 +21,10 @@ const authClient = createClient(supabaseUrl, supabaseAnonKey);
 export async function requireAdmin(
   req: Request,
 ): Promise<{ user: User } | NextResponse> {
+  if (isLocalAuthBypassRequest(req)) {
+    return { user: createLocalAuthUser(process.env.LOCAL_AUTH_USER_ID) };
+  }
+
   const authHeader = req.headers.get("authorization") ?? "";
   const token = authHeader.toLowerCase().startsWith("bearer ")
     ? authHeader.slice(7).trim()

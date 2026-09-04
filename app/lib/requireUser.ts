@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { User } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { createLocalAuthUser, isLocalAuthBypassRequest } from "./localAuth";
 
 const authClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,7 +10,14 @@ const authClient = createClient(
 
 export async function requireUser(
   request: Request,
-): Promise<{ user: User } | NextResponse> {
+): Promise<{ user: User; localBypass?: boolean } | NextResponse> {
+  if (isLocalAuthBypassRequest(request)) {
+    return {
+      user: createLocalAuthUser(process.env.LOCAL_AUTH_USER_ID),
+      localBypass: true,
+    };
+  }
+
   const token = request.headers
     .get("authorization")
     ?.replace(/^Bearer\s+/i, "")

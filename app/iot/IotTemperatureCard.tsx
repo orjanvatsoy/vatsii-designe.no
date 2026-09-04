@@ -2,6 +2,8 @@
 
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import ThermostatIcon from "@mui/icons-material/Thermostat";
+import WaterDropIcon from "@mui/icons-material/WaterDrop";
+import WbSunnyOutlinedIcon from "@mui/icons-material/WbSunnyOutlined";
 import {
   Alert,
   Box,
@@ -29,8 +31,10 @@ interface IotTemperatureChartProps {
 
 interface TemperatureData {
   created_at: string;
-  temperature: number;
+  temperature: number | null;
   temperature_forcast?: number | null;
+  humidity?: number | null;
+  outdoor_temperature?: number | null;
 }
 
 const HOUR = 60 * 60 * 1000;
@@ -39,6 +43,17 @@ const IotTemperatureChart = dynamic<IotTemperatureChartProps>(
   () => import("./IotTemperatureChart"),
   { ssr: false },
 );
+
+const IotHumidityChart = dynamic(() => import("./IotHumidityChart"), {
+  ssr: false,
+});
+
+function formatReading(value: number | null | undefined, unit: string) {
+  if (value === undefined || value === null) return "–";
+  return `${value.toLocaleString("nb-NO", {
+    maximumFractionDigits: 1,
+  })} ${unit}`;
+}
 
 export default function IotTemperatureCard() {
   const { role, session } = useAuth();
@@ -96,10 +111,12 @@ export default function IotTemperatureCard() {
     };
   }, [hourRange, isKing, session?.access_token, windowOffset]);
   const forecastDifference =
+    latestReading?.outdoor_temperature === undefined ||
+    latestReading.outdoor_temperature === null ||
     latestReading?.temperature_forcast === undefined ||
     latestReading.temperature_forcast === null
       ? null
-      : latestReading.temperature - latestReading.temperature_forcast;
+      : latestReading.outdoor_temperature - latestReading.temperature_forcast;
   const latestTimestamp = latestReading
     ? new Intl.DateTimeFormat("nb-NO", {
         day: "2-digit",
@@ -120,8 +137,8 @@ export default function IotTemperatureCard() {
   return (
     <PageShell
       eyebrow="SANNTID"
-      title="Temperatur"
-      subtitle="Målinger fra IoT-sensoren sammenlignet med Yr-varselet."
+      title="Klima i garasjen"
+      subtitle="Temperatur og luftfuktighet fra IoT-sensoren, sammenlignet med met.no."
       maxWidth="lg"
     >
       {loading && data.length === 0 ? (
@@ -147,7 +164,7 @@ export default function IotTemperatureCard() {
                 display: "grid",
                 gridTemplateColumns: {
                   xs: "1fr",
-                  sm: "minmax(220px, 0.8fr) 1fr",
+                  sm: "repeat(3, minmax(0, 1fr))",
                 },
                 gap: { xs: 2, sm: 4 },
                 px: { xs: 2.5, sm: 4 },
@@ -159,7 +176,7 @@ export default function IotTemperatureCard() {
                 <ThermostatIcon color="primary" sx={{ fontSize: 34 }} />
                 <Box>
                   <Typography variant="body2" color="text.secondary">
-                    Siste måling
+                    Garasje
                   </Typography>
                   <Typography
                     component="p"
@@ -169,15 +186,40 @@ export default function IotTemperatureCard() {
                       lineHeight: 1.1,
                     }}
                   >
-                    {latestReading.temperature.toLocaleString("nb-NO", {
-                      maximumFractionDigits: 1,
-                    })}{" "}
-                    °C
+                    {formatReading(latestReading.temperature, "°C")}
                   </Typography>
                 </Box>
               </Stack>
 
-              <Stack justifyContent="center" spacing={0.75}>
+              <Stack direction="row" alignItems="center" spacing={1.5}>
+                <WbSunnyOutlinedIcon color="primary" sx={{ fontSize: 30 }} />
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Utendørs
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    {formatReading(latestReading.outdoor_temperature, "°C")}
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <Stack direction="row" alignItems="center" spacing={1.5}>
+                <WaterDropIcon color="primary" sx={{ fontSize: 30 }} />
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Luftfuktighet
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    {formatReading(latestReading.humidity, "%")}
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <Stack
+                justifyContent="center"
+                spacing={0.75}
+                sx={{ gridColumn: { sm: "1 / -1" } }}
+              >
                 <Stack direction="row" alignItems="center" spacing={1}>
                   <AccessTimeIcon fontSize="small" color="action" />
                   <Typography variant="body2" color="text.secondary">
@@ -187,13 +229,13 @@ export default function IotTemperatureCard() {
                 {forecastDifference !== null && (
                   <Typography variant="body2" color="text.secondary">
                     {Math.abs(forecastDifference) < 0.05
-                      ? "Samme temperatur som Yr varslet"
+                      ? "Samme utetemperatur som met.no varslet"
                       : `${Math.abs(forecastDifference).toLocaleString(
                           "nb-NO",
                           {
                             maximumFractionDigits: 1,
                           },
-                        )} °C ${forecastDifference > 0 ? "varmere" : "kaldere"} enn Yr varslet`}
+                        )} °C ${forecastDifference > 0 ? "varmere" : "kaldere"} ute enn met.no varslet`}
                   </Typography>
                 )}
               </Stack>
@@ -203,7 +245,7 @@ export default function IotTemperatureCard() {
 
           <CardContent sx={{ p: { xs: 2, sm: 3.5 } }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-              Historikk og værvarsel
+              Temperaturhistorikk og værvarsel
             </Typography>
             <IotTemperatureChart
               data={data}
@@ -215,6 +257,16 @@ export default function IotTemperatureCard() {
                 setWindowOffset(0);
               }}
               onWindowOffsetChange={setWindowOffset}
+            />
+            <Divider sx={{ my: 3 }} />
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+              Luftfuktighet
+            </Typography>
+            <IotHumidityChart
+              data={data}
+              hourRange={hourRange}
+              windowOffset={windowOffset}
+              loading={loading}
             />
           </CardContent>
         </Card>

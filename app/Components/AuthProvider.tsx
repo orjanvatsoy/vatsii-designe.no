@@ -4,6 +4,11 @@ import { Alert, Box, CircularProgress } from "@mui/material";
 import type { Session, User } from "@supabase/supabase-js";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
+import {
+  createLocalAuthUser,
+  isLocalAuthBypassEnabled,
+  LOCAL_AUTH_BYPASS_TOKEN,
+} from "../lib/localAuth";
 import { supabase } from "../lib/supabaseClient";
 
 interface AuthContextValue {
@@ -17,11 +22,25 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+const localAuthBypassEnabled = isLocalAuthBypassEnabled();
+const localAuthUser = createLocalAuthUser();
+const localAuthSession: Session = {
+  access_token: LOCAL_AUTH_BYPASS_TOKEN,
+  token_type: "bearer",
+  expires_in: 31_536_000,
+  expires_at: 4_102_444_800,
+  refresh_token: "",
+  user: localAuthUser,
+};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [role, setRole] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(
+    localAuthBypassEnabled ? localAuthSession : null,
+  );
+  const [role, setRole] = useState<string | null>(
+    localAuthBypassEnabled ? "King" : null,
+  );
+  const [loading, setLoading] = useState(!localAuthBypassEnabled);
   const [error, setError] = useState("");
   const [customerAttentionCount, setCustomerAttentionCount] = useState(0);
   const [adminAttentionCount, setAdminAttentionCount] = useState(0);
@@ -30,6 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loadedToken = useRef<string | null>(null);
 
   useEffect(() => {
+    if (localAuthBypassEnabled) return;
+
     let active = true;
 
     const applySession = async (

@@ -12,6 +12,7 @@ import {
   ToggleButtonGroup,
   Tooltip,
   Typography,
+  useTheme,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { LineChart } from "@mui/x-charts/LineChart";
@@ -35,8 +36,9 @@ const rangeOptions = [
 interface IotTemperatureChartProps {
   data: {
     created_at: string;
-    temperature: number;
+    temperature: number | null;
     temperature_forcast?: number | null;
+    outdoor_temperature?: number | null;
   }[];
   hourRange: number;
   windowOffset: number;
@@ -53,6 +55,7 @@ export default function IotTemperatureChart({
   onHourRangeChange,
   onWindowOffsetChange,
 }: IotTemperatureChartProps) {
+  const theme = useTheme();
   const [forecast, setForecast] = useState<
     { time: string; temperature: number }[]
   >([]);
@@ -93,22 +96,25 @@ export default function IotTemperatureChart({
         })
       : [];
 
-  const measuredByTime = new Map(
-    measuredInWindow.map((entry) => [
-      new Date(entry.created_at).getTime(),
-      entry.temperature,
-    ]),
-  );
+  const measuredByTime = new Map<number, number>();
+  const outdoorByTime = new Map<number, number>();
   const forecastByTime = new Map<number, number>();
   measuredInWindow.forEach((entry) => {
+    const timestamp = new Date(entry.created_at).getTime();
+    if (entry.temperature !== null) {
+      measuredByTime.set(timestamp, entry.temperature);
+    }
+    if (
+      entry.outdoor_temperature !== undefined &&
+      entry.outdoor_temperature !== null
+    ) {
+      outdoorByTime.set(timestamp, entry.outdoor_temperature);
+    }
     if (
       entry.temperature_forcast !== undefined &&
       entry.temperature_forcast !== null
     ) {
-      forecastByTime.set(
-        new Date(entry.created_at).getTime(),
-        entry.temperature_forcast,
-      );
+      forecastByTime.set(timestamp, entry.temperature_forcast);
     }
   });
   futureForecast.forEach((entry) => {
@@ -116,11 +122,18 @@ export default function IotTemperatureChart({
   });
 
   const timestamps = [
-    ...new Set([...measuredByTime.keys(), ...forecastByTime.keys()]),
+    ...new Set([
+      ...measuredByTime.keys(),
+      ...outdoorByTime.keys(),
+      ...forecastByTime.keys(),
+    ]),
   ].sort((left, right) => left - right);
   const xData = timestamps.map((timestamp) => new Date(timestamp));
   const measuredData = timestamps.map(
     (timestamp) => measuredByTime.get(timestamp) ?? null,
+  );
+  const outdoorData = timestamps.map(
+    (timestamp) => outdoorByTime.get(timestamp) ?? null,
   );
   const forecastData = timestamps.map(
     (timestamp) => forecastByTime.get(timestamp) ?? null,
@@ -223,17 +236,26 @@ export default function IotTemperatureChart({
             {
               id: "measured",
               data: measuredData,
-              label: "Målt temperatur",
+              label: "Garasje",
               showMark: false,
               connectNulls: false,
+              color: theme.palette.primary.main,
+            },
+            {
+              id: "outdoor",
+              data: outdoorData,
+              label: "Utetemperatur",
+              showMark: false,
+              connectNulls: false,
+              color: theme.palette.secondary.main,
             },
             {
               id: "forecast",
               data: forecastData,
-              label: "Yr-varsel",
+              label: "met.no-varsel",
               showMark: false,
               connectNulls: false,
-              color: "#D9A066",
+              color: theme.palette.primary.light,
             },
           ]}
           height={430}
