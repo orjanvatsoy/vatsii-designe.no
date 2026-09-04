@@ -72,11 +72,10 @@ export async function POST(
     select: {
       id: true,
       status: true,
+      inputMode: true,
       attachments: {
-        where: { uploadedBy: "customer" },
-        select: { id: true, objectKey: true },
+        select: { id: true, objectKey: true, uploadedBy: true },
       },
-      _count: { select: { attachments: true } },
     },
   });
   if (!order) {
@@ -88,10 +87,29 @@ export async function POST(
       { status: 400 },
     );
   }
+  // Only the custom-order flow lets the customer supply their own design file.
+  if (order.inputMode !== "custom_order") {
+    return NextResponse.json(
+      { error: "Denne bestillingen støtter ikke filopplasting." },
+      { status: 400 },
+    );
+  }
+  // Once we've uploaded a design/production file, the customer must contact us for changes.
+  if (order.attachments.some((item) => item.uploadedBy === "admin")) {
+    return NextResponse.json(
+      {
+        error:
+          "Vi har allerede lastet opp en fil for denne bestillingen. Ta kontakt med oss for endringer.",
+      },
+      { status: 400 },
+    );
+  }
   // Uploading a new file replaces the customer's previous file(s) rather than piling up duplicates.
-  const previousAttachments = order.attachments;
+  const previousAttachments = order.attachments.filter(
+    (item) => item.uploadedBy === "customer",
+  );
   const attachmentCountAfterReplace =
-    order._count.attachments - previousAttachments.length + 1;
+    order.attachments.length - previousAttachments.length + 1;
   if (attachmentCountAfterReplace > MAX_ATTACHMENTS_PER_ORDER) {
     return NextResponse.json(
       { error: "Ordren kan ha maksimalt 20 vedlegg." },

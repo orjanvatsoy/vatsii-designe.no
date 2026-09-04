@@ -709,6 +709,13 @@ export default function OrdersPage() {
               const cancellable = ["new", "estimated", "confirmed"].includes(
                 order.status,
               );
+              // Only the custom-order flow lets the customer supply their own design file,
+              // and only until we've uploaded a design/production file of our own.
+              const hasAdminAttachment = (order.attachments ?? []).some(
+                (attachment) => attachment.uploadedBy === "admin",
+              );
+              const canUploadAttachment =
+                order.inputMode === "custom_order" && !hasAdminAttachment;
               const currentStep = getFlowStep(order.status);
               const draft = drafts[order.id] ?? "";
               const draftValues =
@@ -1065,7 +1072,7 @@ export default function OrdersPage() {
                         </Box>
 
                         {((order.attachments ?? []).length > 0 ||
-                          !archived) && (
+                          (!archived && canUploadAttachment)) && (
                           <Box
                             sx={{
                               width: "100%",
@@ -1089,11 +1096,13 @@ export default function OrdersPage() {
                                 variant="body2"
                                 color="text.secondary"
                               >
-                                {(order.attachments ?? []).length > 0
-                                  ? "Ser du feil i en fil? Last opp en oppdatert versjon, så erstattes den forrige."
-                                  : "Legg til en fil, f.eks. en SVG til godkjenning."}
+                                {!canUploadAttachment
+                                  ? "Vi har mottatt filen og jobber med bestillingen."
+                                  : (order.attachments ?? []).length > 0
+                                    ? "Ser du feil i en fil? Last opp en oppdatert versjon, så erstattes den forrige."
+                                    : "Legg til en fil, f.eks. en SVG til godkjenning."}
                               </Typography>
-                              {!archived && (
+                              {!archived && canUploadAttachment && (
                                 <Button
                                   component="label"
                                   variant="outlined"
