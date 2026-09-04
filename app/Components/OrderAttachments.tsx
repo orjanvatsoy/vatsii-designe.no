@@ -19,7 +19,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export interface OrderAttachment {
   id: string;
@@ -55,6 +55,51 @@ function isSvgAttachment(attachment: OrderAttachment) {
   );
 }
 
+// Light oak accent from the app theme (theme.ts palette.primary.light) — reads clearly against the dark UI.
+const SVG_CONTRAST_COLOR = "#D9A066";
+
+// SVG design files often use dark strokes/fills meant for a white canvas, which
+// disappear against this app's dark theme. Recolor them to a theme contrast
+// color so they stay visible without altering the original file.
+const recoloredSvgCache = new Map<string, Promise<string | null>>();
+
+function getContrastSvgSrc(url: string): Promise<string | null> {
+  let cached = recoloredSvgCache.get(url);
+  if (!cached) {
+    cached = fetch(url)
+      .then((response) => (response.ok ? response.text() : null))
+      .then((source) => {
+        if (!source || !/<svg(?:\s|>)/i.test(source)) return null;
+        const recolored = source.replace(
+          /<svg([^>]*)>/i,
+          `<svg$1><style>*{fill:${SVG_CONTRAST_COLOR} !important;stroke:${SVG_CONTRAST_COLOR} !important;}</style>`,
+        );
+        return `data:image/svg+xml,${encodeURIComponent(recolored)}`;
+      })
+      .catch(() => null);
+    recoloredSvgCache.set(url, cached);
+  }
+  return cached;
+}
+
+function useContrastSvgSrc(attachment: OrderAttachment | null) {
+  const [src, setSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSrc(null);
+    if (!attachment || !isSvgAttachment(attachment)) return;
+    let cancelled = false;
+    getContrastSvgSrc(attachment.url).then((result) => {
+      if (!cancelled) setSrc(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [attachment]);
+
+  return src;
+}
+
 function AttachmentPreview({
   attachment,
   onOpen,
@@ -63,6 +108,7 @@ function AttachmentPreview({
   onOpen: () => void;
 }) {
   const [loadFailed, setLoadFailed] = useState(false);
+  const contrastSrc = useContrastSvgSrc(attachment);
 
   if (!isPreviewableImage(attachment) || loadFailed) {
     return (
@@ -90,7 +136,7 @@ function AttachmentPreview({
     >
       <Box
         component="img"
-        src={attachment.url}
+        src={contrastSrc ?? attachment.url}
         alt={attachment.fileName}
         onError={() => setLoadFailed(true)}
         sx={{
@@ -132,6 +178,7 @@ function AttachmentViewerDialog({
 }) {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const contrastSrc = useContrastSvgSrc(attachment);
 
   if (!attachment) return null;
 
@@ -268,7 +315,7 @@ function AttachmentViewerDialog({
       >
         <Box
           component="img"
-          src={attachment.url}
+          src={contrastSrc ?? attachment.url}
           alt={attachment.fileName}
           sx={{
             maxWidth: "100%",
