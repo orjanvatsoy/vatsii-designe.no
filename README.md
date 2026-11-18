@@ -66,7 +66,7 @@ samtalen. For å aktivere dette:
    `reply.vatsii-designe.no`, og legg inn MX-posten Resend viser hos
    DNS-leverandøren. Bruk ikke MX-posten på domenet som nettsiden bruker.
 2. Opprett en Resend-webhook på
-   `https://vatsii-designe.no/api/webhooks/resend-inbound` for hendelsen
+   `https://www.vatsii-designe.no/api/webhooks/resend-inbound` for hendelsen
    `email.received`.
 3. Legg webhookens signeringshemmelighet i `RESEND_INBOUND_WEBHOOK_SECRET` i
    Vercel. Sett `RESEND_INBOUND_DOMAIN` til `reply.vatsii-designe.no` og behold
