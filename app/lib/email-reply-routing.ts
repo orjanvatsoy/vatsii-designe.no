@@ -3,6 +3,8 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { prisma } from "./prisma";
 
+const MAX_REPLY_TOKEN_LENGTH = 62;
+
 export function getResendInboundDomain() {
   const domain = process.env.RESEND_INBOUND_DOMAIN?.trim().toLowerCase();
   if (!domain) return null;
@@ -47,16 +49,19 @@ export async function getOrderReplyTo(
 
   const tokenField =
     inboundRole === "customer" ? "customerReplyToken" : "adminReplyToken";
-  if (!order[tokenField]) {
-    const token = randomBytes(32).toString("hex");
+  if (
+    !order[tokenField] ||
+    order[tokenField].length > MAX_REPLY_TOKEN_LENGTH
+  ) {
+    const token = randomBytes(30).toString("hex");
     if (inboundRole === "customer") {
       await prisma.placeCardOrder.updateMany({
-        where: { id: orderId, customerReplyToken: null },
+        where: { id: orderId, customerReplyToken: order.customerReplyToken },
         data: { customerReplyToken: token },
       });
     } else {
       await prisma.placeCardOrder.updateMany({
-        where: { id: orderId, adminReplyToken: null },
+        where: { id: orderId, adminReplyToken: order.adminReplyToken },
         data: { adminReplyToken: token },
       });
     }
