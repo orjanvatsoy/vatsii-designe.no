@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend, type WebhookEventPayload } from "resend";
-import {
-  getResendInboundDomain,
-  REPLY_TOKEN_HEX_LENGTH,
-} from "../../../lib/email-reply-routing";
+import { getResendInboundDomain } from "../../../lib/email-reply-routing";
+import { extractReplyToken } from "../../../lib/email-reply-address";
 import { MAX_ORDER_MESSAGE_LENGTH } from "../../../lib/order-message-limits";
 import { prisma } from "../../../lib/prisma";
 import { sendOrderMessageEmail } from "../../../lib/email";
@@ -103,13 +101,10 @@ export async function POST(request: Request) {
     throw new Error(`Could not retrieve received Resend email: ${error.message}`);
   }
 
-  const replyAddress = email.to
-    .map(extractAddress)
-    .find((address) => address?.endsWith(`@${domain}`));
-  const tokenMatch = replyAddress?.match(
-    new RegExp(`^r-([a-f0-9]{${REPLY_TOKEN_HEX_LENGTH}})@`),
-  );
-  if (!tokenMatch) {
+  const replyToken = email.to
+    .map((address) => extractReplyToken(address, domain))
+    .find((token) => token !== null);
+  if (!replyToken) {
     console.warn("Ignored a Resend email without a valid inquiry reply address.");
     return NextResponse.json({ received: true, ignored: true });
   }
@@ -117,8 +112,8 @@ export async function POST(request: Request) {
   const order = await prisma.placeCardOrder.findFirst({
     where: {
       OR: [
-        { customerReplyToken: tokenMatch[1] },
-        { adminReplyToken: tokenMatch[1] },
+        { customerReplyToken: replyToken },
+        { adminReplyToken: replyToken },
       ],
     },
     select: {
@@ -137,9 +132,9 @@ export async function POST(request: Request) {
   const senderEmail = extractAddress(email.from);
   const customerEmail = order.customerEmail.trim().toLowerCase();
   const inboundRole =
-    order.customerReplyToken === tokenMatch[1]
+    order.customerReplyToken === replyToken
       ? "customer"
-      : order.adminReplyToken === tokenMatch[1]
+      : order.adminReplyToken === replyToken
         ? "admin"
         : null;
   if (!inboundRole) {

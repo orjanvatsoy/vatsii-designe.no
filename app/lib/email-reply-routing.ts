@@ -2,8 +2,11 @@ import "server-only";
 
 import { randomBytes } from "node:crypto";
 import { prisma } from "./prisma";
-
-export const REPLY_TOKEN_HEX_LENGTH = 60;
+import {
+  formatOrderReplyTo,
+  isValidReplyToken,
+  REPLY_TOKEN_HEX_LENGTH,
+} from "./email-reply-address";
 
 export function getResendInboundDomain() {
   const domain = process.env.RESEND_INBOUND_DOMAIN?.trim().toLowerCase();
@@ -49,7 +52,7 @@ export async function getOrderReplyTo(
 
   const tokenField =
     inboundRole === "customer" ? "customerReplyToken" : "adminReplyToken";
-  if (order[tokenField]?.length !== REPLY_TOKEN_HEX_LENGTH) {
+  if (!order[tokenField] || !isValidReplyToken(order[tokenField])) {
     const token = randomBytes(REPLY_TOKEN_HEX_LENGTH / 2).toString("hex");
     if (inboundRole === "customer") {
       await prisma.placeCardOrder.updateMany({
@@ -73,5 +76,5 @@ export async function getOrderReplyTo(
     throw new Error(`Could not create an email reply address for inquiry ${inquiryId}.`);
   }
 
-  return `r-${token}@${domain}`;
+  return formatOrderReplyTo(orderId, token, domain);
 }

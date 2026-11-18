@@ -82,7 +82,11 @@ til kundens registrerte e-post. Lenken til samtalen er alltid med. Vedlegg fra
 e-post importeres ikke; meldingen viser en beskjed om å laste dem opp i samtalen.
 Sitert e-posthistorikk fjernes fra innkommende svar og ved visning av tidligere
 importerte e-postmeldinger. Meldinger skrevet direkte i samtalen beholdes uendret.
-Test e-postuttrekket med `node --test scripts/email-reply-body.test.mjs` (Node 24).
+Svaradressen har visningsnavnet «Vatsii Designe - forespørsel #…» og en kort
+`svar-…`-adresse. Nye samtaletokener har 128 bits tilfeldighet. Eksisterende
+tokener beholdes, og gamle `r-…`-adresser virker fortsatt.
+Test e-postbehandlingen med
+`node --test scripts/email-reply-*.test.mjs` (Node 24).
 
 ### Kontaktskjema
 

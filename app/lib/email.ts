@@ -17,7 +17,10 @@ function getResend() {
 function getReplyInstructions(url: string) {
   return [
     ...(isResendInboundConfigured()
-      ? ["Du kan svare direkte på denne e-posten; svaret legges i samtalen."]
+      ? [
+          "Du kan svare direkte på denne e-posten; svaret legges i samtalen.",
+          "Svaradressen på reply-domenet vårt er unik for denne samtalen.",
+        ]
       : []),
     `Åpne samtalen: ${url}`,
   ];
