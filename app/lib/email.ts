@@ -1,9 +1,11 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import { Resend, type CreateEmailOptions } from "resend";
 import { prisma } from "./prisma";
 import { normalizeReplyMessageId } from "./email-reply-address";
 import {
+  getResendInboundDomain,
   getOrderReplyTo,
   isResendInboundConfigured,
 } from "./email-reply-routing";
@@ -35,15 +37,15 @@ async function sendOrderEmail(input: {
   if (!resend) return false;
 
   const inboundConfigured = isResendInboundConfigured();
-  const lookupApiKeys = [
-    process.env.RESEND_API_KEY,
-    process.env.RESEND_RECEIVING_API_KEY,
-  ].filter((apiKey): apiKey is string => Boolean(apiKey));
-  if (inboundConfigured && lookupApiKeys.length === 0) {
-    throw new Error(
-      "A Resend API key is required to register inquiry email replies.",
-    );
+  const inboundDomain = inboundConfigured
+    ? getResendInboundDomain()
+    : null;
+  if (inboundConfigured && !inboundDomain) {
+    throw new Error("A Resend inbound domain is required for reply routing.");
   }
+  const replyMessageId = inboundDomain
+    ? `<${randomUUID()}@${inboundDomain}>`
+    : null;
 
   const replyTo = await getOrderReplyTo(
     input.inquiryId,
@@ -52,32 +54,22 @@ async function sendOrderEmail(input: {
   const { data, error } = await resend.emails.send({
     ...input.options,
     ...(replyTo ? { replyTo } : {}),
+    ...(replyMessageId
+      ? {
+          headers: {
+            ...input.options.headers,
+            "Message-ID": replyMessageId,
+          },
+        }
+      : {}),
   });
   if (error) throw new Error(error.message);
 
-  if (inboundConfigured) {
+  if (replyMessageId) {
     try {
-      let messageId: string | null = null;
-      const lookupErrors: string[] = [];
-      for (const apiKey of [...new Set(lookupApiKeys)]) {
-        const { data: sentEmail, error: lookupError } = await new Resend(
-          apiKey,
-        ).emails.get(data.id);
-        if (lookupError) {
-          lookupErrors.push(lookupError.message);
-          continue;
-        }
-
-        messageId = sentEmail.message_id
-          ? normalizeReplyMessageId(sentEmail.message_id)
-          : null;
-        if (messageId) break;
-        lookupErrors.push("Resend did not return a valid message ID.");
-      }
+      const messageId = normalizeReplyMessageId(replyMessageId);
       if (!messageId) {
-        throw new Error(
-          `Could not retrieve a valid sent message ID: ${lookupErrors.join("; ")}`,
-        );
+        throw new Error("Generated an invalid reply message ID.");
       }
 
       await prisma.orderEmailThreadReference.create({
