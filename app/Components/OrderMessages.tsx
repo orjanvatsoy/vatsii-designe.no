@@ -11,6 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useState } from "react";
+import { MAX_ORDER_MESSAGE_LENGTH } from "../lib/order-message-limits";
 import { supabase } from "../lib/supabaseClient";
 
 export interface OrderMessage {
@@ -43,7 +44,7 @@ export default function OrderMessages({
 
   const handleSend = async () => {
     const body = draft.trim();
-    if (!body || body.length > 2000) return;
+    if (!body || body.length > MAX_ORDER_MESSAGE_LENGTH) return;
 
     setSending(true);
     setError("");
@@ -233,7 +234,7 @@ export default function OrderMessages({
           slotProps={{
             htmlInput: {
               "aria-label": "Skriv en melding",
-              maxLength: 2000,
+              maxLength: MAX_ORDER_MESSAGE_LENGTH,
             },
           }}
         />

@@ -56,6 +56,29 @@ ORDER_EMAIL_FROM=Vatsii Designe <foresporsel@ditt-verifiserte-domene.no>
 `ORDER_EMAIL_FROM` må bruke et domene som er verifisert i Resend. En
 forespørsel lagres selv om e-posttjenesten midlertidig er utilgjengelig.
 
+### E-postsvar i samtalen
+
+Forespørsler kan besvares direkte fra e-post. Svaret lagres i samtalen på den
+aktuelle forespørselen, og nye e-postvarsler peker tilbake til den samme
+samtalen. For å aktivere dette:
+
+1. I Resend, aktiver mottak på et eget subdomene, for eksempel
+   `reply.vatsii-designe.no`, og legg inn MX-posten Resend viser hos
+   DNS-leverandøren. Bruk ikke MX-posten på domenet som nettsiden bruker.
+2. Opprett en Resend-webhook på
+   `https://vatsii-designe.no/api/webhooks/resend-inbound` for hendelsen
+   `email.received`.
+3. Legg webhookens signeringshemmelighet i `RESEND_INBOUND_WEBHOOK_SECRET` i
+   Vercel. Sett `RESEND_INBOUND_DOMAIN` til `reply.vatsii-designe.no` og behold
+   `RESEND_API_KEY` konfigurert.
+4. Kjør databasemigreringen før utrulling. Kontroller deretter DNS-statusen og
+   send en testmelding med svar til en forespørsels-e-post.
+
+Inntil mottak er konfigurert, går svar på e-post sendt til kunden til
+`ORDER_NOTIFICATION_EMAIL`; svar på varselet om en ny forespørsel går direkte
+til kundens registrerte e-post. Lenken til samtalen er alltid med. Vedlegg fra
+e-post importeres ikke; meldingen viser en beskjed om å laste dem opp i samtalen.
+
 ### Kontaktskjema
 
 Kontaktskjemaet på `/contact` bruker den samme Resend-integrasjonen som

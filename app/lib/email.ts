@@ -1,6 +1,10 @@
 import "server-only";
 
 import { Resend } from "resend";
+import {
+  getOrderReplyTo,
+  isResendInboundConfigured,
+} from "./email-reply-routing";
 
 const FROM_EMAIL =
   process.env.ORDER_EMAIL_FROM ?? "Vatsii Designe <onboarding@resend.dev>";
@@ -8,6 +12,15 @@ const FROM_EMAIL =
 function getResend() {
   const apiKey = process.env.RESEND_API_KEY;
   return apiKey ? new Resend(apiKey) : null;
+}
+
+function getReplyInstructions(url: string) {
+  return [
+    ...(isResendInboundConfigured()
+      ? ["Du kan svare direkte på denne e-posten; svaret legges i samtalen."]
+      : []),
+    `Åpne samtalen: ${url}`,
+  ];
 }
 
 export async function sendContactEmail(input: {
@@ -64,9 +77,15 @@ export async function sendNewInquiryEmail(input: {
     return;
   }
 
+  const replyTo = await getOrderReplyTo(
+    input.inquiryId,
+    "admin",
+    input.customerEmail,
+  );
   const { error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: recipient,
+    ...(replyTo ? { replyTo } : {}),
     subject: `Ny produktforespørsel #${input.inquiryId}`,
     text: [
       `Ny forespørsel fra ${input.customerName ?? input.customerEmail}.`,
@@ -75,7 +94,7 @@ export async function sendNewInquiryEmail(input: {
       input.inputMode === "name_list" || input.inputMode === "custom_order"
         ? `Antall: ${input.quantity}`
         : `Innholdstype: ${input.inputMode === "single_name" ? "Navn" : "Kommentar"}`,
-      `Åpne forespørselen: ${input.adminUrl}`,
+      ...getReplyInstructions(input.adminUrl),
     ].join("\n"),
   });
 
@@ -96,16 +115,22 @@ export async function sendInquiryEstimateEmail(input: {
     return;
   }
 
+  const replyTo = await getOrderReplyTo(
+    input.inquiryId,
+    "customer",
+    process.env.ORDER_NOTIFICATION_EMAIL,
+  );
   const { error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: input.customerEmail,
+    ...(replyTo ? { replyTo } : {}),
     subject: `Svar på produktforespørsel #${input.inquiryId}`,
     text: [
       `Vi har vurdert forespørselen din for ${input.productName}.`,
       `Estimert pris: ${new Intl.NumberFormat("nb-NO").format(input.estimatedPrice)} kr`,
       `Estimert leveringstid: ${input.deliveryEstimate}`,
       "Forespørselen er uforpliktende.",
-      `Se forespørselen: ${input.accountUrl}`,
+      ...getReplyInstructions(input.accountUrl),
     ].join("\n"),
   });
 
@@ -125,14 +150,20 @@ export async function sendOrderCancellationEmail(input: {
     return false;
   }
 
+  const replyTo = await getOrderReplyTo(
+    input.inquiryId,
+    "customer",
+    process.env.ORDER_NOTIFICATION_EMAIL,
+  );
   const { error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: input.customerEmail,
+    ...(replyTo ? { replyTo } : {}),
     subject: `Produktforespørsel #${input.inquiryId} er kansellert`,
     text: [
       `Vi har dessverre kansellert forespørselen din for ${input.productName}.`,
       `Begrunnelse: ${input.reason}`,
-      `Se forespørselen: ${input.accountUrl}`,
+      ...getReplyInstructions(input.accountUrl),
     ].join("\n"),
   });
 
@@ -147,6 +178,7 @@ export async function sendOrderMessageEmail(input: {
   senderRole: "customer" | "admin";
   message: string;
   url: string;
+  inReplyTo?: string;
 }) {
   const resend = getResend();
   if (!resend) {
@@ -155,16 +187,25 @@ export async function sendOrderMessageEmail(input: {
   }
 
   const sender = input.senderRole === "admin" ? "Vatsii Designe" : "kunden";
+  const replyTo = await getOrderReplyTo(
+    input.inquiryId,
+    input.senderRole === "admin" ? "customer" : "admin",
+    process.env.ORDER_NOTIFICATION_EMAIL,
+  );
   const { error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: input.recipient,
-    subject: `Ny melding om forespørsel #${input.inquiryId}`,
+    ...(replyTo ? { replyTo } : {}),
+    ...(input.inReplyTo
+      ? { headers: { "In-Reply-To": input.inReplyTo } }
+      : {}),
+    subject: `${input.inReplyTo ? "Re: " : ""}Ny melding om forespørsel #${input.inquiryId}`,
     text: [
       `Du har fått en ny melding fra ${sender} om ${input.productName}.`,
       "",
       input.message,
       "",
-      `Åpne samtalen: ${input.url}`,
+      ...getReplyInstructions(input.url),
     ].join("\n"),
   });
 

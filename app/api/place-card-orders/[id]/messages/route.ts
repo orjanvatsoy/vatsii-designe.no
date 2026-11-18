@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sendOrderMessageEmail } from "../../../../lib/email";
 import { prisma } from "../../../../lib/prisma";
 import { requireUser } from "../../../../lib/requireUser";
+import { MAX_ORDER_MESSAGE_LENGTH } from "../../../../lib/order-message-limits";
 
 export const dynamic = "force-dynamic";
 
@@ -33,9 +34,14 @@ export async function POST(
     );
   }
   const messageBody = typeof body.body === "string" ? body.body.trim() : "";
-  if (messageBody.length === 0 || messageBody.length > 2000) {
+  if (
+    messageBody.length === 0 ||
+    messageBody.length > MAX_ORDER_MESSAGE_LENGTH
+  ) {
     return NextResponse.json(
-      { error: "Meldingen må være mellom 1 og 2000 tegn." },
+      {
+        error: `Meldingen må være mellom 1 og ${MAX_ORDER_MESSAGE_LENGTH} tegn.`,
+      },
       { status: 400 },
     );
   }

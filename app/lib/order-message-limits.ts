@@ -1,0 +1,1 @@
+export const MAX_ORDER_MESSAGE_LENGTH = 2000;
