@@ -1,11 +1,7 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
 import { Resend, type CreateEmailOptions } from "resend";
-import { prisma } from "./prisma";
-import { normalizeReplyMessageId } from "./email-reply-address";
 import {
-  getResendInboundDomain,
   getOrderReplyTo,
   isResendInboundConfigured,
 } from "./email-reply-routing";
@@ -37,55 +33,24 @@ async function sendOrderEmail(input: {
   if (!resend) return false;
 
   const inboundConfigured = isResendInboundConfigured();
-  const inboundDomain = inboundConfigured
-    ? getResendInboundDomain()
-    : null;
-  if (inboundConfigured && !inboundDomain) {
-    throw new Error("A Resend inbound domain is required for reply routing.");
-  }
-  const replyMessageId = inboundDomain
-    ? `<${randomUUID()}@${inboundDomain}>`
-    : null;
-
   const replyTo = await getOrderReplyTo(
     input.inquiryId,
     input.fallbackReplyTo,
   );
-  const { data, error } = await resend.emails.send({
+  const { error } = await resend.emails.send({
     ...input.options,
     ...(replyTo ? { replyTo } : {}),
-    ...(replyMessageId
+    ...(inboundConfigured
       ? {
-          headers: {
-            ...input.options.headers,
-            "Message-ID": replyMessageId,
-          },
+          tags: [
+            ...(input.options.tags ?? []),
+            { name: "inquiry_id", value: input.inquiryId },
+            { name: "reply_role", value: input.replyRole },
+          ],
         }
       : {}),
   });
   if (error) throw new Error(error.message);
-
-  if (replyMessageId) {
-    try {
-      const messageId = normalizeReplyMessageId(replyMessageId);
-      if (!messageId) {
-        throw new Error("Generated an invalid reply message ID.");
-      }
-
-      await prisma.orderEmailThreadReference.create({
-        data: {
-          messageId,
-          orderId: BigInt(input.inquiryId),
-          replyRole: input.replyRole,
-        },
-      });
-    } catch (cause) {
-      throw new Error(
-        `Resend accepted email ${data.id}, but its reply route could not be saved. Check the email and routing reference before retrying.`,
-        { cause },
-      );
-    }
-  }
 
   return true;
 }

@@ -67,12 +67,12 @@ samtalen. For å aktivere dette:
    DNS-leverandøren. Bruk ikke MX-posten på domenet som nettsiden bruker.
 2. Opprett en Resend-webhook på
    `https://www.vatsii-designe.no/api/webhooks/resend-inbound` for hendelsen
-   `email.received`.
+   både `email.received` og `email.sent`.
 3. Legg webhookens signeringshemmelighet i `RESEND_INBOUND_WEBHOOK_SECRET` i
    Vercel, og sett `RESEND_INBOUND_DOMAIN` til `reply.vatsii-designe.no`.
    Opprett en egen Resend API-nøkkel med **Full access** og lagre den som
-   `RESEND_RECEIVING_API_KEY`; den brukes til å hente innkommende e-poster og
-   slå opp meldings-ID-er for svarruting. Resend tilbyr ikke en egen
+   `RESEND_RECEIVING_API_KEY`; den brukes til å hente innholdet i innkommende
+   e-poster. Resend tilbyr ikke en egen
    nøkkelbegrensning for mottak. Den eksisterende `RESEND_API_KEY` kan fortsatt
    ha **Sending access**.
 4. Kjør databasemigreringen før utrulling. Kontroller deretter DNS-statusen og
@@ -86,9 +86,10 @@ Sitert e-posthistorikk fjernes fra innkommende svar og ved visning av tidligere
 importerte e-postmeldinger. Meldinger skrevet direkte i samtalen beholdes uendret.
 Nye e-poster bruker den faste svaradressen `svar@reply.vatsii-designe.no`;
 forespørselsnummeret vises som navn. Svaret kobles til forespørselen via e-postens
-`In-Reply-To`/`References`-meldings-ID-er, og avsenderen må fortsatt stemme med
-kunden eller administratoren. Eldre e-poster med unike tokenadresser kan fortsatt
-besvares.
+`In-Reply-To`/`References`-meldings-ID-er. Resends `email.sent`-hendelse lagrer
+leverandørens faktiske meldings-ID sammen med forespørselsnummer og mottakerrolle.
+Avsenderen må fortsatt stemme med kunden eller administratoren. Eldre e-poster
+med unike tokenadresser kan fortsatt besvares.
 Test e-postbehandlingen med
 `node --test scripts/email-reply-*.test.mjs` (Node 24).
 

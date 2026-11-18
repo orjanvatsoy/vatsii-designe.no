@@ -4,6 +4,7 @@ import { getResendInboundDomain } from "../../../lib/email-reply-routing";
 import {
   extractReplyToken,
   getReplyMessageIds,
+  parseEmailSentThreadReference,
 } from "../../../lib/email-reply-address";
 import { MAX_ORDER_MESSAGE_LENGTH } from "../../../lib/order-message-limits";
 import { prisma } from "../../../lib/prisma";
@@ -82,6 +83,36 @@ export async function POST(request: Request) {
   } catch {
     console.warn("Rejected an invalid Resend inbound webhook signature.");
     return NextResponse.json({ error: "Ugyldig signatur." }, { status: 400 });
+  }
+
+  if (event.type === "email.sent") {
+    const tags = event.data.tags ?? {};
+    if (!tags.inquiry_id && !tags.reply_role) {
+      return NextResponse.json({ received: true, ignored: true });
+    }
+
+    const reference = parseEmailSentThreadReference({
+      messageId: event.data.message_id,
+      tags,
+    });
+    if (!reference) {
+      console.warn("Ignored a Resend email.sent event with invalid reply tags.");
+      return NextResponse.json({ received: true, ignored: true });
+    }
+
+    await prisma.orderEmailThreadReference.upsert({
+      where: { messageId: reference.messageId },
+      create: {
+        messageId: reference.messageId,
+        orderId: BigInt(reference.inquiryId),
+        replyRole: reference.replyRole,
+      },
+      update: {
+        orderId: BigInt(reference.inquiryId),
+        replyRole: reference.replyRole,
+      },
+    });
+    return NextResponse.json({ received: true, threadReference: true });
   }
 
   if (event.type !== "email.received") {

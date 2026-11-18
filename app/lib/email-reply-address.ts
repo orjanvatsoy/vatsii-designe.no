@@ -14,6 +14,25 @@ export function normalizeReplyMessageId(value: string) {
   return id ? `<${id}>` : null;
 }
 
+export function parseEmailSentThreadReference(input: {
+  messageId: string;
+  tags?: Record<string, string>;
+}) {
+  const inquiryId = input.tags?.inquiry_id;
+  const replyRole = input.tags?.reply_role;
+  const messageId = normalizeReplyMessageId(input.messageId);
+  if (
+    !messageId ||
+    typeof inquiryId !== "string" ||
+    !/^[1-9]\d*$/.test(inquiryId) ||
+    (replyRole !== "customer" && replyRole !== "admin")
+  ) {
+    return null;
+  }
+
+  return { messageId, inquiryId, replyRole };
+}
+
 export function getReplyMessageIds(headers: Record<string, string> | null) {
   const values = Object.entries(headers ?? {}).reduce(
     (result, [name, value]) => {

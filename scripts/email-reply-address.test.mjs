@@ -7,6 +7,7 @@ import {
   formatSharedReplyTo,
   getReplyMessageIds,
   normalizeReplyMessageId,
+  parseEmailSentThreadReference,
 } from "../app/lib/email-reply-address.ts";
 
 const domain = "reply.example.no";
@@ -78,4 +79,39 @@ test("normalizes Resend message IDs to the format used in reply headers", () => 
     "<message@example.com>",
   );
   assert.equal(normalizeReplyMessageId("malformed"), null);
+});
+
+test("parses tagged Resend sent events for inquiry reply routing", () => {
+  assert.deepEqual(
+    parseEmailSentThreadReference({
+      messageId: "<provider-id@example.com>",
+      tags: { inquiry_id: "19", reply_role: "admin" },
+    }),
+    {
+      messageId: "<provider-id@example.com>",
+      inquiryId: "19",
+      replyRole: "admin",
+    },
+  );
+  assert.equal(
+    parseEmailSentThreadReference({
+      messageId: "provider-id@example.com",
+      tags: { inquiry_id: "0", reply_role: "admin" },
+    }),
+    null,
+  );
+  assert.equal(
+    parseEmailSentThreadReference({
+      messageId: "provider-id@example.com",
+      tags: { inquiry_id: "19", reply_role: "unknown" },
+    }),
+    null,
+  );
+  assert.equal(
+    parseEmailSentThreadReference({
+      messageId: "malformed",
+      tags: { inquiry_id: "19", reply_role: "admin" },
+    }),
+    null,
+  );
 });
