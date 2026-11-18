@@ -35,9 +35,11 @@ async function sendOrderEmail(input: {
   if (!resend) return false;
 
   const inboundConfigured = isResendInboundConfigured();
-  const receivingApiKey =
-    process.env.RESEND_RECEIVING_API_KEY ?? process.env.RESEND_API_KEY;
-  if (inboundConfigured && !receivingApiKey) {
+  const lookupApiKeys = [
+    process.env.RESEND_API_KEY,
+    process.env.RESEND_RECEIVING_API_KEY,
+  ].filter((apiKey): apiKey is string => Boolean(apiKey));
+  if (inboundConfigured && lookupApiKeys.length === 0) {
     throw new Error(
       "A Resend API key is required to register inquiry email replies.",
     );
@@ -53,21 +55,29 @@ async function sendOrderEmail(input: {
   });
   if (error) throw new Error(error.message);
 
-  if (inboundConfigured && receivingApiKey) {
+  if (inboundConfigured) {
     try {
-      const { data: sentEmail, error: lookupError } = await new Resend(
-        receivingApiKey,
-      ).emails.get(data.id);
-      if (lookupError) {
-        throw new Error(
-          `Could not retrieve the sent message ID: ${lookupError.message}`,
-        );
+      let messageId: string | null = null;
+      const lookupErrors: string[] = [];
+      for (const apiKey of [...new Set(lookupApiKeys)]) {
+        const { data: sentEmail, error: lookupError } = await new Resend(
+          apiKey,
+        ).emails.get(data.id);
+        if (lookupError) {
+          lookupErrors.push(lookupError.message);
+          continue;
+        }
+
+        messageId = sentEmail.message_id
+          ? normalizeReplyMessageId(sentEmail.message_id)
+          : null;
+        if (messageId) break;
+        lookupErrors.push("Resend did not return a valid message ID.");
       }
-      const messageId = sentEmail.message_id
-        ? normalizeReplyMessageId(sentEmail.message_id)
-        : null;
       if (!messageId) {
-        throw new Error("Resend did not return a valid message ID.");
+        throw new Error(
+          `Could not retrieve a valid sent message ID: ${lookupErrors.join("; ")}`,
+        );
       }
 
       await prisma.orderEmailThreadReference.create({
