@@ -4,6 +4,9 @@ import test from "node:test";
 import {
   extractReplyToken,
   formatOrderReplyTo,
+  formatSharedReplyTo,
+  getReplyMessageIds,
+  normalizeReplyMessageId,
 } from "../app/lib/email-reply-address.ts";
 
 const domain = "reply.example.no";
@@ -38,4 +41,41 @@ test("rejects malformed, truncated and wrong-domain reply addresses", () => {
   assert.equal(extractReplyToken(`svar-${"A".repeat(21)}B@${domain}`, domain), null);
   assert.equal(extractReplyToken(`svar-${"A".repeat(23)}@${domain}`, domain), null);
   assert.throws(() => formatOrderReplyTo(19n, "invalid", domain));
+});
+
+test("formats the shared reply address without exposing a routing token", () => {
+  assert.equal(
+    formatSharedReplyTo(19n, domain),
+    `Forespørsel #19 <svar@${domain}>`,
+  );
+});
+
+test("routes by the direct email thread reference before older references", () => {
+  assert.deepEqual(
+    getReplyMessageIds({
+      References: "<first@example.com> <second@example.com>",
+      "In-Reply-To": "<second@example.com>",
+    }),
+    ["<second@example.com>", "<first@example.com>"],
+  );
+  assert.deepEqual(
+    getReplyMessageIds({
+      references: "<first@example.com> <first@example.com>",
+      subject: "Re: inquiry",
+    }),
+    ["<first@example.com>"],
+  );
+  assert.deepEqual(getReplyMessageIds(null), []);
+});
+
+test("normalizes Resend message IDs to the format used in reply headers", () => {
+  assert.equal(
+    normalizeReplyMessageId("message@example.com"),
+    "<message@example.com>",
+  );
+  assert.equal(
+    normalizeReplyMessageId(" <message@example.com> "),
+    "<message@example.com>",
+  );
+  assert.equal(normalizeReplyMessageId("malformed"), null);
 });

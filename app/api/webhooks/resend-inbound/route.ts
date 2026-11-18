@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { Resend, type WebhookEventPayload } from "resend";
 import { getResendInboundDomain } from "../../../lib/email-reply-routing";
-import { extractReplyToken } from "../../../lib/email-reply-address";
+import {
+  extractReplyToken,
+  getReplyMessageIds,
+} from "../../../lib/email-reply-address";
 import { MAX_ORDER_MESSAGE_LENGTH } from "../../../lib/order-message-limits";
 import { prisma } from "../../../lib/prisma";
 import { sendOrderMessageEmail } from "../../../lib/email";
@@ -104,43 +107,92 @@ export async function POST(request: Request) {
   const replyToken = email.to
     .map((address) => extractReplyToken(address, domain))
     .find((token) => token !== null);
-  if (!replyToken) {
-    console.warn("Ignored a Resend email without a valid inquiry reply address.");
-    return NextResponse.json({ received: true, ignored: true });
+  const sharedReplyAddress = `svar@${domain}`;
+  const isSharedReply = email.to
+    .map(extractAddress)
+    .includes(sharedReplyAddress);
+
+  let order:
+    | {
+        id: bigint;
+        customerEmail: string;
+        customerReplyToken: string | null;
+        adminReplyToken: string | null;
+        product: { name: string };
+      }
+    | null = null;
+  let inboundRole: "customer" | "admin" | null = null;
+
+  if (replyToken) {
+    order = await prisma.placeCardOrder.findFirst({
+      where: {
+        OR: [
+          { customerReplyToken: replyToken },
+          { adminReplyToken: replyToken },
+        ],
+      },
+      select: {
+        id: true,
+        customerEmail: true,
+        customerReplyToken: true,
+        adminReplyToken: true,
+        product: { select: { name: true } },
+      },
+    });
+    if (order) {
+      inboundRole =
+        order.customerReplyToken === replyToken
+          ? "customer"
+          : order.adminReplyToken === replyToken
+            ? "admin"
+            : null;
+    }
+  } else if (isSharedReply) {
+    const messageIds = getReplyMessageIds(email.headers);
+    if (messageIds.length > 0) {
+      const emailReferences =
+        await prisma.orderEmailThreadReference.findMany({
+          where: { messageId: { in: messageIds } },
+          select: { messageId: true, orderId: true, replyRole: true },
+        });
+      const referenceByMessageId = new Map(
+        emailReferences.map((reference) => [reference.messageId, reference]),
+      );
+      const reference = messageIds
+        .map((messageId) => referenceByMessageId.get(messageId))
+        .find((candidate) => candidate !== undefined);
+      if (reference) {
+        const foundOrder = await prisma.placeCardOrder.findUnique({
+          where: { id: reference.orderId },
+          select: {
+            id: true,
+            customerEmail: true,
+            customerReplyToken: true,
+            adminReplyToken: true,
+            product: { select: { name: true } },
+          },
+        });
+        if (
+          foundOrder &&
+          (reference.replyRole === "customer" ||
+            reference.replyRole === "admin")
+        ) {
+          order = foundOrder;
+          inboundRole = reference.replyRole;
+        }
+      }
+    }
   }
 
-  const order = await prisma.placeCardOrder.findFirst({
-    where: {
-      OR: [
-        { customerReplyToken: replyToken },
-        { adminReplyToken: replyToken },
-      ],
-    },
-    select: {
-      id: true,
-      customerEmail: true,
-      customerReplyToken: true,
-      adminReplyToken: true,
-      product: { select: { name: true } },
-    },
-  });
-  if (!order) {
-    console.warn("Ignored a Resend reply with an unknown inquiry token.");
+  if (!order || !inboundRole) {
+    console.warn(
+      "Ignored a Resend email without a valid inquiry reply address or thread reference.",
+    );
     return NextResponse.json({ received: true, ignored: true });
   }
 
   const senderEmail = extractAddress(email.from);
   const customerEmail = order.customerEmail.trim().toLowerCase();
-  const inboundRole =
-    order.customerReplyToken === replyToken
-      ? "customer"
-      : order.adminReplyToken === replyToken
-        ? "admin"
-        : null;
-  if (!inboundRole) {
-    console.warn("Ignored a Resend reply with an unrecognized inquiry token.");
-    return NextResponse.json({ received: true, ignored: true });
-  }
   const adminEmails = (process.env.ORDER_NOTIFICATION_EMAIL ?? "")
     .split(/[;,]/)
     .map(extractAddress)

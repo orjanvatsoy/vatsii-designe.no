@@ -1,7 +1,39 @@
 export const REPLY_TOKEN_HEX_LENGTH = 32;
 
+export function formatSharedReplyTo(inquiryId: bigint, domain: string) {
+  return `Forespørsel #${inquiryId} <svar@${domain}>`;
+}
+
 export function isValidReplyToken(token: string) {
   return /^(?:[a-f0-9]{32}|[a-f0-9]{60})$/.test(token);
+}
+
+export function normalizeReplyMessageId(value: string) {
+  const messageId = value.trim().match(/^(?:<([^<>\s]+@[^<>\s]+)>|([^<>\s]+@[^<>\s]+))$/);
+  const id = messageId?.[1] ?? messageId?.[2];
+  return id ? `<${id}>` : null;
+}
+
+export function getReplyMessageIds(headers: Record<string, string> | null) {
+  const values = Object.entries(headers ?? {}).reduce(
+    (result, [name, value]) => {
+      if (name.toLowerCase() === "in-reply-to") {
+        result.inReplyTo = value;
+      } else if (name.toLowerCase() === "references") {
+        result.references = value;
+      }
+      return result;
+    },
+    { inReplyTo: "", references: "" },
+  );
+  const parseIds = (value: string) =>
+    value.match(/<[^<>\s]+@[^<>\s]+>/g) ?? [];
+  return [
+    ...new Set([
+      ...parseIds(values.inReplyTo),
+      ...parseIds(values.references),
+    ]),
+  ].slice(0, 20);
 }
 
 export function formatOrderReplyTo(

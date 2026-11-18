@@ -46,31 +46,32 @@ model Product {
 }
 
 model PlaceCardOrder {
-  id               BigInt    @id @default(autoincrement())
-  userId           String?   @map("user_id") @db.Uuid
-  customerEmail    String    @map("customer_email")
-  customerName     String?   @map("customer_name")
-  productId        String    @map("product_id") @db.Uuid
-  inputMode        String    @default("name_list") @map("input_mode")
-  names            String    @db.Text
-  quantity         Int
-  customDimensions String?   @map("custom_dimensions") @db.Text
-  customBudget      Int?      @map("custom_budget")
+  id                  BigInt    @id @default(autoincrement())
+  userId              String?   @map("user_id") @db.Uuid
+  customerEmail       String    @map("customer_email")
+  customerName        String?   @map("customer_name")
+  productId           String    @map("product_id") @db.Uuid
+  inputMode           String    @default("name_list") @map("input_mode")
+  names               String    @db.Text
+  quantity            Int
+  customDimensions    String?   @map("custom_dimensions") @db.Text
+  customBudget        Int?      @map("custom_budget")
   desiredDeliveryDate DateTime? @map("desired_delivery_date") @db.Date
-  status           String    @default("new")
-  estimatedPrice   Int?      @map("estimated_price")
-  deliveryEstimate String?   @map("delivery_estimate")
-  confirmedAt      DateTime? @map("confirmed_at") @db.Timestamptz(6)
-  cancellationReason String? @map("cancellation_reason") @db.Text
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime  @updatedAt @default(now()) @map("updated_at") @db.Timestamptz(6)
-  customerUpdatedAt DateTime? @map("customer_updated_at") @db.Timestamptz(6)
-  archivedAt        DateTime? @map("archived_at") @db.Timestamptz(6)
-  customerReplyToken String?  @unique @map("customer_reply_token")
-  adminReplyToken    String?  @unique @map("admin_reply_token")
-  product          Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
-  attachments      InquiryAttachment[]
-  messages         OrderMessage[]
+  status              String    @default("new")
+  estimatedPrice      Int?      @map("estimated_price")
+  deliveryEstimate    String?   @map("delivery_estimate")
+  confirmedAt         DateTime? @map("confirmed_at") @db.Timestamptz(6)
+  cancellationReason  String?   @map("cancellation_reason") @db.Text
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @default(now()) @map("updated_at") @db.Timestamptz(6)
+  customerUpdatedAt   DateTime? @map("customer_updated_at") @db.Timestamptz(6)
+  archivedAt          DateTime? @map("archived_at") @db.Timestamptz(6)
+  customerReplyToken  String?   @unique @map("customer_reply_token")
+  adminReplyToken     String?   @unique @map("admin_reply_token")
+  product             Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+  attachments         InquiryAttachment[]
+  messages            OrderMessage[]
+  emailThreadReferences OrderEmailThreadReference[]
 
   @@index([userId])
   @@index([customerEmail])
@@ -109,6 +110,17 @@ model OrderMessage {
 
   @@index([orderId, createdAt])
   @@map("order_messages")
+}
+
+model OrderEmailThreadReference {
+  messageId String         @id @map("message_id") @db.Text
+  orderId   BigInt         @map("order_id")
+  replyRole String         @map("reply_role")
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  order     PlaceCardOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@map("order_email_thread_references")
 }
 
 model TemperatureData {

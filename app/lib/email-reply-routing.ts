@@ -1,12 +1,7 @@
 import "server-only";
 
-import { randomBytes } from "node:crypto";
 import { prisma } from "./prisma";
-import {
-  formatOrderReplyTo,
-  isValidReplyToken,
-  REPLY_TOKEN_HEX_LENGTH,
-} from "./email-reply-address";
+import { formatSharedReplyTo } from "./email-reply-address";
 
 export function getResendInboundDomain() {
   const domain = process.env.RESEND_INBOUND_DOMAIN?.trim().toLowerCase();
@@ -29,7 +24,6 @@ export function isResendInboundConfigured() {
 
 export async function getOrderReplyTo(
   inquiryId: string,
-  inboundRole: "customer" | "admin",
   fallback?: string,
 ): Promise<string | undefined> {
   const domain = getResendInboundDomain();
@@ -42,39 +36,13 @@ export async function getOrderReplyTo(
     throw new Error("Cannot create an email reply address for an invalid inquiry ID.");
   }
 
-  let order = await prisma.placeCardOrder.findUnique({
+  const order = await prisma.placeCardOrder.findUnique({
     where: { id: orderId },
-    select: { customerReplyToken: true, adminReplyToken: true },
+    select: { id: true },
   });
   if (!order) {
     throw new Error(`Cannot create an email reply address for inquiry ${inquiryId}.`);
   }
 
-  const tokenField =
-    inboundRole === "customer" ? "customerReplyToken" : "adminReplyToken";
-  if (!order[tokenField] || !isValidReplyToken(order[tokenField])) {
-    const token = randomBytes(REPLY_TOKEN_HEX_LENGTH / 2).toString("hex");
-    if (inboundRole === "customer") {
-      await prisma.placeCardOrder.updateMany({
-        where: { id: orderId, customerReplyToken: order.customerReplyToken },
-        data: { customerReplyToken: token },
-      });
-    } else {
-      await prisma.placeCardOrder.updateMany({
-        where: { id: orderId, adminReplyToken: order.adminReplyToken },
-        data: { adminReplyToken: token },
-      });
-    }
-    order = await prisma.placeCardOrder.findUnique({
-      where: { id: orderId },
-      select: { customerReplyToken: true, adminReplyToken: true },
-    });
-  }
-
-  const token = order?.[tokenField];
-  if (!token) {
-    throw new Error(`Could not create an email reply address for inquiry ${inquiryId}.`);
-  }
-
-  return formatOrderReplyTo(orderId, token, domain);
+  return formatSharedReplyTo(orderId, domain);
 }
