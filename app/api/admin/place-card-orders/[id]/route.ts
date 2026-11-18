@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 import { requireAdmin } from "../../../../lib/requireAdmin";
+import { extractReplyBody } from "../../../../lib/email-reply-body";
 import {
   removeStorageObjects,
   signDownloadUrl,
@@ -93,7 +94,9 @@ export async function GET(
     messages: messages.map((message) => ({
       id: message.id,
       senderRole: message.senderRole,
-      body: message.body,
+      body: message.receivedEmailId
+        ? extractReplyBody(message.body)
+        : message.body,
       createdAt: message.createdAt.toISOString(),
     })),
     attachments: await Promise.all(

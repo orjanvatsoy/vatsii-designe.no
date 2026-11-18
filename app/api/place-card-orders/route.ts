@@ -3,6 +3,7 @@ import { sendNewInquiryEmail } from "../../lib/email";
 import { prisma } from "../../lib/prisma";
 import { requireUser } from "../../lib/requireUser";
 import { signDownloadUrl, signImageUrls } from "../../lib/storage";
+import { extractReplyBody } from "../../lib/email-reply-body";
 
 const MAX_NAMES = 200;
 const MAX_NAME_LENGTH = 100;
@@ -101,6 +102,7 @@ export async function GET(request: Request) {
             id: true,
             senderRole: true,
             body: true,
+            receivedEmailId: true,
             createdAt: true,
             customerReadAt: true,
           },
@@ -169,7 +171,9 @@ export async function GET(request: Request) {
           messages: order.messages.map((message) => ({
             id: message.id,
             senderRole: message.senderRole,
-            body: message.body,
+            body: message.receivedEmailId
+              ? extractReplyBody(message.body)
+              : message.body,
             createdAt: message.createdAt.toISOString(),
           })),
           attachments: await Promise.all(

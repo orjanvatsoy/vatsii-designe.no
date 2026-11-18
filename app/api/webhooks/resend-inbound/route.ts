@@ -7,6 +7,7 @@ import {
 import { MAX_ORDER_MESSAGE_LENGTH } from "../../../lib/order-message-limits";
 import { prisma } from "../../../lib/prisma";
 import { sendOrderMessageEmail } from "../../../lib/email";
+import { extractReplyBody } from "../../../lib/email-reply-body";
 
 export const dynamic = "force-dynamic";
 
@@ -16,25 +17,6 @@ function extractAddress(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)
     ? normalized
     : null;
-}
-
-function extractReplyBody(text: string) {
-  const lines = text.replace(/\r\n?/g, "\n").split("\n");
-  const replyLines: string[] = [];
-
-  for (const line of lines) {
-    if (
-      /^\s*>/.test(line) ||
-      /^\s*(?:On .+wrote:|Den .+skrev:|[-_]{5,}\s*(?:Original Message|Opprinnelig melding)|From:\s)/i.test(
-        line,
-      )
-    ) {
-      break;
-    }
-    replyLines.push(line);
-  }
-
-  return replyLines.join("\n").trim();
 }
 
 function htmlToText(html: string) {

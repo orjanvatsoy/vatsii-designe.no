@@ -11,6 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useState } from "react";
+import { alpha } from "@mui/material/styles";
 import { MAX_ORDER_MESSAGE_LENGTH } from "../lib/order-message-limits";
 import { supabase } from "../lib/supabaseClient";
 
@@ -91,6 +92,7 @@ export default function OrderMessages({
         borderRadius: 1,
         overflow: "hidden",
         bgcolor: "background.default",
+        typography: "body2",
       }}
     >
       {showHeader && (
@@ -120,6 +122,7 @@ export default function OrderMessages({
           minHeight: messages.length === 0 ? 120 : 180,
           maxHeight: 480,
           overflowY: "auto",
+          overflowX: "hidden",
           p: { xs: 2, sm: 2.5 },
         }}
       >
@@ -137,7 +140,7 @@ export default function OrderMessages({
             </Typography>
           </Box>
         ) : (
-          <Stack spacing={1.25}>
+          <Stack spacing={2.5}>
             {messages.map((message) => {
               const ownMessage = message.senderRole === currentRole;
               const sender = ownMessage
@@ -148,48 +151,60 @@ export default function OrderMessages({
               return (
                 <Stack
                   key={message.id}
-                  spacing={0.5}
+                  spacing={0.75}
                   alignItems={ownMessage ? "flex-end" : "flex-start"}
                 >
                   <Typography
-                    variant="caption"
+                    variant="body2"
                     color="text.secondary"
                     fontWeight={700}
-                    sx={{ px: 0.75 }}
+                    sx={{ px: 0.5 }}
                   >
                     {sender}
                   </Typography>
                   <Box
-                    sx={{
-                      maxWidth: { xs: "88%", sm: "72%" },
-                      px: 1.75,
-                      py: 1.25,
+                    sx={(theme) => ({
+                      minWidth: 0,
+                      maxWidth: { xs: "92%", sm: "76%" },
+                      boxSizing: "border-box",
+                      px: 2,
+                      py: 1.5,
                       border: "1px solid",
-                      borderColor: ownMessage ? "secondary.main" : "divider",
+                      borderColor: "divider",
                       borderRadius: ownMessage
                         ? "8px 8px 2px 8px"
                         : "8px 8px 8px 2px",
-                      bgcolor: ownMessage
-                        ? "rgba(63,107,74,0.34)"
-                        : "background.paper",
-                    }}
+                      bgcolor: alpha(
+                        message.senderRole === "customer"
+                          ? theme.palette.primary.dark
+                          : theme.palette.secondary.dark,
+                        0.3,
+                      ),
+                    })}
                   >
-                    <Typography sx={{ whiteSpace: "pre-wrap" }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        whiteSpace: "pre-wrap",
+                        overflowWrap: "anywhere",
+                        lineHeight: 1.7,
+                      }}
+                    >
                       {message.body}
                     </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      display="block"
-                      textAlign="right"
-                      mt={0.75}
-                    >
-                      {new Intl.DateTimeFormat("nb-NO", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      }).format(new Date(message.createdAt))}
-                    </Typography>
                   </Box>
+                  <Typography
+                    component="time"
+                    dateTime={message.createdAt}
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ px: 0.5, fontSize: "0.75rem" }}
+                  >
+                    {new Intl.DateTimeFormat("nb-NO", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    }).format(new Date(message.createdAt))}
+                  </Typography>
                 </Stack>
               );
             })}
@@ -228,6 +243,7 @@ export default function OrderMessages({
             }
           }}
           multiline
+          size="small"
           minRows={1}
           maxRows={5}
           fullWidth
@@ -247,7 +263,8 @@ export default function OrderMessages({
               disabled={sending || !draft.trim()}
               sx={{
                 width: 48,
-                height: 48,
+                height: 44,
+                borderRadius: 1,
                 bgcolor: "primary.main",
                 color: "text.primary",
                 "&:hover": { bgcolor: "primary.dark" },

@@ -80,6 +80,9 @@ Inntil mottak er konfigurert, går svar på e-post sendt til kunden til
 `ORDER_NOTIFICATION_EMAIL`; svar på varselet om en ny forespørsel går direkte
 til kundens registrerte e-post. Lenken til samtalen er alltid med. Vedlegg fra
 e-post importeres ikke; meldingen viser en beskjed om å laste dem opp i samtalen.
+Sitert e-posthistorikk fjernes fra innkommende svar og ved visning av tidligere
+importerte e-postmeldinger. Meldinger skrevet direkte i samtalen beholdes uendret.
+Test e-postuttrekket med `node --test scripts/email-reply-body.test.mjs` (Node 24).
 
 ### Kontaktskjema
 
