@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { Resend, type WebhookEventPayload } from "resend";
-import { getResendInboundDomain } from "../../../lib/email-reply-routing";
+import {
+  getResendInboundDomain,
+  REPLY_TOKEN_HEX_LENGTH,
+} from "../../../lib/email-reply-routing";
 import { MAX_ORDER_MESSAGE_LENGTH } from "../../../lib/order-message-limits";
 import { prisma } from "../../../lib/prisma";
 import { sendOrderMessageEmail } from "../../../lib/email";
@@ -64,11 +67,12 @@ function isUniqueConstraintError(error: unknown) {
 }
 
 export async function POST(request: Request) {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey =
+    process.env.RESEND_RECEIVING_API_KEY ?? process.env.RESEND_API_KEY;
   const webhookSecret = process.env.RESEND_INBOUND_WEBHOOK_SECRET;
   if (!apiKey || !webhookSecret) {
     console.error(
-      "Resend inbound webhook requires RESEND_API_KEY and RESEND_INBOUND_WEBHOOK_SECRET.",
+      "Resend inbound webhook requires a Resend API key and RESEND_INBOUND_WEBHOOK_SECRET.",
     );
     return NextResponse.json(
       { error: "E-postmottak er ikke konfigurert." },
@@ -120,7 +124,9 @@ export async function POST(request: Request) {
   const replyAddress = email.to
     .map(extractAddress)
     .find((address) => address?.endsWith(`@${domain}`));
-  const tokenMatch = replyAddress?.match(/^r-([a-f0-9]{64})@/);
+  const tokenMatch = replyAddress?.match(
+    new RegExp(`^r-([a-f0-9]{${REPLY_TOKEN_HEX_LENGTH}})@`),
+  );
   if (!tokenMatch) {
     console.warn("Ignored a Resend email without a valid inquiry reply address.");
     return NextResponse.json({ received: true, ignored: true });

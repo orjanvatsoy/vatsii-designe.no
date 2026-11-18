@@ -69,8 +69,10 @@ samtalen. For å aktivere dette:
    `https://www.vatsii-designe.no/api/webhooks/resend-inbound` for hendelsen
    `email.received`.
 3. Legg webhookens signeringshemmelighet i `RESEND_INBOUND_WEBHOOK_SECRET` i
-   Vercel. Sett `RESEND_INBOUND_DOMAIN` til `reply.vatsii-designe.no` og behold
-   `RESEND_API_KEY` konfigurert.
+   Vercel, og sett `RESEND_INBOUND_DOMAIN` til `reply.vatsii-designe.no`.
+   Opprett en egen Resend API-nøkkel med **Full access** og lagre den som
+   `RESEND_RECEIVING_API_KEY`; Resend tilbyr ikke en egen nøkkelbegrensning for
+   mottak. Den eksisterende `RESEND_API_KEY` kan fortsatt ha **Sending access**.
 4. Kjør databasemigreringen før utrulling. Kontroller deretter DNS-statusen og
    send en testmelding med svar til en forespørsels-e-post.
 
