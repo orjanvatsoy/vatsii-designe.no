@@ -170,13 +170,17 @@ export async function PATCH(request: Request) {
 
   if (body.action === "mark-delivered") {
     const result = await prisma.placeCardOrder.updateMany({
-      where: { id: orderId, status: "approved" },
+      where: {
+        id: orderId,
+        status: { in: ["confirmed", "estimated", "approved", "in_production"] },
+        archivedAt: null,
+      },
       data: { status: "completed" },
     });
 
     if (result.count === 0) {
       return NextResponse.json(
-        { error: "Ordren må ha et godkjent tilbud før den kan leveres." },
+        { error: "Ordren kan ikke markeres som levert i denne statusen." },
         { status: 409 },
       );
     }

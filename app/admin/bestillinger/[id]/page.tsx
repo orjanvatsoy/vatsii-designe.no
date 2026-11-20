@@ -963,7 +963,9 @@ export default function AdminOrderDetailsPage() {
                     </Typography>
                   </Box>
                 </Box>
-                {order.status === "approved" && (
+                {["confirmed", "estimated", "approved", "in_production"].includes(
+                  order.status,
+                ) && (
                   <Button
                     variant="contained"
                     startIcon={<LocalShippingOutlinedIcon />}
