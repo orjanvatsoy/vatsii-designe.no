@@ -19,7 +19,11 @@ import PageShell from "../Components/PageShell";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { RequireRole, useAuth } from "../Components/AuthProvider";
-import { GARAGE_DEVICE_ID, type TemperatureData } from "./iotData";
+import {
+  GARAGE_DEVICE_ID,
+  type CabinTemperature,
+  type TemperatureData,
+} from "./iotData";
 
 interface IotTemperatureChartProps {
   data: TemperatureData[];
@@ -57,6 +61,8 @@ export default function IotTemperatureCard() {
   const [latestReading, setLatestReading] = useState<TemperatureData | null>(
     null,
   );
+  const [latestCabinTemperature, setLatestCabinTemperature] =
+    useState<CabinTemperature | null>(null);
   const [hourRange, setHourRange] = useState(24);
   const [windowOffset, setWindowOffset] = useState(0);
   const [customRange, setCustomRange] = useState<{
@@ -79,6 +85,7 @@ export default function IotTemperatureCard() {
     let active = true;
     const controller = new AbortController();
     setEarliestReading(undefined);
+    setLatestCabinTemperature(null);
     setMetadataError("");
     fetch("/api/iot/temperature?metadata=1", {
       headers: { Authorization: `Bearer ${token}` },
@@ -87,20 +94,32 @@ export default function IotTemperatureCard() {
     })
       .then(async (response) => {
         if (!response.ok) throw new Error("Temperature metadata request failed");
-        return (await response.json()) as { earliestReading: string | null };
+        return (await response.json()) as {
+          earliestReading: string | null;
+          latestCabinTemperature: CabinTemperature | null;
+        };
       })
-      .then(({ earliestReading: firstReading }) => {
+      .then(({ earliestReading: firstReading, latestCabinTemperature: cabin }) => {
         if (
-          firstReading !== null &&
-          (typeof firstReading !== "string" ||
-            Number.isNaN(new Date(firstReading).getTime()))
+          (firstReading !== null &&
+            (typeof firstReading !== "string" ||
+              Number.isNaN(new Date(firstReading).getTime()))) ||
+          (cabin !== null &&
+            (typeof cabin !== "object" ||
+              typeof cabin.created_at !== "string" ||
+              Number.isNaN(new Date(cabin.created_at).getTime()) ||
+              typeof cabin.temperature !== "number" ||
+              !Number.isFinite(cabin.temperature)))
         ) {
           throw new Error("Invalid temperature metadata");
         }
-        if (active) setEarliestReading(firstReading);
+        if (active) {
+          setEarliestReading(firstReading);
+          setLatestCabinTemperature(cabin);
+        }
       })
       .catch(() => {
-        if (active) setMetadataError("Kunne ikke hente første måledato.");
+        if (active) setMetadataError("Kunne ikke hente måledato og hyttetemperatur.");
       });
 
     return () => {
@@ -196,6 +215,15 @@ export default function IotTemperatureCard() {
         minute: "2-digit",
       }).format(new Date(latestReading.created_at))
     : null;
+  const cabinTimestamp = latestCabinTemperature
+    ? new Intl.DateTimeFormat("nb-NO", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(latestCabinTemperature.created_at))
+    : null;
 
   if (!isKing) {
     return (
@@ -229,13 +257,14 @@ export default function IotTemperatureCard() {
             overflow: "hidden",
           }}
         >
-          {latestReading && (
+          {(latestReading || latestCabinTemperature) && (
             <Box
               sx={{
                 display: "grid",
                 gridTemplateColumns: {
                   xs: "1fr",
-                  sm: "repeat(3, minmax(0, 1fr))",
+                  sm: "repeat(2, minmax(0, 1fr))",
+                  md: "repeat(4, minmax(0, 1fr))",
                 },
                 gap: { xs: 2, sm: 4 },
                 px: { xs: 2.5, sm: 4 },
@@ -257,8 +286,25 @@ export default function IotTemperatureCard() {
                       lineHeight: 1.1,
                     }}
                   >
-                    {formatReading(latestReading.temperature, "°C")}
+                    {formatReading(latestReading?.temperature, "°C")}
                   </Typography>
+                </Box>
+              </Stack>
+
+              <Stack direction="row" alignItems="center" spacing={1.5}>
+                <ThermostatIcon color="primary" sx={{ fontSize: 30 }} />
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Hytte
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    {formatReading(latestCabinTemperature?.temperature, "°C")}
+                  </Typography>
+                  {cabinTimestamp && (
+                    <Typography variant="caption" color="text.secondary">
+                      Målt {cabinTimestamp}
+                    </Typography>
+                  )}
                 </Box>
               </Stack>
 
@@ -269,7 +315,7 @@ export default function IotTemperatureCard() {
                     Utendørs
                   </Typography>
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {formatReading(latestReading.outdoor_temperature, "°C")}
+                    {formatReading(latestReading?.outdoor_temperature, "°C")}
                   </Typography>
                 </Box>
               </Stack>
@@ -281,7 +327,7 @@ export default function IotTemperatureCard() {
                     Luftfuktighet
                   </Typography>
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {formatReading(latestReading.humidity, "%")}
+                    {formatReading(latestReading?.humidity, "%")}
                   </Typography>
                 </Box>
               </Stack>
@@ -291,12 +337,14 @@ export default function IotTemperatureCard() {
                 spacing={0.75}
                 sx={{ gridColumn: { sm: "1 / -1" } }}
               >
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <AccessTimeIcon fontSize="small" color="action" />
-                  <Typography variant="body2" color="text.secondary">
-                    Målt {latestTimestamp}
-                  </Typography>
-                </Stack>
+                {latestTimestamp && (
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <AccessTimeIcon fontSize="small" color="action" />
+                    <Typography variant="body2" color="text.secondary">
+                      Målt {latestTimestamp}
+                    </Typography>
+                  </Stack>
+                )}
                 {indoorOutdoorDifference !== null && (
                   <Typography variant="body2" color="text.secondary">
                     {Math.abs(indoorOutdoorDifference) < 0.05
@@ -332,7 +380,7 @@ export default function IotTemperatureCard() {
               </Stack>
             </Box>
           )}
-          {latestReading && <Divider />}
+          {(latestReading || latestCabinTemperature) && <Divider />}
 
           <CardContent sx={{ p: { xs: 2, sm: 3.5 } }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>

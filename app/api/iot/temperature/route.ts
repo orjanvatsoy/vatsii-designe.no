@@ -39,16 +39,34 @@ export async function GET(request: Request) {
 
   const searchParams = new URL(request.url).searchParams;
   if (searchParams.get("metadata") === "1") {
-    const firstReading = await prisma.temperatureData.findFirst({
-      where: {
-        createdAt: { not: null },
-        deviceId: { in: [GARAGE_DEVICE_ID, CABIN_DEVICE_ID] },
-      },
-      orderBy: { createdAt: "asc" },
-      select: { createdAt: true },
-    });
+    const [firstReading, cabinReading] = await Promise.all([
+      prisma.temperatureData.findFirst({
+        where: {
+          createdAt: { not: null },
+          deviceId: { in: [GARAGE_DEVICE_ID, CABIN_DEVICE_ID] },
+        },
+        orderBy: { createdAt: "asc" },
+        select: { createdAt: true },
+      }),
+      prisma.temperatureData.findFirst({
+        where: {
+          deviceId: CABIN_DEVICE_ID,
+          createdAt: { not: null },
+          temperature: { not: null },
+        },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true, temperature: true },
+      }),
+    ]);
     return NextResponse.json({
       earliestReading: firstReading?.createdAt?.toISOString() ?? null,
+      latestCabinTemperature:
+        cabinReading?.createdAt && cabinReading.temperature !== null
+          ? {
+              created_at: cabinReading.createdAt.toISOString(),
+              temperature: cabinReading.temperature.toNumber(),
+            }
+          : null,
     });
   }
 
