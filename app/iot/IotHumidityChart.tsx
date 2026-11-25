@@ -26,6 +26,7 @@ interface IotHumidityChartProps {
   }[];
   hourRange: number;
   windowOffset: number;
+  customRange: { start: Date; end: Date } | null;
   loading: boolean;
 }
 
@@ -33,6 +34,7 @@ export default function IotHumidityChart({
   data,
   hourRange,
   windowOffset,
+  customRange,
   loading,
 }: IotHumidityChartProps) {
   const theme = useTheme();
@@ -53,10 +55,15 @@ export default function IotHumidityChart({
   }, []);
 
   const now = new Date();
-  const windowEnd = new Date(now.getTime() + windowOffset * hourRange * HOUR);
-  const windowStart = new Date(windowEnd.getTime() - hourRange * HOUR);
+  const windowEnd = customRange
+    ? customRange.end
+    : new Date(now.getTime() + windowOffset * hourRange * HOUR);
+  const windowStart = customRange
+    ? customRange.start
+    : new Date(windowEnd.getTime() - hourRange * HOUR);
   const forecastEnd = new Date(now.getTime() + 24 * HOUR);
-  const displayEnd = windowOffset === 0 ? forecastEnd : windowEnd;
+  const displayEnd =
+    !customRange && windowOffset === 0 ? forecastEnd : windowEnd;
   const humidityByTime = new Map<number, number>();
   const forecastByTime = new Map<number, number>();
 
@@ -81,7 +88,7 @@ export default function IotHumidityChart({
   });
 
   const futureForecast =
-    windowOffset === 0
+    !customRange && windowOffset === 0
       ? forecast.filter((entry) => {
           const timestamp = new Date(entry.time).getTime();
           return (
@@ -138,7 +145,7 @@ export default function IotHumidityChart({
 
   return (
     <Box sx={{ width: "100%" }}>
-      {windowOffset === 0 && futureForecast.length > 0 && (
+      {!customRange && windowOffset === 0 && futureForecast.length > 0 && (
         <Typography variant="body2" color="text.secondary" mb={1}>
           met.no-varsel neste 24 timer
         </Typography>

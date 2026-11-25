@@ -8,6 +8,7 @@ import {
   CircularProgress,
   IconButton,
   Stack,
+  TextField,
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
@@ -26,6 +27,8 @@ async function fetchYrForecast() {
 }
 
 const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
+const MAX_RANGE_DAYS = 14;
 
 const rangeOptions = [
   { hours: 24, label: "1 døgn" },
@@ -50,6 +53,28 @@ function formatDeviation(value: number) {
   return value.toLocaleString("nb-NO", { maximumFractionDigits: 1 });
 }
 
+function formatDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateInputValue(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+
+  const date = new Date(year, month - 1, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+  return date;
+}
+
 interface IotTemperatureChartProps {
   data: {
     created_at: string;
@@ -59,18 +84,22 @@ interface IotTemperatureChartProps {
   }[];
   hourRange: number;
   windowOffset: number;
+  customRange: { start: Date; end: Date } | null;
   loading: boolean;
   onHourRangeChange: (hours: number) => void;
   onWindowOffsetChange: (offset: number) => void;
+  onCustomRangeChange: (range: { start: Date; end: Date } | null) => void;
 }
 
 export default function IotTemperatureChart({
   data,
   hourRange,
   windowOffset,
+  customRange,
   loading,
   onHourRangeChange,
   onWindowOffsetChange,
+  onCustomRangeChange,
 }: IotTemperatureChartProps) {
   const theme = useTheme();
   const [chartMode, setChartMode] = useState<"temperature" | "deviation">(
@@ -79,6 +108,12 @@ export default function IotTemperatureChart({
   const [forecast, setForecast] = useState<
     { time: string; temperature: number }[]
   >([]);
+  const [today] = useState(() => new Date());
+  const [fromDate, setFromDate] = useState(() =>
+    formatDateInputValue(new Date(today.getTime() - (MAX_RANGE_DAYS - 1) * DAY)),
+  );
+  const [toDate, setToDate] = useState(() => formatDateInputValue(today));
+  const [rangeError, setRangeError] = useState("");
 
   useEffect(() => {
     let ignore = false;
@@ -95,10 +130,15 @@ export default function IotTemperatureChart({
   }, []);
 
   const now = new Date();
-  const windowEnd = new Date(now.getTime() + windowOffset * hourRange * HOUR);
-  const windowStart = new Date(windowEnd.getTime() - hourRange * HOUR);
+  const windowEnd = customRange
+    ? customRange.end
+    : new Date(now.getTime() + windowOffset * hourRange * HOUR);
+  const windowStart = customRange
+    ? customRange.start
+    : new Date(windowEnd.getTime() - hourRange * HOUR);
   const forecastEnd = new Date(now.getTime() + 24 * HOUR);
-  const displayEnd = windowOffset === 0 ? forecastEnd : windowEnd;
+  const displayEnd =
+    !customRange && windowOffset === 0 ? forecastEnd : windowEnd;
 
   const measuredInWindow = data.filter((entry) => {
     const timestamp = new Date(entry.created_at).getTime();
@@ -107,7 +147,7 @@ export default function IotTemperatureChart({
     );
   });
   const futureForecast =
-    windowOffset === 0
+    !customRange && windowOffset === 0
       ? forecast.filter((entry) => {
           const timestamp = new Date(entry.time).getTime();
           return (
@@ -217,6 +257,35 @@ export default function IotTemperatureChart({
   });
   const rangeLabel = `${dateFormatter.format(windowStart)} – ${dateFormatter.format(windowEnd)}`;
 
+  function applyCustomRange() {
+    const startDate = parseDateInputValue(fromDate);
+    const endDate = parseDateInputValue(toDate);
+    if (!startDate || !endDate) {
+      setRangeError("Velg gyldige frå- og til-datoar.");
+      return;
+    }
+
+    const endExclusive = new Date(
+      endDate.getFullYear(),
+      endDate.getMonth(),
+      endDate.getDate() + 1,
+    );
+    if (startDate >= endExclusive) {
+      setRangeError("Frå-datoen må vere før til-datoen.");
+      return;
+    }
+    if (endExclusive.getTime() - startDate.getTime() > MAX_RANGE_DAYS * DAY) {
+      setRangeError("Du kan velje maksimalt 14 døgn.");
+      return;
+    }
+
+    setRangeError("");
+    onCustomRangeChange({
+      start: startDate,
+      end: new Date(endExclusive.getTime() - 1),
+    });
+  }
+
   return (
     <Box sx={{ width: "100%" }}>
       <ToggleButtonGroup
@@ -243,7 +312,7 @@ export default function IotTemperatureChart({
         <ToggleButtonGroup
           exclusive
           size="small"
-          value={hourRange}
+          value={customRange ? null : hourRange}
           onChange={(_, value: number | null) => {
             if (value === null) return;
             onHourRangeChange(value);
@@ -257,23 +326,25 @@ export default function IotTemperatureChart({
           ))}
         </ToggleButtonGroup>
 
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-        >
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
           <Tooltip title="Forrige periode">
             <IconButton
               aria-label="Vis forrige periode"
+              disabled={Boolean(customRange)}
               onClick={() => onWindowOffsetChange(windowOffset - 1)}
             >
               <ChevronLeftIcon />
             </IconButton>
           </Tooltip>
           <Button
-            variant={windowOffset === 0 ? "contained" : "outlined"}
+            variant={
+              !customRange && windowOffset === 0 ? "contained" : "outlined"
+            }
             startIcon={<TodayIcon />}
-            onClick={() => onWindowOffsetChange(0)}
+            onClick={() => {
+              onCustomRangeChange(null);
+              onWindowOffsetChange(0);
+            }}
           >
             Nå
           </Button>
@@ -281,7 +352,7 @@ export default function IotTemperatureChart({
             <span>
               <IconButton
                 aria-label="Vis neste periode"
-                disabled={windowOffset === 0}
+                disabled={windowOffset === 0 || Boolean(customRange)}
                 onClick={() =>
                   onWindowOffsetChange(Math.min(0, windowOffset + 1))
                 }
@@ -293,9 +364,42 @@ export default function IotTemperatureChart({
         </Stack>
       </Stack>
 
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        alignItems={{ xs: "stretch", sm: "center" }}
+        gap={1.5}
+        mb={2}
+      >
+        <TextField
+          label="Frå dato"
+          type="date"
+          size="small"
+          value={fromDate}
+          onChange={(event) => setFromDate(event.target.value)}
+          slotProps={{ inputLabel: { shrink: true } }}
+        />
+        <TextField
+          label="Til dato"
+          type="date"
+          size="small"
+          value={toDate}
+          onChange={(event) => setToDate(event.target.value)}
+          slotProps={{ inputLabel: { shrink: true } }}
+        />
+        <Button variant="outlined" onClick={applyCustomRange}>
+          Vis periode
+        </Button>
+      </Stack>
+      {rangeError && (
+        <Typography color="error" variant="body2" role="alert" mb={1}>
+          {rangeError}
+        </Typography>
+      )}
+
       <Typography variant="body2" color="text.secondary" mb={1}>
         {rangeLabel}
         {chartMode === "temperature" &&
+        !customRange &&
         windowOffset === 0 &&
         futureForecast.length > 0
           ? " · Yr-varsel neste 24 timer"

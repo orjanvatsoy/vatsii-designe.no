@@ -24,9 +24,11 @@ interface IotTemperatureChartProps {
   data: TemperatureData[];
   hourRange: number;
   windowOffset: number;
+  customRange: { start: Date; end: Date } | null;
   loading: boolean;
   onHourRangeChange: (hours: number) => void;
   onWindowOffsetChange: (offset: number) => void;
+  onCustomRangeChange: (range: { start: Date; end: Date } | null) => void;
 }
 
 interface TemperatureData {
@@ -64,6 +66,10 @@ export default function IotTemperatureCard() {
   );
   const [hourRange, setHourRange] = useState(24);
   const [windowOffset, setWindowOffset] = useState(0);
+  const [customRange, setCustomRange] = useState<{
+    start: Date;
+    end: Date;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const isKing = role === "King" || role === "User";
@@ -74,8 +80,12 @@ export default function IotTemperatureCard() {
 
     let active = true;
     const controller = new AbortController();
-    const windowEnd = new Date(Date.now() + windowOffset * hourRange * HOUR);
-    const windowStart = new Date(windowEnd.getTime() - hourRange * HOUR);
+    const windowEnd = customRange
+      ? customRange.end
+      : new Date(Date.now() + windowOffset * hourRange * HOUR);
+    const windowStart = customRange
+      ? customRange.start
+      : new Date(windowEnd.getTime() - hourRange * HOUR);
     const searchParams = new URLSearchParams({
       start: windowStart.toISOString(),
       end: windowEnd.toISOString(),
@@ -94,7 +104,7 @@ export default function IotTemperatureCard() {
       .then((temperatureData) => {
         if (active) {
           setData(temperatureData);
-          if (windowOffset === 0) {
+          if (!customRange && windowOffset === 0) {
             setLatestReading(temperatureData.at(-1) ?? null);
           }
         }
@@ -110,7 +120,13 @@ export default function IotTemperatureCard() {
       active = false;
       controller.abort();
     };
-  }, [hourRange, isKing, session?.access_token, windowOffset]);
+  }, [
+    customRange,
+    hourRange,
+    isKing,
+    session?.access_token,
+    windowOffset,
+  ]);
   const forecastDifference =
     latestReading?.outdoor_temperature === undefined ||
     latestReading.outdoor_temperature === null ||
@@ -286,12 +302,15 @@ export default function IotTemperatureCard() {
               data={data}
               hourRange={hourRange}
               windowOffset={windowOffset}
+              customRange={customRange}
               loading={loading}
               onHourRangeChange={(hours) => {
                 setHourRange(hours);
                 setWindowOffset(0);
+                setCustomRange(null);
               }}
               onWindowOffsetChange={setWindowOffset}
+              onCustomRangeChange={setCustomRange}
             />
             <Divider sx={{ my: 3 }} />
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
@@ -301,6 +320,7 @@ export default function IotTemperatureCard() {
               data={data}
               hourRange={hourRange}
               windowOffset={windowOffset}
+              customRange={customRange}
               loading={loading}
             />
           </CardContent>
