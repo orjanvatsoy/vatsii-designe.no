@@ -17,7 +17,8 @@ import {
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { ChartsReferenceLine } from "@mui/x-charts/ChartsReferenceLine";
-import { LineChart } from "@mui/x-charts/LineChart";
+import { LineChart, type LineSeries } from "@mui/x-charts/LineChart";
+import IotSeriesToggle from "./IotSeriesToggle";
 
 async function fetchYrForecast() {
   const res = await fetch("/api/YRforecast");
@@ -107,6 +108,13 @@ export default function IotTemperatureChart({
   const [chartMode, setChartMode] = useState<"temperature" | "deviation">(
     "temperature",
   );
+  const [visibleSeries, setVisibleSeries] = useState([
+    "measured",
+    "outdoor",
+    "forecast",
+    "indoor-outdoor-deviation",
+    "outdoor-forecast-deviation",
+  ]);
   const [forecast, setForecast] = useState<
     { time: string; temperature: number }[]
   >([]);
@@ -247,8 +255,12 @@ export default function IotTemperatureChart({
     (timestamp) => outdoorForecastDeviationByTime.get(timestamp) ?? null,
   );
   const deviations = [
-    ...indoorOutdoorDeviationByTime.values(),
-    ...outdoorForecastDeviationByTime.values(),
+    ...(visibleSeries.includes("indoor-outdoor-deviation")
+      ? indoorOutdoorDeviationByTime.values()
+      : []),
+    ...(visibleSeries.includes("outdoor-forecast-deviation")
+      ? outdoorForecastDeviationByTime.values()
+      : []),
   ];
   const deviationLimit = Math.max(
     1,
@@ -267,6 +279,55 @@ export default function IotTemperatureChart({
     minute: "2-digit",
   });
   const rangeLabel = `${dateFormatter.format(windowStart)} – ${dateFormatter.format(windowEnd)}`;
+  const series: LineSeries[] =
+    chartMode === "temperature"
+      ? [
+          {
+            id: "measured",
+            data: measuredData,
+            label: "Garasje",
+            showMark: false,
+            connectNulls: false,
+            color: theme.palette.primary.main,
+          },
+          {
+            id: "outdoor",
+            data: outdoorData,
+            label: "Utetemperatur",
+            showMark: false,
+            connectNulls: false,
+            color: theme.palette.secondary.main,
+          },
+          {
+            id: "forecast",
+            data: forecastData,
+            label: "met.no-varsel",
+            showMark: false,
+            connectNulls: false,
+            color: theme.palette.primary.light,
+          },
+        ]
+      : [
+          {
+            id: "indoor-outdoor-deviation",
+            data: indoorOutdoorDeviationData,
+            label: "Garasje − ute",
+            showMark: false,
+            connectNulls: false,
+            color: theme.palette.primary.light,
+          },
+          {
+            id: "outdoor-forecast-deviation",
+            data: outdoorForecastDeviationData,
+            label: "Ute − met.no",
+            showMark: false,
+            connectNulls: false,
+            color: theme.palette.secondary.main,
+          },
+        ];
+  const visibleChartSeries = series.filter(
+    (item) => typeof item.id === "string" && visibleSeries.includes(item.id),
+  );
 
   function applyCustomRange() {
     const startDate = parseDateInputValue(selectedFromDate);
@@ -439,19 +500,24 @@ export default function IotTemperatureChart({
         {chartMode === "temperature" &&
         !customRange &&
         windowOffset === 0 &&
+        visibleSeries.includes("forecast") &&
         futureForecast.length > 0
           ? " · Yr-varsel neste 24 timer"
           : ""}
       </Typography>
 
       {chartMode === "deviation" &&
-        (indoorOutdoorSummary || outdoorForecastSummary) && (
+        ((visibleSeries.includes("indoor-outdoor-deviation") &&
+          indoorOutdoorSummary) ||
+          (visibleSeries.includes("outdoor-forecast-deviation") &&
+            outdoorForecastSummary)) && (
           <Stack
             direction={{ xs: "column", sm: "row" }}
             gap={{ xs: 1.5, sm: 4 }}
             mb={1.5}
           >
-            {indoorOutdoorSummary && (
+            {visibleSeries.includes("indoor-outdoor-deviation") &&
+              indoorOutdoorSummary && (
               <Box
                 sx={{
                   borderLeft: "3px solid",
@@ -468,7 +534,8 @@ export default function IotTemperatureChart({
                 </Typography>
               </Box>
             )}
-            {outdoorForecastSummary && (
+            {visibleSeries.includes("outdoor-forecast-deviation") &&
+              outdoorForecastSummary && (
               <Box
                 sx={{
                   borderLeft: "3px solid",
@@ -488,12 +555,59 @@ export default function IotTemperatureChart({
           </Stack>
         )}
 
+      <IotSeriesToggle
+        label={chartMode === "temperature" ? "Temperaturkurver" : "Avvikskurver"}
+        options={
+          chartMode === "temperature"
+            ? [
+                {
+                  id: "measured",
+                  label: "Garasje",
+                  color: theme.palette.primary.main,
+                },
+                {
+                  id: "outdoor",
+                  label: "Utetemperatur",
+                  color: theme.palette.secondary.main,
+                },
+                {
+                  id: "forecast",
+                  label: "met.no-varsel",
+                  color: theme.palette.primary.light,
+                  dashed: true,
+                },
+              ]
+            : [
+                {
+                  id: "indoor-outdoor-deviation",
+                  label: "Garasje − ute",
+                  color: theme.palette.primary.light,
+                },
+                {
+                  id: "outdoor-forecast-deviation",
+                  label: "Ute − met.no",
+                  color: theme.palette.secondary.main,
+                  dashed: true,
+                },
+              ]
+        }
+        visible={visibleSeries}
+        onChange={setVisibleSeries}
+      />
+
       {loading ? (
         <Box sx={{ minHeight: 360, display: "grid", placeItems: "center" }}>
           <CircularProgress aria-label="Henter temperaturdata" />
         </Box>
+      ) : visibleChartSeries.length === 0 ? (
+        <Box sx={{ minHeight: 360, display: "grid", placeItems: "center" }}>
+          <Typography color="text.secondary">
+            Vel minst ei kurve for å vise grafen.
+          </Typography>
+        </Box>
       ) : xData.length > 0 ? (
         <LineChart
+          hideLegend
           xAxis={[
             {
               data: xData,
@@ -513,53 +627,7 @@ export default function IotTemperatureChart({
                   max: deviationLimit,
                 },
           ]}
-          series={
-            chartMode === "temperature"
-              ? [
-                  {
-                    id: "measured",
-                    data: measuredData,
-                    label: "Garasje",
-                    showMark: false,
-                    connectNulls: false,
-                    color: theme.palette.primary.main,
-                  },
-                  {
-                    id: "outdoor",
-                    data: outdoorData,
-                    label: "Utetemperatur",
-                    showMark: false,
-                    connectNulls: false,
-                    color: theme.palette.secondary.main,
-                  },
-                  {
-                    id: "forecast",
-                    data: forecastData,
-                    label: "met.no-varsel",
-                    showMark: false,
-                    connectNulls: false,
-                    color: theme.palette.primary.light,
-                  },
-                ]
-              : [
-                  {
-                    id: "indoor-outdoor-deviation",
-                    data: indoorOutdoorDeviationData,
-                    label: "Garasje − ute",
-                    showMark: false,
-                    connectNulls: false,
-                    color: theme.palette.primary.light,
-                  },
-                  {
-                    id: "outdoor-forecast-deviation",
-                    data: outdoorForecastDeviationData,
-                    label: "Ute − met.no",
-                    showMark: false,
-                    connectNulls: false,
-                    color: theme.palette.secondary.main,
-                  },
-                ]
-          }
+          series={visibleChartSeries}
           height={430}
           margin={{ left: 16, right: 16, bottom: 12 }}
           slotProps={{

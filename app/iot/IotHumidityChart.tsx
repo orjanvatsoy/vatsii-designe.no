@@ -3,6 +3,7 @@
 import { Box, CircularProgress, Typography, useTheme } from "@mui/material";
 import { LineChart } from "@mui/x-charts/LineChart";
 import { useEffect, useState } from "react";
+import IotSeriesToggle from "./IotSeriesToggle";
 
 interface HumidityForecast {
   time: string;
@@ -39,6 +40,7 @@ export default function IotHumidityChart({
 }: IotHumidityChartProps) {
   const theme = useTheme();
   const [forecast, setForecast] = useState<HumidityForecast[]>([]);
+  const [visibleSeries, setVisibleSeries] = useState(["humidity", "forecast"]);
 
   useEffect(() => {
     let ignore = false;
@@ -145,49 +147,79 @@ export default function IotHumidityChart({
 
   return (
     <Box sx={{ width: "100%" }}>
-      {!customRange && windowOffset === 0 && futureForecast.length > 0 && (
-        <Typography variant="body2" color="text.secondary" mb={1}>
-          met.no-varsel neste 24 timer
-        </Typography>
-      )}
-      <LineChart
-        xAxis={[
-          {
-            data: xData,
-            scaleType: "time",
-            min: windowStart,
-            max: displayEnd,
-            tickNumber: 7,
-            valueFormatter: (value: Date) => dateFormatter.format(value),
-          },
-        ]}
-        yAxis={[{ label: "Luftfuktighet (%)", min: 0, max: 100 }]}
-        series={[
+      {!customRange &&
+        windowOffset === 0 &&
+        visibleSeries.includes("forecast") &&
+        futureForecast.length > 0 && (
+          <Typography variant="body2" color="text.secondary" mb={1}>
+            met.no-varsel neste 24 timer
+          </Typography>
+        )}
+      <IotSeriesToggle
+        label="Luftfuktighetskurver"
+        options={[
           {
             id: "humidity",
-            data: humidityData,
             label: "Garasje",
-            showMark: false,
-            connectNulls: false,
             color: theme.palette.secondary.main,
           },
           {
             id: "forecast",
-            data: forecastData,
             label: "met.no-varsel",
-            showMark: false,
-            connectNulls: false,
             color: theme.palette.primary.light,
+            dashed: true,
           },
         ]}
-        height={390}
-        margin={{ left: 16, right: 16, bottom: 12 }}
-        slotProps={{
-          line: ({ id }) => ({
-            strokeDasharray: id === "forecast" ? "5 5" : "0",
-          }),
-        }}
+        visible={visibleSeries}
+        onChange={setVisibleSeries}
       />
+      {visibleSeries.length === 0 ? (
+        <Box sx={{ minHeight: 320, display: "grid", placeItems: "center" }}>
+          <Typography color="text.secondary">
+            Vel minst ei kurve for å vise grafen.
+          </Typography>
+        </Box>
+      ) : (
+        <LineChart
+          hideLegend
+          xAxis={[
+            {
+              data: xData,
+              scaleType: "time",
+              min: windowStart,
+              max: displayEnd,
+              tickNumber: 7,
+              valueFormatter: (value: Date) => dateFormatter.format(value),
+            },
+          ]}
+          yAxis={[{ label: "Luftfuktighet (%)", min: 0, max: 100 }]}
+          series={[
+            {
+              id: "humidity",
+              data: humidityData,
+              label: "Garasje",
+              showMark: false,
+              connectNulls: false,
+              color: theme.palette.secondary.main,
+            },
+            {
+              id: "forecast",
+              data: forecastData,
+              label: "met.no-varsel",
+              showMark: false,
+              connectNulls: false,
+              color: theme.palette.primary.light,
+            },
+          ].filter((item) => visibleSeries.includes(item.id))}
+          height={390}
+          margin={{ left: 16, right: 16, bottom: 12 }}
+          slotProps={{
+            line: ({ id }) => ({
+              strokeDasharray: id === "forecast" ? "5 5" : "0",
+            }),
+          }}
+        />
+      )}
     </Box>
   );
 }
