@@ -85,6 +85,7 @@ interface IotTemperatureChartProps {
   hourRange: number;
   windowOffset: number;
   customRange: { start: Date; end: Date } | null;
+  earliestReading: string | null | undefined;
   loading: boolean;
   onHourRangeChange: (hours: number) => void;
   onWindowOffsetChange: (offset: number) => void;
@@ -96,6 +97,7 @@ export default function IotTemperatureChart({
   hourRange,
   windowOffset,
   customRange,
+  earliestReading,
   loading,
   onHourRangeChange,
   onWindowOffsetChange,
@@ -109,13 +111,20 @@ export default function IotTemperatureChart({
     { time: string; temperature: number }[]
   >([]);
   const [today] = useState(() => new Date());
-  const [fromDate, setFromDate] = useState(() =>
-    formatDateInputValue(
-      new Date(today.getTime() - (DEFAULT_RANGE_DAYS - 1) * DAY),
-    ),
-  );
+  const [fromDate, setFromDate] = useState<string | null>(null);
   const [toDate, setToDate] = useState(() => formatDateInputValue(today));
   const [rangeError, setRangeError] = useState("");
+  const earliestReadingDate = earliestReading ? new Date(earliestReading) : null;
+  const earliestDate = earliestReadingDate
+    ? formatDateInputValue(earliestReadingDate)
+    : null;
+  const defaultFromDate = formatDateInputValue(
+    new Date(today.getTime() - (DEFAULT_RANGE_DAYS - 1) * DAY),
+  );
+  const selectedFromDate =
+    fromDate ?? (earliestDate && earliestDate > defaultFromDate
+      ? earliestDate
+      : defaultFromDate);
 
   useEffect(() => {
     let ignore = false;
@@ -260,10 +269,14 @@ export default function IotTemperatureChart({
   const rangeLabel = `${dateFormatter.format(windowStart)} – ${dateFormatter.format(windowEnd)}`;
 
   function applyCustomRange() {
-    const startDate = parseDateInputValue(fromDate);
+    const startDate = parseDateInputValue(selectedFromDate);
     const endDate = parseDateInputValue(toDate);
     if (!startDate || !endDate) {
       setRangeError("Velg gyldige frå- og til-datoar.");
+      return;
+    }
+    if (!earliestDate || selectedFromDate < earliestDate) {
+      setRangeError("Frå-datoen kan ikkje vere før første måling.");
       return;
     }
 
@@ -325,13 +338,15 @@ export default function IotTemperatureChart({
 
         <Stack direction="row" alignItems="center" justifyContent="space-between">
           <Tooltip title="Forrige periode">
-            <IconButton
-              aria-label="Vis forrige periode"
-              disabled={Boolean(customRange)}
-              onClick={() => onWindowOffsetChange(windowOffset - 1)}
-            >
-              <ChevronLeftIcon />
-            </IconButton>
+            <span>
+              <IconButton
+                aria-label="Vis forrige periode"
+                disabled={Boolean(customRange)}
+                onClick={() => onWindowOffsetChange(windowOffset - 1)}
+              >
+                <ChevronLeftIcon />
+              </IconButton>
+            </span>
           </Tooltip>
           <Button
             variant={
@@ -371,9 +386,13 @@ export default function IotTemperatureChart({
           label="Frå dato"
           type="date"
           size="small"
-          value={fromDate}
+          value={selectedFromDate}
           onChange={(event) => setFromDate(event.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }}
+          disabled={!earliestDate}
+          slotProps={{
+            inputLabel: { shrink: true },
+            htmlInput: { min: earliestDate ?? undefined },
+          }}
         />
         <TextField
           label="Til dato"
@@ -381,12 +400,30 @@ export default function IotTemperatureChart({
           size="small"
           value={toDate}
           onChange={(event) => setToDate(event.target.value)}
+          disabled={!earliestDate}
           slotProps={{ inputLabel: { shrink: true } }}
         />
-        <Button variant="outlined" onClick={applyCustomRange}>
+        <Button
+          variant="outlined"
+          onClick={applyCustomRange}
+          disabled={!earliestDate}
+        >
           Vis periode
         </Button>
       </Stack>
+      {earliestReadingDate && (
+        <Typography variant="caption" color="text.secondary" display="block">
+          Første måling:{" "}
+          {new Intl.DateTimeFormat("nb-NO", { dateStyle: "long" }).format(
+            earliestReadingDate,
+          )}
+        </Typography>
+      )}
+      {earliestReading === null && (
+        <Typography variant="caption" color="text.secondary" display="block">
+          Det finst ingen registrerte målingar.
+        </Typography>
+      )}
       <Typography variant="caption" color="text.secondary" display="block" mb={1}>
         For periodar over 14 døgn blir målingane gjennomsnittsberekna per time,
         og over 90 døgn per døgn.

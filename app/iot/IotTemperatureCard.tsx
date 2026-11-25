@@ -25,6 +25,7 @@ interface IotTemperatureChartProps {
   hourRange: number;
   windowOffset: number;
   customRange: { start: Date; end: Date } | null;
+  earliestReading: string | null | undefined;
   loading: boolean;
   onHourRangeChange: (hours: number) => void;
   onWindowOffsetChange: (offset: number) => void;
@@ -71,8 +72,50 @@ export default function IotTemperatureCard() {
     end: Date;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [error, setError] = useState("");
+  const [earliestReading, setEarliestReading] = useState<
+    string | null | undefined
+  >(undefined);
+  const [metadataError, setMetadataError] = useState("");
   const isKing = role === "King" || role === "User";
+
+  useEffect(() => {
+    const token = session?.access_token;
+    if (!isKing || !token) return;
+
+    let active = true;
+    const controller = new AbortController();
+    setEarliestReading(undefined);
+    setMetadataError("");
+    fetch("/api/iot/temperature?metadata=1", {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Temperature metadata request failed");
+        return (await response.json()) as { earliestReading: string | null };
+      })
+      .then(({ earliestReading: firstReading }) => {
+        if (
+          firstReading !== null &&
+          (typeof firstReading !== "string" ||
+            Number.isNaN(new Date(firstReading).getTime()))
+        ) {
+          throw new Error("Invalid temperature metadata");
+        }
+        if (active) setEarliestReading(firstReading);
+      })
+      .catch(() => {
+        if (active) setMetadataError("Kunne ikke hente første måledato.");
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [isKing, session?.access_token]);
 
   useEffect(() => {
     const token = session?.access_token;
@@ -104,6 +147,7 @@ export default function IotTemperatureCard() {
       .then((temperatureData) => {
         if (active) {
           setData(temperatureData);
+          setHasLoaded(true);
           if (!customRange && windowOffset === 0) {
             setLatestReading(temperatureData.at(-1) ?? null);
           }
@@ -172,7 +216,7 @@ export default function IotTemperatureCard() {
       subtitle="Temperatur og luftfuktighet fra IoT-sensoren, sammenlignet med met.no."
       maxWidth="lg"
     >
-      {loading && data.length === 0 ? (
+      {loading && !hasLoaded ? (
         <Box sx={{ minHeight: 320, display: "grid", placeItems: "center" }}>
           <CircularProgress aria-label="Henter temperaturdata" />
         </Box>
@@ -298,11 +342,17 @@ export default function IotTemperatureCard() {
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
               Temperaturhistorikk og værvarsel
             </Typography>
+            {metadataError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {metadataError} Datovalg er utilgjengelig.
+              </Alert>
+            )}
             <IotTemperatureChart
               data={data}
               hourRange={hourRange}
               windowOffset={windowOffset}
               customRange={customRange}
+              earliestReading={earliestReading}
               loading={loading}
               onHourRangeChange={(hours) => {
                 setHourRange(hours);

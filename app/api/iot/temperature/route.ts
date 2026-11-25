@@ -36,6 +36,17 @@ export async function GET(request: Request) {
   }
 
   const searchParams = new URL(request.url).searchParams;
+  if (searchParams.get("metadata") === "1") {
+    const firstReading = await prisma.temperatureData.findFirst({
+      where: { createdAt: { not: null } },
+      orderBy: { createdAt: "asc" },
+      select: { createdAt: true },
+    });
+    return NextResponse.json({
+      earliestReading: firstReading?.createdAt?.toISOString() ?? null,
+    });
+  }
+
   const end = new Date(searchParams.get("end") ?? Date.now());
   const start = new Date(
     searchParams.get("start") ?? end.getTime() - 24 * 60 * 60 * 1000,
