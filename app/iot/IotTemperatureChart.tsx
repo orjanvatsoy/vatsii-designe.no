@@ -28,7 +28,7 @@ async function fetchYrForecast() {
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
-const MAX_RANGE_DAYS = 14;
+const DEFAULT_RANGE_DAYS = 14;
 
 const rangeOptions = [
   { hours: 24, label: "1 døgn" },
@@ -110,7 +110,9 @@ export default function IotTemperatureChart({
   >([]);
   const [today] = useState(() => new Date());
   const [fromDate, setFromDate] = useState(() =>
-    formatDateInputValue(new Date(today.getTime() - (MAX_RANGE_DAYS - 1) * DAY)),
+    formatDateInputValue(
+      new Date(today.getTime() - (DEFAULT_RANGE_DAYS - 1) * DAY),
+    ),
   );
   const [toDate, setToDate] = useState(() => formatDateInputValue(today));
   const [rangeError, setRangeError] = useState("");
@@ -274,11 +276,6 @@ export default function IotTemperatureChart({
       setRangeError("Frå-datoen må vere før til-datoen.");
       return;
     }
-    if (endExclusive.getTime() - startDate.getTime() > MAX_RANGE_DAYS * DAY) {
-      setRangeError("Du kan velje maksimalt 14 døgn.");
-      return;
-    }
-
     setRangeError("");
     onCustomRangeChange({
       start: startDate,
@@ -390,6 +387,10 @@ export default function IotTemperatureChart({
           Vis periode
         </Button>
       </Stack>
+      <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+        For periodar over 14 døgn blir målingane gjennomsnittsberekna per time,
+        og over 90 døgn per døgn.
+      </Typography>
       {rangeError && (
         <Typography color="error" variant="body2" role="alert" mb={1}>
           {rangeError}

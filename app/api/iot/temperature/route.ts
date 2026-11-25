@@ -3,7 +3,23 @@ import { prisma } from "../../../lib/prisma";
 import { requireUser } from "../../../lib/requireUser";
 
 export const dynamic = "force-dynamic";
-const MAX_RANGE_MS = 14 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const HOURLY_AGGREGATION_THRESHOLD_MS = 14 * DAY_MS;
+const DAILY_AGGREGATION_THRESHOLD_MS = 90 * DAY_MS;
+
+type TemperatureDataRow = {
+  createdAt: Date | null;
+  temperature: number | { toNumber(): number } | null;
+  temperatureForecast: number | { toNumber(): number } | null;
+  humidity: number | { toNumber(): number } | null;
+  humidityForecast: number | { toNumber(): number } | null;
+  outdoorTemperature: number | { toNumber(): number } | null;
+};
+
+function toNullableNumber(value: TemperatureDataRow["temperature"]) {
+  if (value === null) return null;
+  return typeof value === "number" ? value : value.toNumber();
+}
 
 export async function GET(request: Request) {
   const authResult = await requireUser(request);
@@ -27,27 +43,45 @@ export async function GET(request: Request) {
   if (
     Number.isNaN(start.getTime()) ||
     Number.isNaN(end.getTime()) ||
-    start >= end ||
-    end.getTime() - start.getTime() > MAX_RANGE_MS
+    start >= end
   ) {
     return NextResponse.json(
-      { error: "Ugyldig tidsperiode. Velg maksimalt 14 døgn." },
+      { error: "Ugyldig tidsperiode." },
       { status: 400 },
     );
   }
 
-  const temperatureData = await prisma.temperatureData.findMany({
-    where: { createdAt: { gte: start, lte: end } },
-    orderBy: { createdAt: "asc" },
-    select: {
-      createdAt: true,
-      temperature: true,
-      temperatureForecast: true,
-      humidity: true,
-      humidityForecast: true,
-      outdoorTemperature: true,
-    },
-  });
+  const rangeMs = end.getTime() - start.getTime();
+  let temperatureData: TemperatureDataRow[];
+  if (rangeMs <= HOURLY_AGGREGATION_THRESHOLD_MS) {
+    temperatureData = await prisma.temperatureData.findMany({
+      where: { createdAt: { gte: start, lte: end } },
+      orderBy: { createdAt: "asc" },
+      select: {
+        createdAt: true,
+        temperature: true,
+        temperatureForecast: true,
+        humidity: true,
+        humidityForecast: true,
+        outdoorTemperature: true,
+      },
+    });
+  } else {
+    const bucket = rangeMs > DAILY_AGGREGATION_THRESHOLD_MS ? "day" : "hour";
+    temperatureData = await prisma.$queryRaw<TemperatureDataRow[]>`
+      SELECT
+        date_trunc(${bucket}::text, created_at) AS "createdAt",
+        AVG(temperature)::float8 AS temperature,
+        AVG(temperature_forcast)::float8 AS "temperatureForecast",
+        AVG(humidity)::float8 AS humidity,
+        AVG(humidity_forcast)::float8 AS "humidityForecast",
+        AVG(outdoor_temperature)::float8 AS "outdoorTemperature"
+      FROM temperature_data
+      WHERE created_at >= ${start} AND created_at <= ${end}
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `;
+  }
 
   return NextResponse.json(
     temperatureData.flatMap((entry) =>
@@ -56,12 +90,11 @@ export async function GET(request: Request) {
         : [
             {
               created_at: entry.createdAt.toISOString(),
-              temperature: entry.temperature?.toNumber() ?? null,
-              temperature_forcast:
-                entry.temperatureForecast?.toNumber() ?? null,
-              humidity: entry.humidity?.toNumber() ?? null,
-              humidity_forcast: entry.humidityForecast?.toNumber() ?? null,
-              outdoor_temperature: entry.outdoorTemperature?.toNumber() ?? null,
+              temperature: toNullableNumber(entry.temperature),
+              temperature_forcast: toNullableNumber(entry.temperatureForecast),
+              humidity: toNullableNumber(entry.humidity),
+              humidity_forcast: toNullableNumber(entry.humidityForecast),
+              outdoor_temperature: toNullableNumber(entry.outdoorTemperature),
             },
           ],
     ),
