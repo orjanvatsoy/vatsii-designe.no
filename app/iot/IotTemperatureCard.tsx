@@ -19,6 +19,7 @@ import PageShell from "../Components/PageShell";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { RequireRole, useAuth } from "../Components/AuthProvider";
+import { GARAGE_DEVICE_ID, type TemperatureData } from "./iotData";
 
 interface IotTemperatureChartProps {
   data: TemperatureData[];
@@ -30,15 +31,6 @@ interface IotTemperatureChartProps {
   onHourRangeChange: (hours: number) => void;
   onWindowOffsetChange: (offset: number) => void;
   onCustomRangeChange: (range: { start: Date; end: Date } | null) => void;
-}
-
-interface TemperatureData {
-  created_at: string;
-  temperature: number | null;
-  temperature_forcast?: number | null;
-  humidity?: number | null;
-  humidity_forcast?: number | null;
-  outdoor_temperature?: number | null;
 }
 
 const HOUR = 60 * 60 * 1000;
@@ -149,7 +141,11 @@ export default function IotTemperatureCard() {
           setData(temperatureData);
           setHasLoaded(true);
           if (!customRange && windowOffset === 0) {
-            setLatestReading(temperatureData.at(-1) ?? null);
+            setLatestReading(
+              temperatureData.findLast(
+                (entry) => entry.device_id === GARAGE_DEVICE_ID,
+              ) ?? null,
+            );
           }
         }
       })
@@ -212,8 +208,8 @@ export default function IotTemperatureCard() {
   return (
     <PageShell
       eyebrow="SANNTID"
-      title="Klima i garasjen"
-      subtitle="Temperatur og luftfuktighet fra IoT-sensoren, sammenlignet med met.no."
+      title="Klima i garasjen og hytta"
+      subtitle="Temperatur og luftfuktighet fra IoT-sensorene, sammenlignet med met.no."
       maxWidth="lg"
     >
       {loading && !hasLoaded ? (

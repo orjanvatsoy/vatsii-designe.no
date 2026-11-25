@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 import { requireUser } from "../../../lib/requireUser";
+import { CABIN_DEVICE_ID, GARAGE_DEVICE_ID } from "../../../iot/iotData";
 
 export const dynamic = "force-dynamic";
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -9,6 +10,7 @@ const DAILY_AGGREGATION_THRESHOLD_MS = 90 * DAY_MS;
 
 type TemperatureDataRow = {
   createdAt: Date | null;
+  deviceId: string | null;
   temperature: number | { toNumber(): number } | null;
   temperatureForecast: number | { toNumber(): number } | null;
   humidity: number | { toNumber(): number } | null;
@@ -38,7 +40,10 @@ export async function GET(request: Request) {
   const searchParams = new URL(request.url).searchParams;
   if (searchParams.get("metadata") === "1") {
     const firstReading = await prisma.temperatureData.findFirst({
-      where: { createdAt: { not: null } },
+      where: {
+        createdAt: { not: null },
+        deviceId: { in: [GARAGE_DEVICE_ID, CABIN_DEVICE_ID] },
+      },
       orderBy: { createdAt: "asc" },
       select: { createdAt: true },
     });
@@ -66,10 +71,14 @@ export async function GET(request: Request) {
   let temperatureData: TemperatureDataRow[];
   if (rangeMs <= HOURLY_AGGREGATION_THRESHOLD_MS) {
     temperatureData = await prisma.temperatureData.findMany({
-      where: { createdAt: { gte: start, lte: end } },
+      where: {
+        createdAt: { gte: start, lte: end },
+        deviceId: { in: [GARAGE_DEVICE_ID, CABIN_DEVICE_ID] },
+      },
       orderBy: { createdAt: "asc" },
       select: {
         createdAt: true,
+        deviceId: true,
         temperature: true,
         temperatureForecast: true,
         humidity: true,
@@ -81,7 +90,8 @@ export async function GET(request: Request) {
     const bucket = rangeMs > DAILY_AGGREGATION_THRESHOLD_MS ? "day" : "hour";
     temperatureData = await prisma.$queryRaw<TemperatureDataRow[]>`
       SELECT
-        date_trunc(${bucket}::text, created_at) AS "createdAt",
+        MIN(created_at) AS "createdAt",
+        device_id AS "deviceId",
         AVG(temperature)::float8 AS temperature,
         AVG(temperature_forcast)::float8 AS "temperatureForecast",
         AVG(humidity)::float8 AS humidity,
@@ -89,8 +99,9 @@ export async function GET(request: Request) {
         AVG(outdoor_temperature)::float8 AS "outdoorTemperature"
       FROM temperature_data
       WHERE created_at >= ${start} AND created_at <= ${end}
-      GROUP BY 1
-      ORDER BY 1 ASC
+        AND device_id IN (${GARAGE_DEVICE_ID}, ${CABIN_DEVICE_ID})
+      GROUP BY date_trunc(${bucket}::text, created_at), device_id
+      ORDER BY "createdAt" ASC
     `;
   }
 
@@ -101,6 +112,7 @@ export async function GET(request: Request) {
         : [
             {
               created_at: entry.createdAt.toISOString(),
+              device_id: entry.deviceId,
               temperature: toNullableNumber(entry.temperature),
               temperature_forcast: toNullableNumber(entry.temperatureForecast),
               humidity: toNullableNumber(entry.humidity),

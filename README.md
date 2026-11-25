@@ -42,6 +42,12 @@ Mockdata er deaktivert i produksjon selv om variabelen skulle bli satt der.
 innlogging. Skjema og responsivt design kan testes lokalt, men lagring og
 innsending krever fortsatt en konfigurert database og Supabase.
 
+## IoT-målinger
+
+IoT-grafene viser målinger med `device_id` `IngerBangIOT` for garasjen og
+`HytteStue` for hytta. Målinger uten ID vises ikke. For lengre perioder
+beregnes gjennomsnitt separat for hver enhet.
+
 ## E-postvarsler
 
 Forespørsler bruker [Resend](https://resend.com) til å varsle eier og sende

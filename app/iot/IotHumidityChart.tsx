@@ -4,6 +4,11 @@ import { Box, CircularProgress, Typography, useTheme } from "@mui/material";
 import { LineChart } from "@mui/x-charts/LineChart";
 import { useEffect, useState } from "react";
 import IotSeriesToggle from "./IotSeriesToggle";
+import {
+  CABIN_DEVICE_ID,
+  GARAGE_DEVICE_ID,
+  type TemperatureData,
+} from "./iotData";
 
 interface HumidityForecast {
   time: string;
@@ -20,11 +25,7 @@ async function fetchHumidityForecast() {
 const HOUR = 60 * 60 * 1000;
 
 interface IotHumidityChartProps {
-  data: {
-    created_at: string;
-    humidity?: number | null;
-    humidity_forcast?: number | null;
-  }[];
+  data: TemperatureData[];
   hourRange: number;
   windowOffset: number;
   customRange: { start: Date; end: Date } | null;
@@ -40,7 +41,11 @@ export default function IotHumidityChart({
 }: IotHumidityChartProps) {
   const theme = useTheme();
   const [forecast, setForecast] = useState<HumidityForecast[]>([]);
-  const [visibleSeries, setVisibleSeries] = useState(["humidity", "forecast"]);
+  const [visibleSeries, setVisibleSeries] = useState([
+    "humidity",
+    "cabin",
+    "forecast",
+  ]);
 
   useEffect(() => {
     let ignore = false;
@@ -67,6 +72,7 @@ export default function IotHumidityChart({
   const displayEnd =
     !customRange && windowOffset === 0 ? forecastEnd : windowEnd;
   const humidityByTime = new Map<number, number>();
+  const cabinByTime = new Map<number, number>();
   const forecastByTime = new Map<number, number>();
 
   data.forEach((entry) => {
@@ -75,15 +81,25 @@ export default function IotHumidityChart({
       timestamp >= windowStart.getTime() &&
       timestamp <= windowEnd.getTime() &&
       entry.humidity !== undefined &&
-      entry.humidity !== null
+      entry.humidity !== null &&
+      entry.device_id === GARAGE_DEVICE_ID
     ) {
       humidityByTime.set(timestamp, entry.humidity);
     }
     if (
       timestamp >= windowStart.getTime() &&
       timestamp <= windowEnd.getTime() &&
+      entry.humidity !== null &&
+      entry.device_id === CABIN_DEVICE_ID
+    ) {
+      cabinByTime.set(timestamp, entry.humidity);
+    }
+    if (
+      timestamp >= windowStart.getTime() &&
+      timestamp <= windowEnd.getTime() &&
       entry.humidity_forcast !== undefined &&
-      entry.humidity_forcast !== null
+      entry.humidity_forcast !== null &&
+      entry.device_id === GARAGE_DEVICE_ID
     ) {
       forecastByTime.set(timestamp, entry.humidity_forcast);
     }
@@ -103,11 +119,18 @@ export default function IotHumidityChart({
   });
 
   const timestamps = [
-    ...new Set([...humidityByTime.keys(), ...forecastByTime.keys()]),
+    ...new Set([
+      ...humidityByTime.keys(),
+      ...cabinByTime.keys(),
+      ...forecastByTime.keys(),
+    ]),
   ].sort((left, right) => left - right);
   const xData = timestamps.map((timestamp) => new Date(timestamp));
   const humidityData = timestamps.map(
     (timestamp) => humidityByTime.get(timestamp) ?? null,
+  );
+  const cabinData = timestamps.map(
+    (timestamp) => cabinByTime.get(timestamp) ?? null,
   );
   const forecastData = timestamps.map(
     (timestamp) => forecastByTime.get(timestamp) ?? null,
@@ -163,6 +186,7 @@ export default function IotHumidityChart({
             label: "Garasje",
             color: theme.palette.secondary.main,
           },
+          { id: "cabin", label: "Hytte", color: "#80B8D1" },
           {
             id: "forecast",
             label: "met.no-varsel",
@@ -199,15 +223,23 @@ export default function IotHumidityChart({
               data: humidityData,
               label: "Garasje",
               showMark: false,
-              connectNulls: false,
+              connectNulls: true,
               color: theme.palette.secondary.main,
+            },
+            {
+              id: "cabin",
+              data: cabinData,
+              label: "Hytte",
+              showMark: cabinByTime.size === 1,
+              connectNulls: true,
+              color: "#80B8D1",
             },
             {
               id: "forecast",
               data: forecastData,
               label: "met.no-varsel",
               showMark: false,
-              connectNulls: false,
+              connectNulls: true,
               color: theme.palette.primary.light,
             },
           ].filter((item) => visibleSeries.includes(item.id))}

@@ -19,6 +19,11 @@ import { useEffect, useState } from "react";
 import { ChartsReferenceLine } from "@mui/x-charts/ChartsReferenceLine";
 import { LineChart, type LineSeries } from "@mui/x-charts/LineChart";
 import IotSeriesToggle from "./IotSeriesToggle";
+import {
+  CABIN_DEVICE_ID,
+  GARAGE_DEVICE_ID,
+  type TemperatureData,
+} from "./iotData";
 
 async function fetchYrForecast() {
   const res = await fetch("/api/YRforecast");
@@ -77,12 +82,7 @@ function parseDateInputValue(value: string) {
 }
 
 interface IotTemperatureChartProps {
-  data: {
-    created_at: string;
-    temperature: number | null;
-    temperature_forcast?: number | null;
-    outdoor_temperature?: number | null;
-  }[];
+  data: TemperatureData[];
   hourRange: number;
   windowOffset: number;
   customRange: { start: Date; end: Date } | null;
@@ -110,6 +110,7 @@ export default function IotTemperatureChart({
   );
   const [visibleSeries, setVisibleSeries] = useState([
     "measured",
+    "cabin",
     "outdoor",
     "forecast",
     "indoor-outdoor-deviation",
@@ -176,15 +177,20 @@ export default function IotTemperatureChart({
       : [];
 
   const measuredByTime = new Map<number, number>();
+  const cabinByTime = new Map<number, number>();
   const outdoorByTime = new Map<number, number>();
   const forecastByTime = new Map<number, number>();
   const indoorOutdoorDeviationByTime = new Map<number, number>();
   const outdoorForecastDeviationByTime = new Map<number, number>();
   measuredInWindow.forEach((entry) => {
     const timestamp = new Date(entry.created_at).getTime();
-    if (entry.temperature !== null) {
+    if (entry.temperature !== null && entry.device_id === GARAGE_DEVICE_ID) {
       measuredByTime.set(timestamp, entry.temperature);
     }
+    if (entry.temperature !== null && entry.device_id === CABIN_DEVICE_ID) {
+      cabinByTime.set(timestamp, entry.temperature);
+    }
+    if (entry.device_id !== GARAGE_DEVICE_ID) return;
     if (
       entry.outdoor_temperature !== undefined &&
       entry.outdoor_temperature !== null
@@ -226,6 +232,7 @@ export default function IotTemperatureChart({
   const temperatureTimestamps = [
     ...new Set([
       ...measuredByTime.keys(),
+      ...cabinByTime.keys(),
       ...outdoorByTime.keys(),
       ...forecastByTime.keys(),
     ]),
@@ -241,6 +248,9 @@ export default function IotTemperatureChart({
   const xData = timestamps.map((timestamp) => new Date(timestamp));
   const measuredData = timestamps.map(
     (timestamp) => measuredByTime.get(timestamp) ?? null,
+  );
+  const cabinData = timestamps.map(
+    (timestamp) => cabinByTime.get(timestamp) ?? null,
   );
   const outdoorData = timestamps.map(
     (timestamp) => outdoorByTime.get(timestamp) ?? null,
@@ -287,15 +297,23 @@ export default function IotTemperatureChart({
             data: measuredData,
             label: "Garasje",
             showMark: false,
-            connectNulls: false,
+            connectNulls: true,
             color: theme.palette.primary.main,
+          },
+          {
+            id: "cabin",
+            data: cabinData,
+            label: "Hytte",
+            showMark: cabinByTime.size === 1,
+            connectNulls: true,
+            color: "#80B8D1",
           },
           {
             id: "outdoor",
             data: outdoorData,
             label: "Utetemperatur",
             showMark: false,
-            connectNulls: false,
+            connectNulls: true,
             color: theme.palette.secondary.main,
           },
           {
@@ -303,7 +321,7 @@ export default function IotTemperatureChart({
             data: forecastData,
             label: "met.no-varsel",
             showMark: false,
-            connectNulls: false,
+            connectNulls: true,
             color: theme.palette.primary.light,
           },
         ]
@@ -564,6 +582,11 @@ export default function IotTemperatureChart({
                   id: "measured",
                   label: "Garasje",
                   color: theme.palette.primary.main,
+                },
+                {
+                  id: "cabin",
+                  label: "Hytte",
+                  color: "#80B8D1",
                 },
                 {
                   id: "outdoor",
